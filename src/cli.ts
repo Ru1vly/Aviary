@@ -228,7 +228,7 @@ async function main() {
     // If JSON output is requested, just print JSON and exit
     if (args.json) {
       console.log(JSON.stringify(report, null, 2));
-      process.exit(0);
+      return;
     }
 
     console.log(`📊 SEO Report for ${report.url}\n`);
@@ -314,7 +314,7 @@ async function main() {
     }
 
     // Exit with success code - tool ran successfully regardless of SEO score
-    process.exit(0);
+    return;
   } catch (error) {
     console.error('❌ Error:', (error as Error).message);
     process.exit(1);
