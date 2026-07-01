@@ -8,7 +8,7 @@
     "e2e-seo": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/build.js",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",

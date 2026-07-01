@@ -44,25 +44,32 @@ npm install -g .
 
 ## Quick Start
 
-### Command Line Interface
+Analyze any URL directly from your shell.
 
-Analyze any URL directly from your shell:
+Running the command with no arguments launches the full-screen interactive Terminal User Interface (TUI) Dashboard:
 
 ```bash
-# Basic check
-e2e-seo https://example.com
+# Launch interactive TUI Dashboard
+e2e-seo
+```
+
+To run checks directly in stdout mode (e.g. for scripts, CI pipelines, or AI agents), you must pass the target URL using the `-u` or `--url` flag:
+
+```bash
+# Run direct audit
+e2e-seo -u https://example.com
 
 # Save detailed JSON report to a file
-e2e-seo https://example.com --output report.json
+e2e-seo -u https://example.com --output report.json
 
 # Save a visual HTML report to a file
-e2e-seo https://example.com --html report.html
+e2e-seo -u https://example.com --html report.html
 
 # Run checks with verbose outputs (lists failure details)
-e2e-seo https://example.com --verbose
+e2e-seo -u https://example.com --verbose
 
 # Run with a mobile viewport simulation
-e2e-seo https://example.com --viewport 375x667
+e2e-seo -u https://example.com --viewport 375x667
 ```
 
 ### Programmatic API

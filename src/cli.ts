@@ -65,8 +65,12 @@ function parseArgs(): CliArgs {
         args.verbose = true;
         break;
       default:
-        if (!arg.startsWith('-') && !args.url) {
-          args.url = arg;
+        if (!arg.startsWith('-')) {
+          console.error(`❌ Error: Positional URL arguments are no longer supported.`);
+          console.error(`   Please use the -u or --url flag to specify the URL, e.g.:`);
+          console.error(`     e2e-seo -u ${arg}`);
+          console.error(`\n   Or run "e2e-seo" with no arguments to launch the interactive Terminal User Interface (TUI).`);
+          process.exit(1);
         }
     }
   }
@@ -136,6 +140,30 @@ For more information, visit: https://github.com/yourusername/e2e-seo
 }
 
 async function main() {
+  // If run with no arguments, launch the interactive TUI
+  const hasNoArgs = process.argv.slice(2).length === 0;
+  if (hasNoArgs) {
+    const path = await import('path');
+    const { spawn } = await import('child_process');
+    const tuiPath = path.join(__dirname, 'tui');
+
+    if (!fs.existsSync(tuiPath)) {
+      console.error('❌ Error: TUI binary not found.');
+      console.error('   Please run "npm run build" to compile the TUI dashboard.');
+      process.exit(1);
+    }
+
+    // Spawn TUI inheriting standard streams
+    const tuiProcess = spawn(tuiPath, ['--cli-path', path.join(__dirname, 'cli.js')], {
+      stdio: 'inherit',
+    });
+
+    tuiProcess.on('exit', (code) => {
+      process.exit(code || 0);
+    });
+    return;
+  }
+
   const args = parseArgs();
 
   // Handle --init-config flag
