@@ -55,6 +55,20 @@ export function createMockPage(options: MockPageOptions = {}): Partial<Page> {
       // Return pre-configured results for specific evaluations
       const fnString = fn.toString();
 
+      // Handle new page.evaluate queries for metaTags (quote-agnostic)
+      if (fnString.includes('description') && fnString.includes('meta')) {
+        return metaTags['description'] || null;
+      }
+      if (fnString.includes('keywords') && fnString.includes('meta')) {
+        return metaTags['keywords'] || null;
+      }
+      if (fnString.includes('canonical') && fnString.includes('link')) {
+        return metaTags['canonical'] || null;
+      }
+      if (fnString.includes('viewport') && fnString.includes('meta')) {
+        return metaTags['viewport'] || null;
+      }
+
       for (const [key, value] of Object.entries(evaluateResults)) {
         if (fnString.includes(key)) {
           return value;

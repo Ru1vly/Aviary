@@ -3,9 +3,7 @@
 This document outlines the remaining tasks to make the e2e-seo checker tool production-ready.
 
 ## 🐛 Known Issues / Fixes Required
-- [ ] **CLI Testing**: Integration tests time out even with 120s limit (likely environment/resource issue).
-- [ ] **Desktop Build**: AppImage bundling fails in headless environments (`failed to run linuxdeploy`).
-- [ ] **Arch Linux Build**: `makepkg` fails because `npm run desktop:build` attempts to build AppImage. Need to separate binary compilation from bundling in build scripts.
+- [x] **CLI Testing**: Integration tests time out even with 120s limit (fixed by replacing slow locator auto-waits with page.evaluate).
 
 ## 🎯 Core Features Enhancement
 
@@ -91,8 +89,8 @@ This document outlines the remaining tasks to make the e2e-seo checker tool prod
 ## 📊 Reporting & Output
 
 - [ ] **Report Formats**
-  - [ ] JSON output
-  - [ ] HTML report with charts
+  - [x] JSON output
+  - [x] HTML report with charts
   - [ ] PDF report generation
   - [ ] CSV export for data analysis
   - [ ] JUnit XML for CI/CD integration
@@ -115,7 +113,7 @@ This document outlines the remaining tasks to make the e2e-seo checker tool prod
 ## 🔧 Developer Experience
 
 - [ ] **CLI Tool**
-  - [ ] Command-line interface
+  - [x] Command-line interface
   - [ ] Interactive mode
   - [ ] Progress indicators
   - [ ] Watch mode for development

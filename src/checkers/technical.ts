@@ -128,7 +128,10 @@ export class TechnicalChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Page size check skipped due to error',
       };
     }
@@ -170,7 +173,10 @@ export class TechnicalChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Compression check skipped due to error',
       };
     }
@@ -230,7 +236,10 @@ export class TechnicalChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Duplicate title check skipped due to error',
       };
     }

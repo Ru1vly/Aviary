@@ -175,7 +175,10 @@ export class URLFactorsChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'URL keyword check skipped due to error',
       };
     }

@@ -82,7 +82,8 @@ export class SecurityChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+        severity: 'info',
         message: 'Mixed content check skipped due to error',
       };
     }
@@ -128,7 +129,8 @@ export class SecurityChecker {
       }
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+        severity: 'info',
         message: 'Security headers check skipped due to error',
       };
     }

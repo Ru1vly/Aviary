@@ -36,10 +36,3 @@ temp/
 test-page.html
 test-*.js
 test-*.html
-
-# Tauri
-src-tauri/target/
-src-tauri/WixTools/
-
-# Desktop app
-desktop-app/dist/

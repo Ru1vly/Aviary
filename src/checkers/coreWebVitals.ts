@@ -29,13 +29,21 @@ export class CoreWebVitalsChecker {
   private async checkPageLoadTime(): Promise<SEOCheckResult> {
     try {
       const timing = await this.page.evaluate(() => {
-        const perf = performance.timing;
-        const loadTime = perf.loadEventEnd - perf.navigationStart;
+        const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (!nav) return null;
+        const loadTime = Math.round(nav.loadEventEnd - nav.startTime);
         return {
           loadTime,
           loadTimeSeconds: (loadTime / 1000).toFixed(2),
         };
       });
+
+      if (!timing) {
+        return {
+          passed: true,
+          message: 'Page load time check skipped (navigation timing unavailable)',
+        };
+      }
 
       if (timing.loadTime > 3000) {
         return {
@@ -67,14 +75,21 @@ export class CoreWebVitalsChecker {
   private async checkDOMContentLoaded(): Promise<SEOCheckResult> {
     try {
       const domTiming = await this.page.evaluate(() => {
-        const perf = performance.timing;
-        const domLoadTime = perf.domContentLoadedEventEnd - perf.navigationStart;
+        const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (!nav) return null;
+        const domLoadTime = Math.round(nav.domContentLoadedEventEnd - nav.startTime);
         return {
           domLoadTime,
           domLoadTimeSeconds: (domLoadTime / 1000).toFixed(2),
         };
       });
 
+      if (!domTiming) {
+        return {
+          passed: true,
+          message: 'DOM load time check skipped (navigation timing unavailable)',
+        };
+      }
       if (domTiming.domLoadTime > 1500) {
         return {
           passed: false,

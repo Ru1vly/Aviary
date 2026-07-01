@@ -144,13 +144,15 @@ describe('MetaTagsChecker', () => {
   });
 
   describe('checkOpenGraphTags', () => {
-    it('should pass when all essential OG tags are present', async () => {
+    it('should pass when all essential OG tags are present and valid', async () => {
       const mockPage = createMockPage({
         evaluateResults: {
           'og:': [
             { property: 'og:title', content: 'Test Title' },
             { property: 'og:description', content: 'Test Description' },
             { property: 'og:image', content: 'https://example.com/image.jpg' },
+            { property: 'og:type', content: 'website' },
+            { property: 'og:url', content: 'https://example.com/page' },
           ],
         },
       }) as Page;
@@ -176,6 +178,27 @@ describe('MetaTagsChecker', () => {
 
       expect(ogResult.passed).toBe(false);
       expect(ogResult.message).toContain('Missing essential');
+    });
+
+    it('should fail when og:image is a relative URL', async () => {
+      const mockPage = createMockPage({
+        evaluateResults: {
+          'og:': [
+            { property: 'og:title', content: 'Test Title' },
+            { property: 'og:description', content: 'Test Description' },
+            { property: 'og:image', content: '/images/photo.jpg' }, // relative!
+            { property: 'og:type', content: 'website' },
+            { property: 'og:url', content: 'https://example.com/page' },
+          ],
+        },
+      }) as Page;
+
+      const checker = new MetaTagsChecker(mockPage);
+      const results = await checker.checkAll();
+      const ogResult = results[3];
+
+      expect(ogResult.passed).toBe(false);
+      expect(ogResult.message).toContain('absolute URL');
     });
   });
 

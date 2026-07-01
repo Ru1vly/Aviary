@@ -2,8 +2,6 @@
 
 An end-to-end SEO testing toolkit for websites using browser automation. Built with TypeScript and Playwright for comprehensive SEO analysis.
 
-**✨ Now available as a Desktop Application!** - Cross-platform GUI built with Tauri and React. See [DESKTOP_APP.md](./DESKTOP_APP.md) for details.
-
 ## 🚀 Features
 
 ### Current MVP Features
@@ -49,16 +47,6 @@ npm install e2e-seo
 ```
 
 ## 🎯 Quick Start
-
-### Desktop App
-
-Run the desktop application with a beautiful GUI:
-
-```bash
-npm run desktop:dev
-```
-
-See [DESKTOP_APP.md](./DESKTOP_APP.md) for complete desktop app documentation.
 
 ### CLI Usage
 
@@ -160,16 +148,6 @@ e2e-seo/
 │   ├── types/             # TypeScript definitions
 │   ├── index.ts           # Main SEOChecker class
 │   └── cli.ts             # CLI interface
-├── desktop-app/           # Desktop application (React + Vite)
-│   ├── src/
-│   │   ├── App.tsx       # Main UI component
-│   │   └── App.css       # Styling
-│   └── package.json
-├── src-tauri/             # Desktop app backend (Rust + Tauri)
-│   ├── src/
-│   │   └── lib.rs        # Tauri commands
-│   ├── Cargo.toml
-│   └── tauri.conf.json
 ├── examples/              # Usage examples & config presets
 ├── tests/                 # Comprehensive test suites
 └── dist/                  # Compiled JavaScript output

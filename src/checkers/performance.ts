@@ -16,12 +16,10 @@ export class PerformanceChecker {
 
   private async getMetrics(): Promise<PerformanceMetrics> {
     return await this.page.evaluate(() => {
-      const perfData = performance.timing;
-      const navigationStart = perfData.navigationStart;
-
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
       return {
-        loadTime: perfData.loadEventEnd - navigationStart,
-        domContentLoaded: perfData.domContentLoadedEventEnd - navigationStart,
+        loadTime: nav ? Math.round(nav.loadEventEnd - nav.startTime) : 0,
+        domContentLoaded: nav ? Math.round(nav.domContentLoadedEventEnd - nav.startTime) : 0,
         firstContentfulPaint: performance
           .getEntriesByType('paint')
           .find((entry) => entry.name === 'first-contentful-paint')?.startTime,

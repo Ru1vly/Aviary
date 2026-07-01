@@ -19,9 +19,6 @@ export class MetaTagsChecker {
 
   private async checkTitle(): Promise<SEOCheckResult> {
     try {
-      // Wait for page to be ready
-      await this.page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => { });
-
       const title = await this.page.title();
       const titleLength = title.length;
 
@@ -62,10 +59,9 @@ export class MetaTagsChecker {
   }
 
   private async checkMetaDescription(): Promise<SEOCheckResult> {
-    const description = await this.page
-      .locator('meta[name="description"]')
-      .getAttribute('content')
-      .catch(() => null);
+    const description = await this.page.evaluate(() => {
+      return document.querySelector('meta[name="description"]')?.getAttribute('content') || null;
+    });
 
     if (!description) {
       return {
@@ -100,10 +96,9 @@ export class MetaTagsChecker {
   }
 
   private async checkMetaKeywords(): Promise<SEOCheckResult> {
-    const keywords = await this.page
-      .locator('meta[name="keywords"]')
-      .getAttribute('content')
-      .catch(() => null);
+    const keywords = await this.page.evaluate(() => {
+      return document.querySelector('meta[name="keywords"]')?.getAttribute('content') || null;
+    });
 
     if (!keywords) {
       return {
@@ -131,12 +126,44 @@ export class MetaTagsChecker {
     const hasOgTitle = ogTags.some((tag) => tag.property === 'og:title');
     const hasOgDescription = ogTags.some((tag) => tag.property === 'og:description');
     const hasOgImage = ogTags.some((tag) => tag.property === 'og:image');
+    const hasOgType = ogTags.some((tag) => tag.property === 'og:type');
+    const hasOgUrl = ogTags.some((tag) => tag.property === 'og:url');
 
-    if (!hasOgTitle || !hasOgDescription || !hasOgImage) {
+    const ogImageTag = ogTags.find((tag) => tag.property === 'og:image');
+    const ogImageIsAbsolute = ogImageTag
+      ? /^https?:\/\//.test(ogImageTag.content)
+      : true; // no image = separate issue
+
+    const missingTags: string[] = [];
+    const issues: string[] = [];
+
+    if (!hasOgTitle) missingTags.push('og:title');
+    if (!hasOgDescription) missingTags.push('og:description');
+    if (!hasOgImage) missingTags.push('og:image');
+
+    if (missingTags.length > 0) {
       return {
         passed: false,
-        message: 'Missing essential Open Graph tags (og:title, og:description, og:image)',
+        message: `Missing essential Open Graph tags: ${missingTags.join(', ')}`,
         details: { ogTags, hasOgTitle, hasOgDescription, hasOgImage },
+      };
+    }
+
+    if (!ogImageIsAbsolute) {
+      issues.push('og:image must be an absolute URL (relative URLs break social sharing)');
+    }
+    if (!hasOgType) {
+      issues.push('og:type is missing (recommended: "website" or "article")');
+    }
+    if (!hasOgUrl) {
+      issues.push('og:url is missing (recommended for canonical social sharing URL)');
+    }
+
+    if (issues.length > 0) {
+      return {
+        passed: false,
+        message: `Open Graph issues: ${issues.join('; ')}`,
+        details: { ogTags, issues, hasOgType, hasOgUrl, ogImageIsAbsolute },
       };
     }
 
@@ -148,10 +175,9 @@ export class MetaTagsChecker {
   }
 
   private async checkCanonicalUrl(): Promise<SEOCheckResult> {
-    const canonical = await this.page
-      .locator('link[rel="canonical"]')
-      .getAttribute('href')
-      .catch(() => null);
+    const canonical = await this.page.evaluate(() => {
+      return document.querySelector('link[rel="canonical"]')?.getAttribute('href') || null;
+    });
 
     if (!canonical) {
       return {
@@ -168,10 +194,9 @@ export class MetaTagsChecker {
   }
 
   private async checkViewport(): Promise<SEOCheckResult> {
-    const viewport = await this.page
-      .locator('meta[name="viewport"]')
-      .getAttribute('content')
-      .catch(() => null);
+    const viewport = await this.page.evaluate(() => {
+      return document.querySelector('meta[name="viewport"]')?.getAttribute('content') || null;
+    });
 
     if (!viewport) {
       return {

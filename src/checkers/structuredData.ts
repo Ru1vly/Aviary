@@ -93,7 +93,10 @@ export class StructuredDataChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Microdata check skipped due to error',
       };
     }
@@ -176,7 +179,10 @@ export class StructuredDataChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Schema type validation skipped due to error',
       };
     }

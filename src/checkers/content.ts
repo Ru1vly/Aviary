@@ -118,7 +118,10 @@ export class ContentChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Readability check skipped due to error',
       };
     }
@@ -179,7 +182,10 @@ export class ContentChecker {
       }
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Content structure check skipped due to error',
       };
     }
@@ -222,7 +228,10 @@ export class ContentChecker {
       }
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Text-to-HTML ratio check skipped due to error',
       };
     }

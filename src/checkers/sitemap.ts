@@ -110,7 +110,10 @@ export class SitemapChecker {
       }
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Sitemap reference check skipped due to error',
       };
     }

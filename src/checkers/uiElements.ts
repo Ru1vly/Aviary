@@ -112,7 +112,10 @@ export class UIElementsChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Breadcrumbs check skipped due to error',
       };
     }
@@ -170,7 +173,10 @@ export class UIElementsChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Language tags check skipped due to error',
       };
     }

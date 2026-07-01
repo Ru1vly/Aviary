@@ -67,7 +67,7 @@ export class SEOChecker {
       const allChecks = [...metaTags, ...headings, ...images, ...performance, ...robotsTxt, ...sitemap, ...security, ...structuredData, ...socialMedia, ...content, ...links, ...uiElements, ...technical, ...accessibility, ...urlFactors, ...spamDetection, ...pageQuality, ...advancedImages, ...multimedia, ...coreWebVitals, ...analytics, ...mobileUX, ...schemaValidation, ...resourceOptimization, ...legalCompliance, ...ecommerce, ...internationalization, ...heatmap];
       const passed = allChecks.filter((c) => c.passed).length;
       const failed = allChecks.filter((c) => !c.passed).length;
-      const score = Math.round((passed / allChecks.length) * 100);
+      const score = this.calculateWeightedScore(allChecks);
 
       return {
         url: this.options.url,
@@ -112,6 +112,35 @@ export class SEOChecker {
     } finally {
       await this.close();
     }
+  }
+
+  /**
+   * Calculate a severity-weighted score.
+   * - error failures penalise 3x
+   * - warning failures penalise 1x (default)
+   * - info failures penalise 0.5x
+   * This prevents irrelevant category checks from unfairly dragging the score down.
+   */
+  private calculateWeightedScore(checks: import('./types').SEOCheckResult[]): number {
+    const severityWeight = (severity?: string) => {
+      switch (severity) {
+        case 'error':   return 3;
+        case 'info':    return 0.5;
+        default:        return 1; // 'warning' or unset
+      }
+    };
+
+    let totalWeight = 0;
+    let passedWeight = 0;
+
+    for (const check of checks) {
+      const weight = severityWeight(check.severity);
+      totalWeight += weight;
+      if (check.passed) passedWeight += weight;
+    }
+
+    if (totalWeight === 0) return 100;
+    return Math.round((passedWeight / totalWeight) * 100);
   }
 
   private async launch(): Promise<void> {
@@ -406,6 +435,7 @@ export class SEOChecker {
 
 export * from './types';
 export * from './config';
+export { generateHtmlReport, renderHtmlReport } from './reporter';
 export { MetaTagsChecker } from './checkers/metaTags';
 export { HeadingsChecker } from './checkers/headings';
 export { ImagesChecker } from './checkers/images';

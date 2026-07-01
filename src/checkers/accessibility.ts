@@ -72,7 +72,10 @@ export class AccessibilityChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'ARIA labels check skipped due to error',
       };
     }
@@ -126,7 +129,10 @@ export class AccessibilityChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Form labels check skipped due to error',
       };
     }
@@ -160,7 +166,10 @@ export class AccessibilityChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Skip links check skipped due to error',
       };
     }
@@ -206,7 +215,10 @@ export class AccessibilityChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Tab index check skipped due to error',
       };
     }

@@ -176,7 +176,10 @@ export class SocialMediaChecker {
       }
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Facebook tags check skipped due to error',
       };
     }

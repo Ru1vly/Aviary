@@ -173,7 +173,8 @@ export class LinksChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+        severity: 'info',
         message: 'External links check skipped due to error',
       };
     }
@@ -235,7 +236,8 @@ export class LinksChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+        severity: 'info',
         message: 'Internal links check skipped due to error',
       };
     }

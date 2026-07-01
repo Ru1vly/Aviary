@@ -131,7 +131,10 @@ export class SpamDetectionChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Hidden text check skipped due to error',
       };
     }
@@ -172,7 +175,10 @@ export class SpamDetectionChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Keyword stuffing check skipped due to error',
       };
     }
@@ -217,7 +223,10 @@ export class SpamDetectionChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Excessive links check skipped due to error',
       };
     }
@@ -262,7 +271,10 @@ export class SpamDetectionChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Suspicious scripts check skipped due to error',
       };
     }
@@ -312,7 +324,10 @@ export class SpamDetectionChecker {
       };
     } catch (error) {
       return {
-        passed: true,
+        passed: false,
+
+        severity: 'info',
+
         message: 'Iframes check skipped due to error',
       };
     }

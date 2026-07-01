@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 import { SEOChecker } from './index';
+import { generateHtmlReport } from './reporter';
 import * as fs from 'fs';
 
 interface CliArgs {
   url?: string;
   output?: string;
+  html?: string;
   headless?: boolean;
   viewport?: string;
   config?: string;
@@ -13,6 +15,7 @@ interface CliArgs {
   help?: boolean;
   initConfig?: boolean;
   json?: boolean;
+  verbose?: boolean;
 }
 
 function parseArgs(): CliArgs {
@@ -34,6 +37,9 @@ function parseArgs(): CliArgs {
       case '--output':
         args.output = argv[++i];
         break;
+      case '--html':
+        args.html = argv[++i];
+        break;
       case '--headed':
         args.headless = false;
         break;
@@ -54,6 +60,10 @@ function parseArgs(): CliArgs {
       case '--json':
         args.json = true;
         break;
+      case '-v':
+      case '--verbose':
+        args.verbose = true;
+        break;
       default:
         if (!arg.startsWith('-') && !args.url) {
           args.url = arg;
@@ -72,13 +82,15 @@ Usage: e2e-seo [options] <url>
 
 Options:
   -u, --url <url>        URL to check (required)
-  -o, --output <file>    Output JSON report to file
-  --json                 Output JSON to stdout (no formatted text)
+  -o, --output <file>    Save JSON report to file
+  --html <file>          Save HTML report to file (beautiful visual report)
+  --json                 Output raw JSON to stdout (no formatted text)
   -c, --config <file>    Configuration file (JSON or YAML)
   -p, --preset <name>    Use preset configuration (basic, advanced, strict)
   --init-config          Create a default configuration file
   --headed               Run browser in headed mode (default: headless)
   --viewport <WxH>       Set viewport size (e.g., 1920x1080 or 375x667)
+  -v, --verbose          Show details for failed checks
   -h, --help             Show this help message
 
 Examples:
@@ -141,6 +153,19 @@ async function main() {
   if (args.help || !args.url) {
     printHelp();
     process.exit(args.help ? 0 : 1);
+  }
+
+  // Validate URL before launching browser
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(args.url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('URL must use http:// or https:// protocol');
+    }
+  } catch {
+    const suggestion = args.url.startsWith('http') ? '' : ` Did you mean https://${args.url}?`;
+    console.error(`❌ Invalid URL: "${args.url}".${suggestion}`);
+    process.exit(1);
   }
 
   if (!args.json) {
@@ -215,6 +240,7 @@ async function main() {
       { name: 'Legal & Compliance', checks: report.checks.legalCompliance },
       { name: 'E-commerce', checks: report.checks.ecommerce },
       { name: 'Internationalization', checks: report.checks.internationalization },
+      { name: 'Heatmap & UX', checks: report.checks.heatmap },
     ];
 
     sections.forEach((section) => {
@@ -237,13 +263,26 @@ async function main() {
         }
 
         console.log(`  ${color}${icon}${reset} ${check.message}${severityBadge}`);
+
+        // --verbose: print details for failed checks
+        if (args.verbose && !check.passed && check.details) {
+          const detailLines = JSON.stringify(check.details, null, 2)
+            .split('\n')
+            .map((l) => `      ${l}`);
+          console.log(detailLines.join('\n'));
+        }
       });
       console.log('');
     });
 
     if (args.output) {
       fs.writeFileSync(args.output, JSON.stringify(report, null, 2));
-      console.log(`\n💾 Report saved to ${args.output}`);
+      console.log(`\n💾 JSON report saved to ${args.output}`);
+    }
+
+    if (args.html) {
+      generateHtmlReport(report, args.html);
+      console.log(`\n🌐 HTML report saved to ${args.html}`);
     }
 
     // Exit with success code - tool ran successfully regardless of SEO score
