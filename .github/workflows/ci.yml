@@ -39,20 +39,13 @@ jobs:
 
       - name: Run unit tests
         run: pnpm run test:unit
-        env:
-          # Required for Playwright in CI headless environments
-          PLAYWRIGHT_BROWSERS_PATH: 0
 
       - name: Run integration tests
         run: pnpm run test:integration
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: 0
         timeout-minutes: 5
 
       - name: Run test coverage
         run: pnpm run test:coverage
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: 0
 
       - name: Upload coverage report
         if: always()
