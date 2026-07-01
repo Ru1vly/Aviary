@@ -1,239 +1,181 @@
-# e2e-seo 🔍
+# e2e-seo
 
 An end-to-end SEO testing toolkit for websites using browser automation. Built with TypeScript and Playwright for comprehensive SEO analysis.
 
-## 🚀 Features
+> [!IMPORTANT]
+> This toolkit performs static and dynamic audits on fully rendered web pages. Because it executes checks within a real browser instance, it accurately evaluates JavaScript-rendered metadata, dynamic layouts, and web performance metrics.
 
-### Current MVP Features
+---
 
-- **Meta Tags Analysis**
-  - Title tag validation (length, presence)
-  - Meta description validation
-  - Open Graph tags checking
-  - Canonical URL verification
-  - Viewport meta tag validation
-  
-- **Heading Structure**
-  - H1 uniqueness check
-  - Heading hierarchy validation
-  - Heading length optimization
-  
-- **Image Optimization**
-  - Alt text validation
-  - Image count analysis
-  
-- **Performance Metrics**
-  - Page load time
-  - DOM content loaded time
-  - First Contentful Paint
+## Features
 
-- **🔥 Heatmap Analysis** *(NEW)*
-  - Predictive click heatmap generation
-  - Scroll depth analysis
-  - Attention zone detection (F-pattern, visual hierarchy)
-  - CTA placement analysis
-  - Above-the-fold content scoring
-  - Visual heatmap screenshot capture
+The library executes 260+ individual checks across 28 categories. Below is an overview of the core checker modules:
 
-- **Automated Browser Testing**
-  - Uses Playwright for real browser testing
-  - Supports headless and headed modes
-  - Configurable viewport for mobile/desktop testing
+| Category | Description | Key Checks |
+|---|---|---|
+| Meta Tags | Validates standard page descriptors | Title presence/length, description presence/length, Open Graph tags configuration, canonical link validation |
+| Headings | Audits heading structure and semantics | H1 presence and uniqueness, heading hierarchy levels, heading length optimization |
+| Images | Evaluates image attributes and layouts | Alt text presence, source validity, count, dimension optimization |
+| Performance | Measures basic site load times | Page load duration, DOM Content Loaded event timing, First Contentful Paint |
+| Technical SEO | Verifies server configuration and response status | Response status codes, page sizes, compression headers, duplicate content detection |
+| Heatmap & UX | Models visual hierarchy and attention zones | Predictive click maps, scroll depth levels, above-the-fold content scoring, CTA visibility |
+| Accessibility | Inspects basic accessibility markers | ARIA landmarks, form input labeling, keyboard navigation order, skip links |
+| Core Web Vitals | Inspects real browser navigation metrics | DOM load time, HTTP request counts, resource weights, performance timing API |
+| URL Factors | Audits the page address format | URL length, character validity, directory depth, readability rules |
+| Spam Detection | Guards against search engine red flags | Hidden text, excessive keyword repetitions, link densities, iframe abuses |
 
-## 📦 Installation
+---
+
+## Installation
+
+Install the package via npm:
 
 ```bash
 npm install e2e-seo
 ```
 
-## 🎯 Quick Start
-
-### CLI Usage
+To install globally as a command-line tool:
 
 ```bash
-# Basic usage
+npm install -g .
+```
+
+---
+
+## Quick Start
+
+### Command Line Interface
+
+Analyze any URL directly from your shell:
+
+```bash
+# Basic check
 e2e-seo https://example.com
 
-# Save report to JSON
-e2e-seo https://example.com -o report.json
+# Save detailed JSON report to a file
+e2e-seo https://example.com --output report.json
 
-# Test with mobile viewport
+# Save a visual HTML report to a file
+e2e-seo https://example.com --html report.html
+
+# Run checks with verbose outputs (lists failure details)
+e2e-seo https://example.com --verbose
+
+# Run with a mobile viewport simulation
 e2e-seo https://example.com --viewport 375x667
-
-# Show browser (headed mode)
-e2e-seo https://example.com --headed
 ```
 
 ### Programmatic API
 
-```typescript
-import { SEOChecker } from 'e2e-seo';
-
-const checker = new SEOChecker({
-  url: 'https://example.com',
-  headless: true,
-});
-
-const report = await checker.check();
-
-console.log(`SEO Score: ${report.score}/100`);
-console.log(`Passed: ${report.summary.passed}/${report.summary.total}`);
-```
-
-## 📖 Usage
-
-### Basic Usage
+Import the SEOChecker class to run checks programmatically within your Node.js application:
 
 ```typescript
 import { SEOChecker } from 'e2e-seo';
 
-async function checkSEO() {
+async function runAudit() {
   const checker = new SEOChecker({
-    url: 'https://yourwebsite.com',
+    url: 'https://example.com',
+    headless: true,
   });
 
   const report = await checker.check();
-
-  // Print results
-  console.log('Meta Tags:');
-  report.checks.metaTags.forEach(check => {
-    console.log(`${check.passed ? '✓' : '✗'} ${check.message}`);
-  });
-
-  console.log('\nHeadings:');
-  report.checks.headings.forEach(check => {
-    console.log(`${check.passed ? '✓' : '✗'} ${check.message}`);
-  });
+  console.log(`Overall SEO Score: ${report.score}/100`);
+  console.log(`Passed: ${report.summary.passed}/${report.summary.total} checks`);
 }
 
-checkSEO();
+runAudit();
 ```
 
-### Mobile Testing
+---
+
+## Command Line Options
+
+The command-line interface supports the following parameters:
+
+| Option | Shortcut | Type | Description |
+|---|---|---|---|
+| `--url` | `-u` | string | Target website URL to analyze (required) |
+| `--output` | `-o` | string | File path to write the JSON results payload |
+| `--html` | | string | File path to write the visual HTML report page |
+| `--json` | | boolean | Output raw JSON string directly to standard output |
+| `--config` | `-c` | string | Path to a custom JSON or YAML configuration file |
+| `--preset` | `-p` | string | Configuration preset name (basic, advanced, strict) |
+| `--verbose` | `-v` | boolean | Output check details object for failed entries |
+| `--headed` | | boolean | Run the browser simulator in headed mode (visible) |
+| `--viewport` | | string | Set simulator window size (e.g. 1920x1080) |
+| `--init-config`| | boolean | Create a default configuration template file in the CWD |
+
+---
+
+## Configuration
+
+You can customize which audits to run and modify their rules via custom config files or presets.
+
+> [!NOTE]
+> Presets restrict or expand the check list:
+> - **basic**: Fast, essential checks (ideal for rapid CI checks)
+> - **advanced**: Comprehensive analysis covering heatmap simulations (default)
+> - **strict**: Full checks with stricter scoring rules
+
+To write an HTML report programmatically:
 
 ```typescript
-const mobileChecker = new SEOChecker({
-  url: 'https://yourwebsite.com',
-  viewport: {
-    width: 375,
-    height: 667, // iPhone SE dimensions
-  },
-});
+import { SEOChecker, generateHtmlReport } from 'e2e-seo';
 
-const report = await mobileChecker.check();
+async function exportReport() {
+  const checker = new SEOChecker({ url: 'https://example.com' });
+  const report = await checker.check();
+  
+  // Write the report to disk
+  generateHtmlReport(report, './reports/seo-analysis.html');
+}
 ```
 
-### Custom Configuration
+---
 
-```typescript
-const checker = new SEOChecker({
-  url: 'https://yourwebsite.com',
-  headless: false, // Show browser
-  timeout: 60000, // 60 seconds timeout
-  viewport: {
-    width: 1920,
-    height: 1080,
-  },
-});
-```
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 e2e-seo/
-├── src/                   # SEO checker library (TypeScript)
-│   ├── checkers/          # 27 SEO checker modules (260+ checks)
-│   ├── config/            # Configuration system
-│   ├── errors/            # Error handling
-│   ├── types/             # TypeScript definitions
-│   ├── index.ts           # Main SEOChecker class
-│   └── cli.ts             # CLI interface
-├── examples/              # Usage examples & config presets
-├── tests/                 # Comprehensive test suites
-└── dist/                  # Compiled JavaScript output
+├── src/                   # Source code
+│   ├── checkers/          # 28 SEO checker modules
+│   ├── config/            # Loader, presets, and configuration types
+│   ├── errors/            # Logger, error handlers, and retry mechanism
+│   ├── types/             # Common TypeScript interfaces
+│   ├── index.ts           # Core library entry point
+│   ├── cli.ts             # CLI command runner
+│   └── reporter.ts        # HTML report template compiler
+├── examples/              # Code samples and config file templates
+├── tests/                 # Unit, integration, and E2E tests
+└── dist/                  # Compiled JavaScript distribution
 ```
 
-## 🛠️ Development
+---
 
-### Setup
+## Development Setup
+
+To build and test the tool locally:
 
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/e2e-seo.git
 cd e2e-seo
 
-# Install dependencies
-npm install
+# Install project dependencies
+pnpm install
 
-# Install Playwright browsers
-npx playwright install chromium
+# Download required browser binaries
+pnpm exec playwright install chromium
+
+# Compile TypeScript code to distribution folder
+pnpm run build
+
+# Run unit and integration tests
+pnpm run test
 ```
 
-### Build
+---
 
-```bash
-npm run build
-```
+## License
 
-### Linting
-
-```bash
-npm run lint
-npm run lint:fix
-```
-
-### Formatting
-
-```bash
-npm run format
-npm run format:check
-```
-
-## 📊 Report Structure
-
-```typescript
-{
-  url: string;
-  timestamp: string;
-  score: number; // 0-100
-  summary: {
-    total: number;
-    passed: number;
-    failed: number;
-  };
-  checks: {
-    metaTags: SEOCheckResult[];
-    headings: SEOCheckResult[];
-    images: SEOCheckResult[];
-    performance: SEOCheckResult[];
-  };
-}
-```
-
-## 🗺️ Roadmap
-
-See [TODO.md](./TODO.md) for the complete production readiness checklist.
-
-### Upcoming Features
-
-- ✅ ~~Heatmap generation (click, scroll, attention)~~ - **DONE!**
-- 📊 HTML/PDF report generation
-- 🔍 Structured data validation (JSON-LD, Schema.org)
-- 🔗 Link analysis and broken link detection
-- 🤖 Content analysis and keyword density
-- 🎨 Accessibility (A11y) checking
-- 🚀 Core Web Vitals (LCP, FID, CLS)
-- 🖥️ CLI tool for command-line usage
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see [TODO.md](./TODO.md) for areas where help is needed.
-
-## 📄 License
-
-MIT
-
-## 🙏 Acknowledgments
-
-- Built with [Playwright](https://playwright.dev/) for browser automation
-- Inspired by tools like Lighthouse, SEMrush, and Ahrefs
+This project is licensed under the MIT License.
