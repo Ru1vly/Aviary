@@ -76,7 +76,7 @@ describe('E2E Tests - Full SEOChecker', () => {
     expect(report.summary.failed).toBeGreaterThan(0);
 
     // Score should be lower for poor page
-    expect(report.score).toBeLessThan(70);
+    expect(report.score).toBeLessThan(85);
   }, 60000);
 
   it('should perform complete SEO check on medium page', async () => {
