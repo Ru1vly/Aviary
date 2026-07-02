@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.github
+*.md
+coverage
+tui/target
+tests
+examples
+docs
+*.log
+.env*

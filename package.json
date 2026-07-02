@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "e2e-seo": "dist/cli.js"
+    "e2e-seo": "dist/cli.js",
+    "e2e-seo-mcp": "dist/mcp/server.js"
   },
   "scripts": {
     "build": "node scripts/build.js",
@@ -23,6 +24,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "example": "npm run build && node examples/basic-usage.js",
+    "mcp-server": "node dist/mcp/server.js",
     "clean": "rm -rf dist"
   },
   "keywords": [

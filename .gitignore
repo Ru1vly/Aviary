@@ -36,3 +36,9 @@ temp/
 test-page.html
 test-*.js
 test-*.html
+
+# Rust
+target/
+engine/target/
+**/target/
+

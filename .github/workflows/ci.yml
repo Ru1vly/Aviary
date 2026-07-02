@@ -1,4 +1,4 @@
-name: CI
+name: CI — Build & Test
 
 on:
   push:
@@ -6,51 +6,95 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+  RUST_VERSION: 'stable'
+
 jobs:
-  test:
-    name: Test & Lint
+  # ── Lint & Type Check ──────────────────────────────────────
+  lint:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm exec tsc --noEmit
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install chromium --with-deps
-
-      - name: Build
-        run: pnpm exec tsc --noEmit
-
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Run unit tests
-        run: pnpm run test:unit
-
-      - name: Run integration tests
-        run: pnpm run test:integration
-        timeout-minutes: 5
-
-      - name: Run test coverage
-        run: pnpm run test:coverage
-
-      - name: Upload coverage report
+  # ── Unit Tests ──────────────────────────────────────────────
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:unit
+      - run: pnpm run test:coverage
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
+          retention-days: 7
+
+  # ── Integration Tests ───────────────────────────────────────
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install chromium --with-deps
+      - run: pnpm run test:integration
+        timeout-minutes: 10
+
+  # ── Rust TUI Build ─────────────────────────────────────────
+  build-rust:
+    name: Build Rust TUI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: './tui -> target' }
+      - run: cargo build --release
+        working-directory: tui
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tui-linux-amd64
+          path: tui/target/release/tui
+          retention-days: 7
+
+  # ── TypeScript Build ────────────────────────────────────────
+  build-ts:
+    name: Build TypeScript
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-integration]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: '${{ env.PNPM_VERSION }}' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-js
+          path: dist/
           retention-days: 7

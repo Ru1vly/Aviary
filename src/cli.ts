@@ -3,6 +3,8 @@
 import { SEOChecker } from './index';
 import { generateHtmlReport } from './reporter';
 import * as fs from 'fs';
+import { loadEnvConfig } from './config/env';
+import { createLogger } from './config/logger';
 
 interface CliArgs {
   url?: string;
@@ -66,10 +68,10 @@ function parseArgs(): CliArgs {
         break;
       default:
         if (!arg.startsWith('-')) {
-          console.error(`❌ Error: Positional URL arguments are no longer supported.`);
-          console.error(`   Please use the -u or --url flag to specify the URL, e.g.:`);
-          console.error(`     e2e-seo -u ${arg}`);
-          console.error(`\n   Or run "e2e-seo" with no arguments to launch the interactive Terminal User Interface (TUI).`);
+          process.stderr.write(`❌ Error: Positional URL arguments are no longer supported.\n`);
+          process.stderr.write(`   Please use the -u or --url flag to specify the URL, e.g.:\n`);
+          process.stderr.write(`     e2e-seo -u ${arg}\n`);
+          process.stderr.write(`\n   Or run "e2e-seo" with no arguments to launch the interactive Terminal User Interface (TUI).\n`);
           process.exit(1);
         }
     }
@@ -79,7 +81,7 @@ function parseArgs(): CliArgs {
 }
 
 function printHelp() {
-  console.log(`
+  process.stderr.write(`
 e2e-seo - End-to-end SEO checker tool
 
 Usage: e2e-seo [options] <url>
@@ -97,6 +99,20 @@ Options:
   -v, --verbose          Show details for failed checks
   -h, --help             Show this help message
 
+Environment Variables (12-Factor config):
+  E2E_SEO_URL            Target URL (overridden by --url)
+  E2E_SEO_HEADLESS       "true"/"false" (overridden by --headed)
+  E2E_SEO_TIMEOUT        Timeout in milliseconds (default: 30000)
+  E2E_SEO_VIEWPORT       Viewport "WxH" format (overridden by --viewport)
+  E2E_SEO_PRESET         Preset name: basic/advanced/strict (overridden by --preset)
+  E2E_SEO_OUTPUT         JSON output file path (overridden by --output)
+  E2E_SEO_HTML_OUTPUT    HTML report path (overridden by --html)
+  E2E_SEO_LOG_LEVEL      Log level: debug/info/warn/error (default: info)
+  E2E_SEO_LLM_PROVIDER   LLM provider (default: stub)
+  E2E_SEO_LLM_ENDPOINT   LLM endpoint URL (default: http://localhost:11434)
+  E2E_SEO_LLM_MODEL      LLM model name (default: llama3.2)
+  E2E_SEO_LLM_API_KEY    LLM API key (never logged)
+
 Examples:
   e2e-seo https://example.com
   e2e-seo -u https://example.com -o report.json
@@ -104,6 +120,7 @@ Examples:
   e2e-seo https://example.com --headed
   e2e-seo https://example.com --preset basic
   e2e-seo https://example.com --config .e2e-seo.json
+  E2E_SEO_URL=https://example.com e2e-seo --json
   e2e-seo --init-config
 
 Checks performed (260+ checks across 27 categories):
@@ -140,16 +157,20 @@ For more information, visit: https://github.com/yourusername/e2e-seo
 }
 
 async function main() {
-  // If run with no arguments, launch the interactive TUI
+  // ── 12-Factor: Load config from environment first ──────────────────────────
+  const envConfig = loadEnvConfig();
+  const logger = createLogger((envConfig.logLevel as 'debug' | 'info' | 'warn' | 'error') || 'info');
+
+  // If run with no arguments and no E2E_SEO_URL, launch the interactive TUI
   const hasNoArgs = process.argv.slice(2).length === 0;
-  if (hasNoArgs) {
+  if (hasNoArgs && !envConfig.url) {
     const path = await import('path');
     const { spawn } = await import('child_process');
     const tuiPath = path.join(__dirname, 'tui');
 
     if (!fs.existsSync(tuiPath)) {
-      console.error('❌ Error: TUI binary not found.');
-      console.error('   Please run "npm run build" to compile the TUI dashboard.');
+      process.stderr.write('❌ Error: TUI binary not found.\n');
+      process.stderr.write('   Please run "npm run build" to compile the TUI dashboard.\n');
       process.exit(1);
     }
 
@@ -170,15 +191,19 @@ async function main() {
   if (args.initConfig) {
     const { ConfigLoader } = await import('./config');
     const configPath = '.e2e-seo.json';
-    const preset = (args.preset as 'basic' | 'advanced' | 'strict') || 'advanced';
+    // CLI --preset > ENV E2E_SEO_PRESET > default
+    const preset = (args.preset as 'basic' | 'advanced' | 'strict') || envConfig.preset || 'advanced';
     ConfigLoader.createDefaultConfig(configPath, preset);
-    console.log(`✓ Created configuration file: ${configPath}`);
-    console.log(`  Using preset: ${preset}`);
-    console.log(`\nEdit the file to customize your SEO rules and settings.`);
+    process.stderr.write(`✓ Created configuration file: ${configPath}\n`);
+    process.stderr.write(`  Using preset: ${preset}\n`);
+    process.stderr.write(`\nEdit the file to customize your SEO rules and settings.\n`);
     process.exit(0);
   }
 
-  if (args.help || !args.url) {
+  // Resolve effective URL: CLI --url > ENV E2E_SEO_URL
+  const effectiveUrl = args.url || envConfig.url;
+
+  if (args.help || !effectiveUrl) {
     printHelp();
     process.exit(args.help ? 0 : 1);
   }
@@ -186,37 +211,58 @@ async function main() {
   // Validate URL before launching browser
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(args.url);
+    parsedUrl = new URL(effectiveUrl);
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       throw new Error('URL must use http:// or https:// protocol');
     }
   } catch {
-    const suggestion = args.url.startsWith('http') ? '' : ` Did you mean https://${args.url}?`;
-    console.error(`❌ Invalid URL: "${args.url}".${suggestion}`);
+    const suggestion = effectiveUrl.startsWith('http') ? '' : ` Did you mean https://${effectiveUrl}?`;
+    process.stderr.write(`❌ Invalid URL: "${effectiveUrl}".${suggestion}\n`);
     process.exit(1);
   }
 
   if (!args.json) {
-    console.log('🔍 Running SEO check...\n');
+    logger.info('Running SEO check', { url: effectiveUrl });
   }
 
+  // Resolve viewport: CLI --viewport > ENV E2E_SEO_VIEWPORT > default
+  const effectiveViewportStr = args.viewport || envConfig.viewport;
   let viewport = { width: 1920, height: 1080 };
-  if (args.viewport) {
-    const [width, height] = args.viewport.split('x').map(Number);
+  if (effectiveViewportStr) {
+    const [width, height] = effectiveViewportStr.split('x').map(Number);
     if (width && height) {
       viewport = { width, height };
     }
   }
 
-  // Build configuration
-  let config;
-  if (args.preset) {
-    config = { preset: args.preset as 'basic' | 'advanced' | 'strict' };
+  // Resolve preset: CLI --preset > ENV E2E_SEO_PRESET > undefined
+  const effectivePreset = args.preset || envConfig.preset;
+
+  // Resolve headless: CLI --headed (args.headless=false) > ENV E2E_SEO_HEADLESS > default (true)
+  let effectiveHeadless = true;
+  if (args.headless === false) {
+    effectiveHeadless = false;
+  } else if (envConfig.headless !== undefined) {
+    effectiveHeadless = envConfig.headless;
   }
 
+  // Build configuration
+  let config;
+  if (effectivePreset) {
+    config = { preset: effectivePreset as 'basic' | 'advanced' | 'strict' };
+  }
+
+  logger.debug('SEOChecker configuration', {
+    url: effectiveUrl,
+    headless: effectiveHeadless,
+    viewport,
+    preset: effectivePreset,
+    configFile: args.config,
+  });
+
   const checker = new SEOChecker({
-    url: args.url!,
-    headless: args.headless !== false,
+    url: effectiveUrl,
+    headless: effectiveHeadless,
     viewport,
     configFile: args.config,
     config,
@@ -225,20 +271,21 @@ async function main() {
   try {
     const report = await checker.check();
 
-    // If JSON output is requested, just print JSON and exit
+    // If JSON output is requested, ONLY print JSON to stdout (12-Factor: clean stdout)
     if (args.json) {
-      console.log(JSON.stringify(report, null, 2));
+      process.stdout.write(JSON.stringify(report, null, 2) + '\n');
       return;
     }
 
-    console.log(`📊 SEO Report for ${report.url}\n`);
-    console.log(`Score: ${report.score}/100`);
-    console.log(`Timestamp: ${report.timestamp}\n`);
+    // All diagnostic output goes to stderr
+    process.stderr.write(`📊 SEO Report for ${report.url}\n\n`);
+    process.stderr.write(`Score: ${report.score}/100\n`);
+    process.stderr.write(`Timestamp: ${report.timestamp}\n\n`);
 
-    console.log('Summary:');
-    console.log(`  Total checks: ${report.summary.total}`);
-    console.log(`  ✓ Passed: ${report.summary.passed}`);
-    console.log(`  ✗ Failed: ${report.summary.failed}\n`);
+    process.stderr.write('Summary:\n');
+    process.stderr.write(`  Total checks: ${report.summary.total}\n`);
+    process.stderr.write(`  ✓ Passed: ${report.summary.passed}\n`);
+    process.stderr.write(`  ✗ Failed: ${report.summary.failed}\n\n`);
 
     const sections = [
       { name: 'Meta Tags', checks: report.checks.metaTags },
@@ -272,7 +319,7 @@ async function main() {
     ];
 
     sections.forEach((section) => {
-      console.log(`${section.name}:`);
+      process.stderr.write(`${section.name}:\n`);
       section.checks.forEach((check) => {
         const icon = check.passed ? '✓' : '✗';
         const color = check.passed ? '\x1b[32m' : '\x1b[31m';
@@ -282,41 +329,45 @@ async function main() {
         let severityBadge = '';
         if (check.severity && !check.passed) {
           const severityColors = {
-            error: '\x1b[41m\x1b[37m',   // Red background, white text
+            error: '\x1b[41m\x1b[37m', // Red background, white text
             warning: '\x1b[43m\x1b[30m', // Yellow background, black text
-            info: '\x1b[44m\x1b[37m',    // Blue background, white text
+            info: '\x1b[44m\x1b[37m', // Blue background, white text
           };
-          const severityColor = severityColors[check.severity];
+          const severityColor = severityColors[check.severity as keyof typeof severityColors];
           severityBadge = ` ${severityColor} ${check.severity.toUpperCase()} ${reset}`;
         }
 
-        console.log(`  ${color}${icon}${reset} ${check.message}${severityBadge}`);
+        process.stderr.write(`  ${color}${icon}${reset} ${check.message}${severityBadge}\n`);
 
         // --verbose: print details for failed checks
         if (args.verbose && !check.passed && check.details) {
           const detailLines = JSON.stringify(check.details, null, 2)
             .split('\n')
             .map((l) => `      ${l}`);
-          console.log(detailLines.join('\n'));
+          process.stderr.write(detailLines.join('\n') + '\n');
         }
       });
-      console.log('');
+      process.stderr.write('\n');
     });
 
-    if (args.output) {
-      fs.writeFileSync(args.output, JSON.stringify(report, null, 2));
-      console.log(`\n💾 JSON report saved to ${args.output}`);
+    // Resolve output paths: CLI > ENV
+    const effectiveOutput = args.output || envConfig.output;
+    const effectiveHtmlOutput = args.html || envConfig.htmlOutput;
+
+    if (effectiveOutput) {
+      fs.writeFileSync(effectiveOutput, JSON.stringify(report, null, 2));
+      logger.info('JSON report saved', { path: effectiveOutput });
     }
 
-    if (args.html) {
-      generateHtmlReport(report, args.html);
-      console.log(`\n🌐 HTML report saved to ${args.html}`);
+    if (effectiveHtmlOutput) {
+      generateHtmlReport(report, effectiveHtmlOutput);
+      logger.info('HTML report saved', { path: effectiveHtmlOutput });
     }
 
     // Exit with success code - tool ran successfully regardless of SEO score
     return;
   } catch (error) {
-    console.error('❌ Error:', (error as Error).message);
+    logger.error('Audit failed', { message: (error as Error).message });
     process.exit(1);
   }
 }
