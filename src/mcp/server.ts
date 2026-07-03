@@ -94,10 +94,39 @@ const TOOLS = [
   },
 ];
 
-async function handleToolCall(name: string, args: Record<string, unknown>): Promise<string> {
-  const url = args.url as string;
+import { z } from 'zod';
 
+const SeoScoreSchema = z.object({
+  url: z.string().url('Must be a valid URL starting with http:// or https://'),
+});
+
+const SeoAuditSchema = z.object({
+  url: z.string().url('Must be a valid URL'),
+  preset: z.enum(['basic', 'advanced', 'strict']).optional().default('advanced'),
+  categories: z.array(z.string()).optional(),
+});
+
+const SeoCheckCategorySchema = z.object({
+  url: z.string().url('Must be a valid URL'),
+  category: z.enum([
+    'metaTags',
+    'headings',
+    'images',
+    'performance',
+    'security',
+    'accessibility',
+    'content',
+    'links',
+    'structuredData',
+    'mobileUX',
+    'coreWebVitals',
+  ]),
+});
+
+async function handleToolCall(name: string, args: Record<string, unknown>): Promise<string> {
   if (name === 'seo_score') {
+    const parsed = SeoScoreSchema.parse(args);
+    const { url } = parsed;
     const checker = new SEOChecker({ url, headless: true });
     const report = await checker.check();
     const grade =
@@ -124,22 +153,29 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     );
   }
 
-  if (name === 'seo_audit' || name === 'seo_check_category') {
-    const preset = (args.preset as string) || 'advanced';
+  if (name === 'seo_audit') {
+    const parsed = SeoAuditSchema.parse(args);
+    const { url, preset } = parsed;
     const checker = new SEOChecker({
       url,
       headless: true,
-      config: { preset: preset as 'basic' | 'advanced' | 'strict' },
+      config: { preset },
     });
     const report = await checker.check();
-
-    if (name === 'seo_check_category' && args.category) {
-      const cat = args.category as string;
-      const checks = (report.checks as Record<string, unknown>)[cat];
-      return JSON.stringify({ url, category: cat, checks }, null, 2);
-    }
-
     return JSON.stringify(report, null, 2);
+  }
+
+  if (name === 'seo_check_category') {
+    const parsed = SeoCheckCategorySchema.parse(args);
+    const { url, category } = parsed;
+    const checker = new SEOChecker({
+      url,
+      headless: true,
+      config: { preset: 'advanced' },
+    });
+    const report = await checker.check();
+    const checks = (report.checks as Record<string, unknown>)[category];
+    return JSON.stringify({ url, category, checks }, null, 2);
   }
 
   throw new Error(`Unknown tool: ${name}`);

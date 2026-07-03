@@ -331,6 +331,9 @@ async fn run_loop<B: ratatui::backend::Backend>(
     let mut load_start: Option<Instant> = None;
     let mut elapsed_secs: u64 = 0;
 
+    let tick_rate = Duration::from_millis(16); // 60 fps
+    let mut last_tick = Instant::now();
+
     loop {
         // Calculate elapsed if loading
         if let Some(start) = load_start {
@@ -340,8 +343,12 @@ async fn run_loop<B: ratatui::backend::Backend>(
         // Render frame
         terminal.draw(|f| draw_ui(f, &app, spinner_frame, elapsed_secs))?;
 
-        // Poll for UI input with 16ms timeout (~60fps)
-        if event::poll(Duration::from_millis(16))? {
+        let timeout = tick_rate
+            .checked_sub(last_tick.elapsed())
+            .unwrap_or_else(|| Duration::from_secs(0));
+
+        // Poll for UI input with exact remaining time for 16ms frame (~60fps)
+        if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 // Global: Ctrl-C → quit
                 if key.code == KeyCode::Char('c')
@@ -366,6 +373,12 @@ async fn run_loop<B: ratatui::backend::Backend>(
             }
         }
 
+        if last_tick.elapsed() >= tick_rate {
+            // Advance spinner every tick
+            spinner_frame = (spinner_frame + 1) % 10;
+            last_tick = Instant::now();
+        }
+
         // Non-blocking check for audit results (no Mutex blocking render)
         if let Ok(audit_event) = audit_rx.try_recv() {
             match audit_event {
@@ -384,9 +397,6 @@ async fn run_loop<B: ratatui::backend::Backend>(
                 }
             }
         }
-
-        // Advance spinner every tick
-        spinner_frame = (spinner_frame + 1) % 10;
     }
 
     Ok(())

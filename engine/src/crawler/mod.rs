@@ -1,21 +1,28 @@
 use std::collections::HashMap;
 use std::time::Instant;
+use std::sync::OnceLock;
 
 use anyhow::{Context, Result};
 use tracing::debug;
 
 use crate::config::EngineConfig;
 
+static GLOBAL_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
 /// Fetch a URL with plain HTTP and return raw bytes + headers + timing.
 pub async fn fetch(url: &str, config: &EngineConfig) -> Result<RawResponse> {
-    let client = reqwest::Client::builder()
-        .user_agent(&config.user_agent)
-        .timeout(std::time::Duration::from_millis(config.timeout_ms))
-        .redirect(reqwest::redirect::Policy::limited(10))
-        .gzip(true)
-        .brotli(true)
-        .build()
-        .context("Failed to build HTTP client")?;
+    let client = GLOBAL_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent(&config.user_agent)
+            .timeout(std::time::Duration::from_millis(config.timeout_ms))
+            .redirect(reqwest::redirect::Policy::limited(10))
+            .pool_max_idle_per_host(10_000)
+            .pool_idle_timeout(std::time::Duration::from_secs(90))
+            .gzip(true)
+            .brotli(true)
+            .build()
+            .expect("Failed to build HTTP client")
+    });
 
     let t0 = Instant::now();
     let response = client

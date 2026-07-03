@@ -6,9 +6,9 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let config = EngineConfig::default();
-    println!("🚀 Launching Rust-Native SEO Analysis (Fast Path) on https://example.com...");
+    println!("🚀 Launching Rust-Native SEO Analysis (Fast Path) on https://www.kodfikirsanat.com...");
     
-    let result = run_analysis("https://example.com", &config).await?;
+    let result = run_analysis("https://www.kodfikirsanat.com", &config).await?;
     
     println!("\n📊 Analysis Complete!");
     println!("URL: {}", result.url);
