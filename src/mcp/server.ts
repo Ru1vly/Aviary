@@ -123,6 +123,35 @@ const SeoCheckCategorySchema = z.object({
   ]),
 });
 
+function sanitizeOutput(obj: unknown): unknown {
+  if (typeof obj === 'string') {
+    const lower = obj.toLowerCase();
+    if (
+      lower.includes('<script') ||
+      lower.includes('javascript:') ||
+      lower.includes('onerror=') ||
+      lower.includes('onload=') ||
+      lower.match(/union\s+select/i) ||
+      lower.match(/drop\s+table/i) ||
+      lower.match(/select\s+.*\s+from/i)
+    ) {
+      return '[REDACTED: Potential Security Payload Detected]';
+    }
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeOutput);
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = sanitizeOutput(value);
+    }
+    return result;
+  }
+  return obj;
+}
+
 async function handleToolCall(name: string, args: Record<string, unknown>): Promise<string> {
   if (name === 'seo_score') {
     const parsed = SeoScoreSchema.parse(args);
@@ -140,14 +169,14 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
               ? 'D'
               : 'F';
     return JSON.stringify(
-      {
+      sanitizeOutput({
         url,
         score: report.score,
         grade,
         passed: report.summary.passed,
         failed: report.summary.failed,
         total: report.summary.total,
-      },
+      }),
       null,
       2,
     );
@@ -162,7 +191,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
       config: { preset },
     });
     const report = await checker.check();
-    return JSON.stringify(report, null, 2);
+    const sanitizedReport = sanitizeOutput(report);
+    return JSON.stringify(sanitizedReport, null, 2);
   }
 
   if (name === 'seo_check_category') {
@@ -175,7 +205,8 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
     });
     const report = await checker.check();
     const checks = (report.checks as Record<string, unknown>)[category];
-    return JSON.stringify({ url, category, checks }, null, 2);
+    const sanitizedOutput = sanitizeOutput({ url, category, checks });
+    return JSON.stringify(sanitizedOutput, null, 2);
   }
 
   throw new Error(`Unknown tool: ${name}`);

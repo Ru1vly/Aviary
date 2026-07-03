@@ -19,6 +19,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level moderate
         continue-on-error: true
+      - name: Generate Node.js SBOM
+        run: npx @cyclonedx/cyclonedx-npm --output-format JSON --output-file bom-node.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-node
+          path: bom-node.json
 
   rust-audit:
     name: Rust Dependency Audit
@@ -26,10 +32,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-audit
+      - run: cargo install cargo-audit cargo-cyclonedx
       - run: cargo audit
         working-directory: tui
         continue-on-error: true
+      - name: Generate Rust SBOM
+        run: cargo cyclonedx --format json -all
+        working-directory: tui
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-rust
+          path: tui/bom.json
 
   codeql:
     name: CodeQL Analysis

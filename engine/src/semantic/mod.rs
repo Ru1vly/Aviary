@@ -69,10 +69,21 @@ impl SemanticAnalyzer for OllamaAnalyzer {
         description: &str,
         body: &str,
     ) -> anyhow::Result<SemanticAnalysis> {
-        let body_preview = &body[..body.len().min(500)];
+        let max_len = 4000;
+        let mut body_preview = body;
+        if body.len() > max_len {
+            let mut end = max_len;
+            while end > 0 && !body.is_char_boundary(end) {
+                end -= 1;
+            }
+            body_preview = &body[..end];
+            if let Some(last_space) = body_preview.rfind(char::is_whitespace) {
+                body_preview = &body_preview[..last_space];
+            }
+        }
         let prompt = format!(
             "You are an SEO expert. Analyze the following page content for semantic coherence and intent alignment.\n\n\
-            Title: {title}\nDescription: {description}\nContent (first 500 chars): {body_preview}\n\n\
+            Title: {title}\nDescription: {description}\nContent (limited to 4000 chars): {body_preview}\n\n\
             Respond in JSON with fields: intent_coherent (bool), content_score (float 0-1), suggestions (string array)."
         );
 
@@ -88,24 +99,45 @@ impl SemanticAnalyzer for OllamaAnalyzer {
         let response = self
             .client
             .post(&url)
+            .timeout(std::time::Duration::from_secs(10))
             .json(&payload)
             .send()
             .await;
 
+        let fallback = || SemanticAnalysis {
+            intent_coherent: true,
+            content_score: 0.5,
+            suggestions: vec!["Analysis unavailable due to LLM error/timeout".to_string()],
+            provider: format!("ollama/{} (fallback)", self.model),
+        };
+
         match response {
             Ok(resp) => {
-                let json: serde_json::Value = resp
-                    .json()
-                    .await
-                    .unwrap_or(serde_json::Value::Null);
+                let json = match resp.json::<serde_json::Value>().await {
+                    Ok(j) => j,
+                    Err(e) => {
+                        warn!("Ollama response malformed JSON: {e}");
+                        return Ok(fallback());
+                    }
+                };
 
                 let response_text = json
                     .get("response")
                     .and_then(|v| v.as_str())
-                    .unwrap_or("{}");
+                    .unwrap_or("");
 
-                let parsed: serde_json::Value =
-                    serde_json::from_str(response_text).unwrap_or(serde_json::Value::Null);
+                if response_text.is_empty() {
+                    warn!("Ollama response missing 'response' field");
+                    return Ok(fallback());
+                }
+
+                let parsed: serde_json::Value = match serde_json::from_str(response_text) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        warn!("Ollama inner response malformed JSON: {e}");
+                        return Ok(fallback());
+                    }
+                };
 
                 Ok(SemanticAnalysis {
                     intent_coherent: parsed
@@ -130,13 +162,8 @@ impl SemanticAnalyzer for OllamaAnalyzer {
                 })
             }
             Err(e) => {
-                warn!("Ollama request failed, using stub result: {e}");
-                Ok(SemanticAnalysis {
-                    intent_coherent: true,
-                    content_score: 0.5,
-                    suggestions: vec![format!("Ollama unavailable: {e}")],
-                    provider: format!("ollama/{} (fallback)", self.model),
-                })
+                warn!("Ollama request failed or timed out: {e}");
+                Ok(fallback())
             }
         }
     }

@@ -49,7 +49,11 @@ pub async fn fetch(url: &str, config: &EngineConfig) -> Result<RawResponse> {
         .context("Failed to read response body")?;
 
     let load_time_ms = t0.elapsed().as_millis() as u64;
-    debug!(url, status, load_time_ms, "Fetched page");
+    let trace_id = uuid::Uuid::new_v4().to_string();
+    let _span = tracing::info_span!("fetch", trace_id = %trace_id).entered();
+    debug!(url, status, load_time_ms, trace_id = %trace_id, "Fetched page");
+    crate::metrics().crawler_latency_ms.record(load_time_ms as f64, &[]);
+    crate::metrics().cache_hit_ratio.add(1, &[]);
 
     Ok(RawResponse {
         html,

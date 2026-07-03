@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: e2e-seo-seed-data
+  namespace: e2e-seo
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: e2e-seo
+        component: seed-data
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: seed
+        image: e2e-seo-app:latest
+        imagePullPolicy: IfNotPresent
+        command: ["npm", "run", "db:seed"]
+        envFrom:
+        - configMapRef:
+            name: e2e-seo-config
+        - secretRef:
+            name: e2e-seo-secrets

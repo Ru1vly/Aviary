@@ -5,6 +5,28 @@ import { generateHtmlReport } from './reporter';
 import * as fs from 'fs';
 import { loadEnvConfig } from './config/env';
 import { createLogger } from './config/logger';
+import * as http from 'http';
+import * as client from 'prom-client';
+
+client.collectDefaultMetrics();
+
+export const llmInferenceTimeMs = new client.Histogram({
+  name: 'llm_inference_time_ms',
+  help: 'LLM inference time in milliseconds',
+  buckets: [100, 500, 1000, 5000, 10000]
+});
+
+const metricsServer = http.createServer(async (req, res) => {
+  if (req.url === '/metrics') {
+    res.setHeader('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+  } else {
+    res.statusCode = 404;
+    res.end('Not found');
+  }
+});
+metricsServer.listen(9090);
+metricsServer.unref();
 
 interface CliArgs {
   url?: string;

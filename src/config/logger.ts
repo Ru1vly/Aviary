@@ -1,4 +1,4 @@
-// 12-Factor: Route all logs to stderr as structured event streams
+// 12-Factor: Route all logs to stdout as structured event streams
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
@@ -18,7 +18,7 @@ class Logger {
       message,
       ...(data ? { data } : {}),
     };
-    process.stderr.write(JSON.stringify(entry) + '\n');
+    process.stdout.write(JSON.stringify(entry) + '\n');
   }
 
   debug(msg: string, data?: Record<string, unknown>) {

@@ -29,6 +29,33 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
+use std::sync::OnceLock;
+use opentelemetry::{global, metrics::{Counter, Histogram}};
+
+pub fn init_telemetry() -> prometheus::Registry {
+    let registry = prometheus::Registry::new();
+    if let Ok(exporter) = opentelemetry_prometheus::exporter().with_registry(registry.clone()).build() {
+        let provider = opentelemetry_sdk::metrics::SdkMeterProvider::builder().with_reader(exporter).build();
+        global::set_meter_provider(provider);
+    }
+    registry
+}
+
+pub struct EngineMetrics {
+    pub crawler_latency_ms: Histogram<f64>,
+    pub cache_hit_ratio: Counter<u64>,
+}
+
+pub fn metrics() -> &'static EngineMetrics {
+    static METRICS: OnceLock<EngineMetrics> = OnceLock::new();
+    METRICS.get_or_init(|| {
+        let meter = global::meter("e2e_seo_engine");
+        EngineMetrics {
+            crawler_latency_ms: meter.f64_histogram("crawler_latency_ms").build(),
+            cache_hit_ratio: meter.u64_counter("cache_hit_ratio").build(),
+        }
+    })
+}
 
 /// The complete result of analysing a single URL.
 #[derive(Debug, Serialize, Deserialize)]
@@ -54,7 +81,9 @@ pub struct EngineResult {
 /// 5. Optionally runs the configured semantic analyzer.
 /// 6. Computes a simple percentage score.
 pub async fn run_analysis(url: &str, config: &EngineConfig) -> Result<EngineResult> {
-    info!(url, "Starting SEO analysis");
+    let trace_id = uuid::Uuid::new_v4().to_string();
+    let _span = tracing::info_span!("run_analysis", trace_id = %trace_id).entered();
+    info!(url, trace_id = %trace_id, "Starting SEO analysis");
 
     // ── Fast path ─────────────────────────────────────────────────────────────
     let raw = crawler::fetch(url, config)
