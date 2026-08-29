@@ -32,17 +32,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: '. -> target' }
       - run: cargo install cargo-audit cargo-cyclonedx
+      # Run from the repo root: `tui` and `engine` share one workspace
+      # Cargo.lock (see /Cargo.toml), so this already audits both members —
+      # no need to run it once per member.
       - run: cargo audit
-        working-directory: tui
         continue-on-error: true
+      # `-all` is not a real flag (clap parses it as bundled short flags
+      # `-a -l -l` and errors on the unknown `-l`) — `--all` is the default
+      # behavior anyway, so it's dropped rather than corrected to `--all`.
+      # Run from the repo root so both workspace members are covered; it
+      # emits one file per member (`tui/tui.cdx.json`,
+      # `engine/aviary-engine.cdx.json`), not a single `bom.json`.
       - name: Generate Rust SBOM
-        run: cargo cyclonedx --format json -all
-        working-directory: tui
+        run: cargo cyclonedx --format json
       - uses: actions/upload-artifact@v4
         with:
           name: sbom-rust
-          path: tui/bom.json
+          path: |
+            tui/*.cdx.json
+            engine/*.cdx.json
 
   codeql:
     name: CodeQL Analysis

@@ -2,9 +2,15 @@ node_modules
 dist
 .git
 .github
+.claude
 *.md
 coverage
-tui/target
+# Neither build stage touches the TUI, the Rust analysis engine, or the k8s
+# manifests — excluding them keeps the build context small and upload fast.
+tui
+engine
+target
+k8s
 tests
 examples
 docs

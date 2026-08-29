@@ -71,13 +71,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: './tui -> target' }
-      - run: cargo build --release
-        working-directory: tui
+        with: { workspaces: '. -> target' }
+      # `tui` is a member of the root Cargo workspace (see /Cargo.toml), so
+      # cargo writes output to `<repo>/target`, not `tui/target` — build by
+      # package name from the repo root rather than cd-ing into `tui/`.
+      - run: cargo build --release -p tui
       - uses: actions/upload-artifact@v4
         with:
           name: tui-linux-amd64
-          path: tui/target/release/tui
+          path: target/release/tui
           retention-days: 7
 
   # ── TypeScript Build ────────────────────────────────────────
