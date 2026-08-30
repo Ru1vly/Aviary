@@ -1,5 +1,6 @@
 import { Page, Response } from 'playwright';
 import { SEOCheckResult, SEOReport } from '../types';
+import { SEOConfig } from '../config';
 import { MetaTagsChecker } from './metaTags';
 import { HeadingsChecker } from './headings';
 import { ImagesChecker } from './images';
@@ -33,6 +34,14 @@ import { HeatmapChecker } from './heatmap';
 export interface CheckerContext {
   page: Page;
   response: Response | null;
+  /**
+   * The resolved SEOConfig for this audit. Only consumed by checkers that
+   * extend BaseChecker (src/checkers/base.ts), which resolves per-rule
+   * enable/severity itself; checkers that haven't migrated yet ignore it —
+   * SEOChecker.applyConfigToResults() still does that resolution for them
+   * as a post-hoc fallback (see src/index.ts).
+   */
+  config: SEOConfig;
 }
 
 export interface Checker {
@@ -70,7 +79,7 @@ export const CHECKER_REGISTRY: CheckerDescriptor[] = [
   { key: 'metaTags', label: 'Meta Tags', icon: '🏷️', create: (ctx) => new MetaTagsChecker(ctx.page) },
   { key: 'headings', label: 'Headings', icon: '📝', create: (ctx) => new HeadingsChecker(ctx.page) },
   { key: 'images', label: 'Images', icon: '🖼️', create: (ctx) => new ImagesChecker(ctx.page) },
-  { key: 'performance', label: 'Performance', icon: '⚡', create: (ctx) => new PerformanceChecker(ctx.page) },
+  { key: 'performance', label: 'Performance', icon: '⚡', create: (ctx) => new PerformanceChecker({ ...ctx, checkerKey: 'performance' }) },
   { key: 'robotsTxt', label: 'Robots.txt', icon: '🤖', create: (ctx) => new RobotsTxtChecker(ctx.page) },
   { key: 'sitemap', label: 'Sitemap', icon: '🗺️', create: (ctx) => new SitemapChecker(ctx.page) },
   { key: 'security', label: 'Security', icon: '🔒', create: (ctx) => new SecurityChecker(ctx.page, ctx.response) },

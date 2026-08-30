@@ -112,7 +112,7 @@ export class SEOChecker {
    * severity configuration to their results.
    */
   private async runAllCheckers(): Promise<SEOReport['checks']> {
-    const ctx: CheckerContext = { page: this.page!, response: this.response };
+    const ctx: CheckerContext = { page: this.page!, response: this.response, config: this.config };
 
     const resultsByKey = await Promise.all(
       CHECKER_REGISTRY.map(async ({ key, create }): Promise<[CheckerKey, SEOCheckResult[]]> => {
