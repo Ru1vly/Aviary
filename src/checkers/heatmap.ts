@@ -25,9 +25,6 @@ export interface HeatmapCheckerDeps extends BaseCheckerDeps {
   options?: HeatmapOptions;
 }
 
-// heatmap.js library CDN URL
-const HEATMAP_JS_CDN = 'https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js';
-
 export class HeatmapChecker extends BaseChecker {
   private options: HeatmapOptions;
 
@@ -45,10 +42,6 @@ export class HeatmapChecker extends BaseChecker {
   protected checks() {
     const list: Array<{ id: string; run: () => Promise<CheckOutcome> }> = [];
 
-    // injectHeatmapLibrary() is shared "setup" for the checks below (mirrors
-    // the pre-migration checkAll(), which ran it once before everything
-    // else). Each check awaits the memoized promise itself rather than the
-    // base class running it once, since BaseChecker has no shared-setup hook.
     if (this.options.includeClickMap) {
       list.push({ id: 'click-heatmap-generated', run: () => this.generateClickHeatmap() });
     }
@@ -64,38 +57,11 @@ export class HeatmapChecker extends BaseChecker {
     return list;
   }
 
-  private libraryInjectedPromise?: Promise<void>;
-
-  /**
-   * Inject heatmap.js library into the page (optional - analysis works without it)
-   */
-  private ensureLibraryInjected(): Promise<void> {
-    if (!this.libraryInjectedPromise) {
-      this.libraryInjectedPromise = (async () => {
-        try {
-          await this.page.addScriptTag({ url: HEATMAP_JS_CDN });
-
-          // Wait for library to load
-          await this.page.waitForFunction(() => {
-            return typeof (window as any).h337 !== 'undefined';
-          }, { timeout: 5000 });
-        } catch {
-          // Library injection is optional - analysis can proceed without visual heatmap rendering
-        }
-      })();
-    }
-    return this.libraryInjectedPromise;
-  }
-
   /**
    * Generate predictive click heatmap based on interactive elements
    */
   private async generateClickHeatmap(): Promise<CheckOutcome> {
-    await this.ensureLibraryInjected();
-
     const heatmapData = await this.page.evaluate(() => {
-      const h337 = (window as any).h337;
-
       // Get all interactive elements
       const interactiveSelectors = [
         'a', 'button', 'input', 'select', 'textarea',
@@ -181,8 +147,6 @@ export class HeatmapChecker extends BaseChecker {
    * Analyze scroll depth and content distribution
    */
   private async analyzeScrollDepth(): Promise<CheckOutcome> {
-    await this.ensureLibraryInjected();
-
     const scrollData = await this.page.evaluate(() => {
       const pageHeight = document.documentElement.scrollHeight;
       const viewportHeight = window.innerHeight;
@@ -252,8 +216,6 @@ export class HeatmapChecker extends BaseChecker {
    * Analyze attention zones using F-pattern and visual hierarchy
    */
   private async analyzeAttentionZones(): Promise<CheckOutcome> {
-    await this.ensureLibraryInjected();
-
     const attentionData = await this.page.evaluate(() => {
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
@@ -369,8 +331,6 @@ export class HeatmapChecker extends BaseChecker {
    * Analyze CTA placement and visibility
    */
   private async analyzeCTAPlacement(): Promise<CheckOutcome> {
-    await this.ensureLibraryInjected();
-
     const ctaData = await this.page.evaluate(() => {
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
@@ -443,8 +403,6 @@ export class HeatmapChecker extends BaseChecker {
    * Check above-the-fold content quality
    */
   private async checkAboveFoldContent(): Promise<CheckOutcome> {
-    await this.ensureLibraryInjected();
-
     const foldData = await this.page.evaluate(() => {
       const viewportHeight = window.innerHeight;
 
@@ -527,83 +485,6 @@ export class HeatmapChecker extends BaseChecker {
         score: `${score}/4`,
       },
     };
-  }
-
-  /**
-   * Generate and capture heatmap screenshot
-   */
-  async captureHeatmapScreenshot(outputPath: string): Promise<string> {
-    // Generate visual heatmap overlay
-    await this.page.evaluate(() => {
-      const h337 = (window as any).h337;
-
-      // Create heatmap container
-      const container = document.createElement('div');
-      container.id = 'heatmap-overlay';
-      container.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: ${document.documentElement.scrollHeight}px;
-        pointer-events: none;
-        z-index: 999999;
-      `;
-      document.body.appendChild(container);
-
-      // Initialize heatmap
-      const heatmapInstance = h337.create({
-        container,
-        radius: 40,
-        maxOpacity: 0.6,
-        minOpacity: 0.1,
-        blur: 0.75,
-      });
-
-      // Collect data points from interactive elements
-      const interactiveSelectors = [
-        'a', 'button', 'input', 'select', 'textarea',
-        '[onclick]', '[role="button"]', '[role="link"]',
-        '.btn', '.button', '.cta'
-      ];
-
-      const elements = document.querySelectorAll(interactiveSelectors.join(','));
-      const points: { x: number; y: number; value: number }[] = [];
-
-      elements.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          const x = Math.round(rect.left + rect.width / 2);
-          const y = Math.round(rect.top + rect.height / 2 + window.scrollY);
-
-          let value = 50;
-          if (el.tagName === 'BUTTON' || el.classList.contains('cta')) value = 90;
-          if (el.tagName === 'A') value = 70;
-          if (rect.top < window.innerHeight) value += 20;
-
-          points.push({ x, y, value: Math.min(value, 100) });
-        }
-      });
-
-      heatmapInstance.setData({
-        max: 100,
-        data: points,
-      });
-    });
-
-    // Capture full page screenshot with heatmap overlay
-    await this.page.screenshot({
-      path: outputPath,
-      fullPage: true,
-    });
-
-    // Clean up overlay
-    await this.page.evaluate(() => {
-      const overlay = document.getElementById('heatmap-overlay');
-      if (overlay) overlay.remove();
-    });
-
-    return outputPath;
   }
 
   /**
