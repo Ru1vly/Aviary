@@ -1,7 +1,6 @@
 # SEO Checker Tool - Accuracy Limitations
 
-**Last Updated:** 2026-07-17
-**Tool Version:** 1.1.0
+**Last Updated:** 2026-08-30
 
 ## Overview
 
@@ -11,7 +10,7 @@ This document provides transparency about the aviary tool's accuracy limitations
 
 ---
 
-## 1. Fixed Issues (Version 1.1.0)
+## 1. Previously Fixed Issues
 
 ### 1.1 Previously Disabled Checks ✅ FIXED
 
@@ -130,13 +129,7 @@ These checks use statistical models or heuristics that cannot be 100% accurate, 
 
 These limitations stem from the tool running in a browser context:
 
-### 3.1 Dual-Engine SPA Fallback Bug
-
-**Limitation & Code Bug:**
-- In `/engine`, the Rust engine implements a fast-path HTTP crawler. For single-page applications (SPAs), it falls back to the Node CLI to render pages and return the compiled report. 
-- However, the Rust code attempts to parse the rendered HTML from the JSON string returned by the node worker using `val.get("html")`. Because the TS worker returns a `SEOReport` object which has no `"html"` property, this fallback is broken and the Rust engine never parses the client-side rendered HTML.
-
-### 3.2 Network Timing Variability
+### 3.1 Network Timing Variability
 
 **Limitation:**
 - Performance metrics vary per run
@@ -147,14 +140,14 @@ These limitations stem from the tool running in a browser context:
 - Run multiple checks and average results
 - Use dedicated performance tools (Lighthouse, WebPageTest) for detailed analysis
 
-### 3.3 JavaScript Execution Required
+### 3.2 JavaScript Execution Required
 
 **Limitation:**
 - Only sees what JavaScript renders
 - Cannot test "JavaScript disabled" experience
 - May miss noscript content
 
-### 3.4 Cannot Verify Actual Indexing
+### 3.3 Cannot Verify Actual Indexing
 
 **Limitation:**
 - Tool checks *if* page is indexable, not if it's *indexed*
@@ -164,19 +157,21 @@ These limitations stem from the tool running in a browser context:
 
 ## 4. Missing Production Features & Hidden Behaviors
 
-These features are planned but not yet implemented, or represent undocumented CLI behaviors:
+Not yet implemented, or undocumented CLI behaviors worth knowing about:
+
+- ❌ **Parallel URL checking** (checking multiple URLs in one run)
+- ❌ **Caching mechanisms** (reusing results from previous runs)
+- ❌ **Lighthouse integration** (Google's official tool)
+- ❌ **Google Search Console API integration**
+- ❌ **Historical data tracking and trend analysis**
 
 ### 4.1 Missing OpenAI Provider in Rust Engine
 
-- The `.env.example` file lists `openai` as a valid provider for `AVIARY_LLM_PROVIDER`. However, `engine/src/semantic/factory.rs` only implements `ollama` and `stub`. Setting the provider to `openai` defaults to the `StubAnalyzer`.
+- `.env.example` lists `openai` as a valid value for `AVIARY_LLM_PROVIDER`, but `engine/src/semantic/factory.rs` only implements `ollama` and `stub`. Setting the provider to `openai` silently falls back to the `StubAnalyzer` rather than erroring.
 
-### 4.2 Silent Prometheus Metrics Server
+### 4.2 Prometheus Metrics Server Starts on Import
 
-- Importing the CLI silently registers and starts a Prometheus metrics server listening on port `9090` using `prom-client`. This port binds silently in the background, which may conflict with other local monitoring services.
-
-### 4.3 MCP Redaction Logic
-
-- The Model Context Protocol (MCP) server sanitizes output using `sanitizeOutput()`. If audit payloads contain keywords like `<script`, `javascript:`, `onload=`, or SQL statements, the server redacts the entire output with `[REDACTED: Potential Security Payload Detected]`.
+- Importing the CLI registers and starts a Prometheus metrics server (`prom-client`), configurable via `AVIARY_METRICS_PORT` (default `9090`). It starts silently in the background as a side effect of import rather than an explicit opt-in, which can surprise anything embedding `src/cli.ts` as a library and may conflict with another local service already on that port.
 
 ---
 
@@ -199,21 +194,29 @@ These features are planned but not yet implemented, or represent undocumented CL
 ### 5.3 Performance Metrics (85% accurate)
 
 **Known Issues:**
-- Network timing varies ±20% per run
+- Network timing varies ±20% per run; a single-run measurement may not represent typical performance
 - Doesn't account for CDN edge caching
 - First visit vs. cached visit differences
+- Cannot detect server-side rendering optimizations or HTTP/2 push resources
+
+**Recommendation:** Run multiple checks and cross-reference with a dedicated tool (Lighthouse, PageSpeed Insights, WebPageTest) for production analysis.
 
 ### 5.4 Accessibility (80% accurate)
 
 **Known Issues:**
 - Color contrast calculation doesn't account for gradients
 - ARIA validation may flag valid custom implementations
+- Cannot evaluate alt text *quality*, only presence
+- Cannot test keyboard navigation flows or verify actual screen reader compatibility
+- May miss dynamically loaded content
+
+**Recommendation:** Supplement with manual testing using an actual screen reader and keyboard-only navigation.
 
 ### 5.5 Image Optimization (75% accurate)
 
 **Known Issues:**
 - Cannot verify actual compression quality
-- **CDN Format Detection Limit:** Although format detection was improved in v1.1.0, CDNs like Cloudinary are not automatically recognized as `'dynamic'` in the TS `cdnPatterns` array. Only common placeholder sites (e.g. `dummyimage.com`) are correctly categorized as dynamic placeholders. Other CDNs fall back to raw file extensions or are marked as `'unknown'`.
+- **CDN Format Detection Limit:** CDNs like Cloudinary are not automatically recognized as `'dynamic'` in the TS `cdnPatterns` array (`src/checkers/advancedImages.ts`). Only common placeholder sites (e.g. `placehold.co`, `dummyimage.com`) are correctly categorized as dynamic placeholders. Other CDNs fall back to raw file extensions or are marked as `'unknown'`.
 
 ### 5.6 Spam Detection (60% accurate)
 
@@ -293,7 +296,7 @@ If you encounter false positives or inaccurate checks:
 1. **Verify:** Is this actually incorrect?
 2. **Report:** Create GitHub issue with tested URL, failed check, and expected behavior.
 
-**GitHub Issues:** [https://github.com/anthropics/claude-code/issues](https://github.com/anthropics/claude-code/issues)
+**GitHub Issues:** [https://github.com/Ru1vly/e2e-seo/issues](https://github.com/Ru1vly/e2e-seo/issues)
 
 ---
 

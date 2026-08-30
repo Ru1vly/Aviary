@@ -20,7 +20,7 @@ The library executes 260+ individual checks across 28 categories. Below is an ov
 | Technical SEO | Verifies server configuration and response status | Response status codes, page sizes, compression headers, duplicate content detection |
 | Heatmap & UX | Models visual hierarchy and attention zones | Predictive click maps, scroll depth levels, above-the-fold content scoring, CTA visibility |
 | Accessibility | Inspects basic accessibility markers | ARIA landmarks, form input labeling, keyboard navigation order, skip links |
-| Core Web Vitals | Inspects real browser navigation metrics | DOM load time, HTTP request counts, resource weights, performance timing API |
+| Resource Performance | Inspects real browser navigation metrics | DOM load time, HTTP request counts, resource weights, performance timing API |
 | URL Factors | Audits the page address format | URL length, character validity, directory depth, readability rules |
 | Spam Detection | Guards against search engine red flags | Hidden text, excessive keyword repetitions, link densities, iframe abuses |
 
@@ -165,8 +165,8 @@ To build and test the tool locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/aviary.git
-cd aviary
+git clone https://github.com/Ru1vly/e2e-seo.git
+cd e2e-seo
 
 # Install project dependencies
 pnpm install

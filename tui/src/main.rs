@@ -220,7 +220,7 @@ impl App {
             add("PAGE QUALITY", &c.page_quality);
             add("ADVANCED IMAGES", &c.advanced_images);
             add("MULTIMEDIA", &c.multimedia);
-            add("CORE WEB VITALS", &c.core_web_vitals);
+            add("RESOURCE PERFORMANCE", &c.core_web_vitals);
             add("ANALYTICS", &c.analytics);
             add("MOBILE UX", &c.mobile_ux);
             add("SCHEMA VALIDATION", &c.schema_validation);

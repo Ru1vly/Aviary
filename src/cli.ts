@@ -27,7 +27,8 @@ const metricsServer = http.createServer(async (req, res) => {
   }
 });
 metricsServer.on('error', () => {});
-metricsServer.listen(9090);
+const metricsPort = process.env.AVIARY_METRICS_PORT ? parseInt(process.env.AVIARY_METRICS_PORT, 10) : 9090;
+metricsServer.listen(metricsPort);
 metricsServer.unref();
 
 interface CliArgs {
@@ -108,7 +109,7 @@ function printHelp() {
   process.stderr.write(`
 aviary - End-to-end SEO checker tool
 
-Usage: aviary [options] <url>
+Usage: aviary -u <url> [options]
 
 Options:
   -u, --url <url>        URL to check (required)
@@ -136,14 +137,15 @@ Environment Variables (12-Factor config):
   AVIARY_LLM_ENDPOINT   LLM endpoint URL (default: http://localhost:11434)
   AVIARY_LLM_MODEL      LLM model name (default: llama3.2)
   AVIARY_LLM_API_KEY    LLM API key (never logged)
+  AVIARY_METRICS_PORT   Prometheus /metrics port (default: 9090)
 
 Examples:
-  aviary https://example.com
+  aviary -u https://example.com
   aviary -u https://example.com -o report.json
-  aviary https://example.com --viewport 375x667
-  aviary https://example.com --headed
-  aviary https://example.com --preset basic
-  aviary https://example.com --config .aviary.json
+  aviary -u https://example.com --viewport 375x667
+  aviary -u https://example.com --headed
+  aviary -u https://example.com --preset basic
+  aviary -u https://example.com --config .aviary.json
   AVIARY_URL=https://example.com aviary --json
   aviary --init-config
 
@@ -167,7 +169,7 @@ Checks performed (260+ checks across ${CHECKER_REGISTRY.length} categories):
   • Page quality (duplicates, freshness, E-A-T signals)
   • Advanced images (responsive, lazy loading, WebP, dimensions)
   • Multimedia (videos, audio, accessibility, schema)
-  • Core Web Vitals (page load, resources, optimization, caching)
+  • Resource Performance (page load, resource sizes, caching, render-blocking)
   • Analytics (Google Analytics, GTM, pixels, tracking, verification)
   • Mobile UX (tap targets, viewport, responsive, PWA, AMP)
   • Schema Validation (Product, Article, Organization, Event, etc.)
@@ -177,7 +179,7 @@ Checks performed (260+ checks across ${CHECKER_REGISTRY.length} categories):
   • Internationalization (hreflang, languages, localization, Unicode)
   • Heatmap & UX (predictive click maps, scroll depth, above-the-fold scoring)
 
-For more information, visit: https://github.com/yourusername/aviary
+For more information, visit: https://github.com/Ru1vly/e2e-seo
   `);
 }
 

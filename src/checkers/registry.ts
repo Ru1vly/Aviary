@@ -95,7 +95,13 @@ export const CHECKER_REGISTRY: CheckerDescriptor[] = [
   { key: 'pageQuality', label: 'Page Quality', icon: '⭐', create: (ctx) => new PageQualityChecker({ ...ctx, checkerKey: 'pageQuality' }) },
   { key: 'advancedImages', label: 'Advanced Images', icon: '📷', create: (ctx) => new AdvancedImagesChecker({ ...ctx, checkerKey: 'advancedImages' }) },
   { key: 'multimedia', label: 'Multimedia', icon: '🎬', create: (ctx) => new MultimediaChecker({ ...ctx, checkerKey: 'multimedia' }) },
-  { key: 'coreWebVitals', label: 'Core Web Vitals', icon: '📊', create: (ctx) => new CoreWebVitalsChecker({ ...ctx, checkerKey: 'coreWebVitals' }) },
+  // Label is "Resource Performance", not "Core Web Vitals" — this checker
+  // measures load time, resource sizes, and caching via the Navigation
+  // Timing API, not real LCP/CLS/INP (no PerformanceObserver). The `key`
+  // stays `coreWebVitals` (it's load-bearing across config/presets.ts,
+  // the TUI's Rust struct, and existing reports) — only the display name
+  // changes. See docs/ACCURACY_LIMITATIONS.md.
+  { key: 'coreWebVitals', label: 'Resource Performance', icon: '📊', create: (ctx) => new CoreWebVitalsChecker({ ...ctx, checkerKey: 'coreWebVitals' }) },
   { key: 'analytics', label: 'Analytics & Tracking', icon: '📈', create: (ctx) => new AnalyticsChecker({ ...ctx, checkerKey: 'analytics' }) },
   { key: 'mobileUX', label: 'Mobile UX', icon: '📲', create: (ctx) => new MobileUXChecker({ ...ctx, checkerKey: 'mobileUX' }) },
   { key: 'schemaValidation', label: 'Schema Validation', icon: '✅', create: (ctx) => new SchemaValidationChecker({ ...ctx, checkerKey: 'schemaValidation' }) },

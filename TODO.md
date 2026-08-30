@@ -28,16 +28,16 @@ This document outlines the remaining tasks to make the aviary checker tool produ
   - [x] SSL/HTTPS verification
   - [x] Mobile-friendliness test
   - [x] Page speed insights integration
-  - [x] Core Web Vitals (LCP, FID, CLS)
+  - [ ] Core Web Vitals (LCP, FID, CLS) — the "Core Web Vitals" checker measures load time, resource counts/sizes, and caching via the Navigation Timing API, not real LCP/CLS/INP (no PerformanceObserver); see docs/ACCURACY_LIMITATIONS.md
   - [x] Server response time check
   - [x] Redirect chain detection
   - [x] 404 error detection
 
 - [x] **Heatmap & User Experience**
-  - [x] Click heatmap generation
+  - [x] Click heatmap generation — predictive, from static DOM position/element-type heuristics, not recorded user interactions
   - [x] Scroll depth tracking
-  - [x] Mouse movement tracking
-  - [x] Attention heatmap (time-based)
+  - [ ] Mouse movement tracking — not implemented
+  - [x] Attention heatmap — static heuristic scoring (heading level, above-the-fold, element size), not time-based
   - [x] Visual hierarchy analysis
   - [x] Above-the-fold content detection
       
