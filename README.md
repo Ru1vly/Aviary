@@ -1,4 +1,4 @@
-# e2e-seo
+# aviary
 
 An end-to-end SEO testing toolkit for websites using browser automation. Built with TypeScript and Playwright for comprehensive SEO analysis.
 
@@ -31,7 +31,7 @@ The library executes 260+ individual checks across 28 categories. Below is an ov
 Install the package via npm:
 
 ```bash
-npm install e2e-seo
+npm install aviary
 ```
 
 To install globally as a command-line tool:
@@ -50,26 +50,26 @@ Running the command with no arguments launches the full-screen interactive Termi
 
 ```bash
 # Launch interactive TUI Dashboard
-e2e-seo
+aviary
 ```
 
 To run checks directly in stdout mode (e.g. for scripts, CI pipelines, or AI agents), you must pass the target URL using the `-u` or `--url` flag:
 
 ```bash
 # Run direct audit
-e2e-seo -u https://example.com
+aviary -u https://example.com
 
 # Save detailed JSON report to a file
-e2e-seo -u https://example.com --output report.json
+aviary -u https://example.com --output report.json
 
 # Save a visual HTML report to a file
-e2e-seo -u https://example.com --html report.html
+aviary -u https://example.com --html report.html
 
 # Run checks with verbose outputs (lists failure details)
-e2e-seo -u https://example.com --verbose
+aviary -u https://example.com --verbose
 
 # Run with a mobile viewport simulation
-e2e-seo -u https://example.com --viewport 375x667
+aviary -u https://example.com --viewport 375x667
 ```
 
 ### Programmatic API
@@ -77,7 +77,7 @@ e2e-seo -u https://example.com --viewport 375x667
 Import the SEOChecker class to run checks programmatically within your Node.js application:
 
 ```typescript
-import { SEOChecker } from 'e2e-seo';
+import { SEOChecker } from 'aviary';
 
 async function runAudit() {
   const checker = new SEOChecker({
@@ -127,7 +127,7 @@ You can customize which audits to run and modify their rules via custom config f
 To write an HTML report programmatically:
 
 ```typescript
-import { SEOChecker, generateHtmlReport } from 'e2e-seo';
+import { SEOChecker, generateHtmlReport } from 'aviary';
 
 async function exportReport() {
   const checker = new SEOChecker({ url: 'https://example.com' });
@@ -143,7 +143,7 @@ async function exportReport() {
 ## Project Structure
 
 ```
-e2e-seo/
+aviary/
 ├── src/                   # Source code
 │   ├── checkers/          # 28 SEO checker modules
 │   ├── config/            # Loader, presets, and configuration types
@@ -165,8 +165,8 @@ To build and test the tool locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/e2e-seo.git
-cd e2e-seo
+git clone https://github.com/yourusername/aviary.git
+cd aviary
 
 # Install project dependencies
 pnpm install

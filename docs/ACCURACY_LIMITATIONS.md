@@ -1,11 +1,11 @@
 # SEO Checker Tool - Accuracy Limitations
 
-**Last Updated:** 2025-11-23
-**Tool Version:** 1.0.0
+**Last Updated:** 2026-07-17
+**Tool Version:** 1.1.0
 
 ## Overview
 
-This document provides transparency about the e2e-seo tool's accuracy limitations, known issues, and areas where manual verification is recommended.
+This document provides transparency about the aviary tool's accuracy limitations, known issues, and areas where manual verification is recommended.
 
 **Important:** This tool is designed to identify *potential* SEO issues. Not all findings indicate actual problems, and the tool cannot catch every SEO issue. Always apply professional judgment when interpreting results.
 
@@ -42,7 +42,7 @@ These were from placeholder/data URLs that weren't properly filtered.
 3. Detect WebP, AVIF, and other modern formats
 4. Fallback to MIME type when extension unavailable
 
-### 1.3 Hidden Text Detection Improvements ✅ FIXED
+### 1.3 Hidden Text Detection Improvements ✅ PARTIALLY FIXED
 
 **Previous Issue:** Legitimate content was flagged as "hidden text spam":
 - Collapsed accordions
@@ -51,16 +51,16 @@ These were from placeholder/data URLs that weren't properly filtered.
 - Truncated text with "read more" buttons
 
 **Fix:** Updated hidden text detection to:
-1. Ignore common UI patterns (accordions, tabs, modals)
+1. Ignore common UI patterns (accordions, tabs, modals) on direct parents
 2. Check for legitimate accessibility hiding (screen readers)
 3. Reduce false positives for content overflow
 4. Only flag truly suspicious hiding techniques
 
 ---
 
-## 2. Inherent Limitations (Heuristic-Based)
+## 2. Inherent Limitations & Code Bugs (Heuristic-Based)
 
-These checks use statistical models or heuristics that cannot be 100% accurate:
+These checks use statistical models or heuristics that cannot be 100% accurate, or contain specific implementation bugs:
 
 ### 2.1 Readability Scores (~85% accurate)
 
@@ -74,21 +74,16 @@ These checks use statistical models or heuristics that cannot be 100% accurate:
 
 **Recommendation:** Use as a guideline, not absolute rule. Consider your target audience's education level.
 
-**Example False Positive:**
-```
-"The cardiovascular system comprises arteries, veins, and capillaries."
-→ Flags as "difficult" but appropriate for medical audience
-```
-
-### 2.2 Spam Detection (~70% accurate)
+### 2.2 Spam Detection (~60% accurate)
 
 **Check:** Spam Patterns, Keyword Stuffing, Hidden Text
 
-**Limitation:**
+**Limitation & Code Bugs:**
 - Pattern-based detection has false positives
 - Cannot understand intent
-- May flag legitimate optimization
-- Cultural/language differences affect accuracy
+- **Shallow DOM Hidden Text check bug:** In `spamDetection.ts`, the `isLegitimateHidden()` function only evaluates the hidden element itself and its direct parent (`el.parentElement`) for accordion or collapse framework classes. In Tailwind and Bootstrap components, interactive container classes (such as `.collapse` or `.accordion`) are often located on higher ancestors. Because the checker does not traverse up the DOM tree, it flags these legitimate hidden elements as potential hidden text spam.
+- **Keyword density** thresholds are heuristic-based
+- Industry-specific terminology may be flagged as repetitive
 
 **Known False Positives:**
 - Product descriptions with natural keyword repetition
@@ -98,15 +93,14 @@ These checks use statistical models or heuristics that cannot be 100% accurate:
 
 **Recommendation:** Manually review flagged items. High spam scores (>70%) are more reliable.
 
-### 2.3 Content Quality Assessment (~75% accurate)
+### 2.3 Content Quality Assessment (~70% accurate)
 
 **Check:** Content Depth, Uniqueness, Structure
 
-**Limitation:**
+**Limitation & Code Bugs:**
 - Cannot judge factual accuracy
 - Cannot assess expertise or authority
-- Uniqueness check is relative to page itself, not web-wide
-- Subjective quality measures
+- **Regulatory Auditing Omission Gap:** In `legalCompliance.ts`, the checks for GDPR and CCPA return `passed: true` if their respective compliance terms are missing. This means if a site completely lacks a privacy policy or regulatory statements, the checker still passes instead of warning or failing.
 
 **What It Can Detect:**
 - ✅ Thin content (word count)
@@ -119,15 +113,14 @@ These checks use statistical models or heuristics that cannot be 100% accurate:
 - ❌ Content relevance to search intent
 - ❌ E-A-T signals (Expertise, Authority, Trust)
 
-### 2.4 Mobile Usability (~80% accurate)
+### 2.4 Mobile Usability & Heatmaps (~75% accurate)
 
-**Check:** Tap Target Size, Viewport Configuration
+**Check:** Tap Target Size, Viewport Configuration, Scroll Depth
 
-**Limitation:**
+**Limitation & Code Bugs:**
 - 44px tap target rule is a guideline (WCAG 2.5.5)
-- Cannot test on real devices
 - Viewport simulation vs. actual device behavior
-- Cannot detect pinch-zoom blocking via JavaScript
+- **Scroll Depth Coordinate Bug:** In `heatmap.ts`, the scroll depth content density checker uses the document-relative vertical offset `yPosition` inside `document.elementsFromPoint()`. Because `elementsFromPoint` expects viewport-relative client coordinates, passing any coordinate that exceeds the viewport height (`yPosition > viewportHeight`) returns an empty array. This breaks the density scoring calculation for pages taller than the viewport height.
 
 **Recommendation:** Test on real devices for critical pages.
 
@@ -137,15 +130,11 @@ These checks use statistical models or heuristics that cannot be 100% accurate:
 
 These limitations stem from the tool running in a browser context:
 
-### 3.1 Server-Side Rendering (SSR) Blind Spots
+### 3.1 Dual-Engine SPA Fallback Bug
 
-**Limitation:**
-- Cannot detect SSR vs. CSR rendering strategy
-- Misses server-side performance optimizations
-- Cannot verify cache headers for API calls
-- Doesn't see HTTP/2 server push resources
-
-**Impact:** May underestimate performance of well-optimized SSR applications.
+**Limitation & Code Bug:**
+- In `/engine`, the Rust engine implements a fast-path HTTP crawler. For single-page applications (SPAs), it falls back to the Node CLI to render pages and return the compiled report. 
+- However, the Rust code attempts to parse the rendered HTML from the JSON string returned by the node worker using `val.get("html")`. Because the TS worker returns a `SEOReport` object which has no `"html"` property, this fallback is broken and the Rust engine never parses the client-side rendered HTML.
 
 ### 3.2 Network Timing Variability
 
@@ -153,11 +142,9 @@ These limitations stem from the tool running in a browser context:
 - Performance metrics vary per run
 - Network conditions affect results
 - Geographic location matters
-- CDN effectiveness not captured
 
 **Recommendation:**
 - Run multiple checks and average results
-- Test from different locations if possible
 - Use dedicated performance tools (Lighthouse, WebPageTest) for detailed analysis
 
 ### 3.3 JavaScript Execution Required
@@ -166,58 +153,35 @@ These limitations stem from the tool running in a browser context:
 - Only sees what JavaScript renders
 - Cannot test "JavaScript disabled" experience
 - May miss noscript content
-- SEO bots might see different content
-
-**Recommendation:**
-- Test with JavaScript disabled separately
-- Verify server-side rendering if using client-side frameworks
-- Check Google Search Console's "Rendered" view
 
 ### 3.4 Cannot Verify Actual Indexing
 
 **Limitation:**
 - Tool checks *if* page is indexable, not if it's *indexed*
 - Cannot verify Google's actual index status
-- Cannot check crawl budget or frequency
-- Doesn't see Search Console data
-
-**Recommendation:** Use Google Search Console API for actual indexing status.
 
 ---
 
-## 4. Missing Production Features
+## 4. Missing Production Features & Hidden Behaviors
 
-These features are planned but not yet implemented:
+These features are planned but not yet implemented, or represent undocumented CLI behaviors:
 
-### 4.1 External API Integrations
+### 4.1 Missing OpenAI Provider in Rust Engine
 
-**Not Available:**
-- ❌ Google Search Console API
-- ❌ PageSpeed Insights API (official Google tool)
-- ❌ Lighthouse integration
-- ❌ Google Analytics integration
-- ❌ Ahrefs/SEMrush competitor data
+- The `.env.example` file lists `openai` as a valid provider for `AVIARY_LLM_PROVIDER`. However, `engine/src/semantic/factory.rs` only implements `ollama` and `stub`. Setting the provider to `openai` defaults to the `StubAnalyzer`.
 
-**Workaround:** Use these tools separately for comprehensive analysis.
+### 4.2 Silent Prometheus Metrics Server
 
-### 4.2 Performance Optimizations
+- Importing the CLI silently registers and starts a Prometheus metrics server listening on port `9090` using `prom-client`. This port binds silently in the background, which may conflict with other local monitoring services.
 
-**Not Available:**
-- ❌ Parallel URL checking (single URL at a time)
-- ❌ Result caching (re-runs check each time)
-- ❌ Incremental checks (full scan every time)
+### 4.3 MCP Redaction Logic
 
-**Impact:** Slower for large-scale scanning.
+- The Model Context Protocol (MCP) server sanitizes output using `sanitizeOutput()`. If audit payloads contain keywords like `<script`, `javascript:`, `onload=`, or SQL statements, the server redacts the entire output with `[REDACTED: Potential Security Payload Detected]`.
 
-### 4.3 Advanced Reporting
+### 4.4 Engine Threshold Discrepancy
 
-**Not Available:**
-- ❌ Historical tracking
-- ❌ Trend analysis
-- ❌ Before/after comparisons
-- ❌ Competitor benchmarking
-
-**Workaround:** Save JSON reports and compare manually.
+- The TypeScript checker expects titles of **30-60 characters** and descriptions of **120-160 characters**.
+- The Rust crawler engine uses different limits (**10-60 characters** for titles, and **50-160 characters** for descriptions).
 
 ---
 
@@ -230,8 +194,6 @@ These features are planned but not yet implemented:
 - Alternative meta tag implementations (custom CMS)
 - Structured data in non-JSON-LD formats
 
-**Recommendation:** High confidence in these checks.
-
 ### 5.2 Structured Data (90% accurate)
 
 **Known Issues:**
@@ -239,47 +201,32 @@ These features are planned but not yet implemented:
 - Nested schema validation can be overly strict
 - Custom schema extensions may not validate
 
-**Recommendation:** Cross-reference with [Google Rich Results Test](https://search.google.com/test/rich-results).
-
 ### 5.3 Performance Metrics (85% accurate)
 
 **Known Issues:**
 - Network timing varies ±20% per run
 - Doesn't account for CDN edge caching
 - First visit vs. cached visit differences
-- Background processes affect timing
-
-**Recommendation:** Run 3 times and use median values.
 
 ### 5.4 Accessibility (80% accurate)
 
 **Known Issues:**
 - Color contrast calculation doesn't account for gradients
 - ARIA validation may flag valid custom implementations
-- Keyboard navigation cannot detect all custom controls
-- Screen reader compatibility is partial
-
-**Recommendation:** Use dedicated a11y tools (axe, WAVE) for critical checks.
 
 ### 5.5 Image Optimization (75% accurate)
 
 **Known Issues:**
 - Cannot verify actual compression quality
-- Doesn't know if images are already optimized
-- May suggest format changes that increase file size
-- Background images in CSS are harder to detect
+- **CDN Format Detection Limit:** Although format detection was improved in v1.1.0, CDNs like Cloudinary are not automatically recognized as `'dynamic'` in the TS `cdnPatterns` array. Only common placeholder sites (e.g. `dummyimage.com`) are correctly categorized as dynamic placeholders. Other CDNs fall back to raw file extensions or are marked as `'unknown'`.
 
-**Recommendation:** Use image-specific tools (Squoosh, ImageOptim) for optimization.
-
-### 5.6 Spam Detection (70% accurate)
+### 5.6 Spam Detection (60% accurate)
 
 **High False Positive Rate:**
 - Product descriptions with natural keyword density
 - Technical documentation with repeated terms
 - Legal disclaimers
-- Multi-language content
-
-**Recommendation:** Only take action on high-confidence spam signals (>80% certainty).
+- Interactive elements inside nested container components (accordion, collapse, modal) due to shallow DOM traversal limit.
 
 ---
 
@@ -288,17 +235,17 @@ These features are planned but not yet implemented:
 | Check Category | Accuracy | Confidence Level | Notes |
 |---------------|----------|------------------|-------|
 | Meta Tags | ~95% | High | Straightforward DOM parsing |
-| Headings Structure | ~95% | High | Clear hierarchy rules |
+| Heading Structure | ~95% | High | Clear hierarchy rules |
 | HTTPS/Security | ~90% | High | Binary checks (present/absent) |
 | Structured Data | ~90% | High | Schema.org validation |
 | Response Codes | ~90% | High | HTTP standard compliance |
 | Compression | ~90% | High | Header presence check |
 | Performance Metrics | ~85% | Medium | Network variability |
 | Accessibility | ~80% | Medium | Complex WCAG rules |
-| Mobile Usability | ~80% | Medium | Guideline-based, not absolute |
-| Image Optimization | ~75% | Medium | Heuristic recommendations |
-| Content Quality | ~75% | Medium | Subjective assessment |
-| Spam Detection | ~70% | Low | Pattern matching, many false positives |
+| Mobile Usability | ~75% | Medium | Viewport relative scroll depth bug |
+| Image Optimization | ~75% | Medium | CDN detection limitations |
+| Content Quality | ~70% | Medium | Regulatory compliance gap |
+| Spam Detection | ~60% | Low | Shallow DOM check, false positives |
 | Readability | ~70% | Low | Statistical estimation |
 
 ---
@@ -316,14 +263,9 @@ These features are planned but not yet implemented:
 For critical findings:
 
 1. ✅ Run check 2-3 times to confirm consistency
-2. ✅ Cross-reference with official tools:
-   - Google Rich Results Test
-   - PageSpeed Insights
-   - Search Console
-   - WAVE (accessibility)
+2. ✅ Cross-reference with official tools (Google Search Console, Rich Results Test)
 3. ✅ Manual inspection in browser DevTools
 4. ✅ Test on real devices (mobile checks)
-5. ✅ Check competitors - is this a real issue?
 
 ### 7.3 Priority-Based Actions
 
@@ -347,16 +289,6 @@ For critical findings:
 - ℹ️ Additional schema markup
 - ℹ️ Content length recommendations
 
-### 7.4 What to Ignore
-
-Safe to ignore in most cases:
-
-- ❌ Single spam pattern detection (unless multiple flags)
-- ❌ Readability scores for technical content
-- ❌ Brand information check for non-commercial sites
-- ❌ E-commerce checks for non-product pages
-- ❌ Analytics tracking suggestions (if using alternatives)
-
 ---
 
 ## 8. Reporting Issues
@@ -364,40 +296,15 @@ Safe to ignore in most cases:
 If you encounter false positives or inaccurate checks:
 
 1. **Verify:** Is this actually incorrect?
-2. **Report:** Create GitHub issue with:
-   - URL tested
-   - Check that failed
-   - Why it's incorrect
-   - Expected behavior
-3. **Workaround:** Disable specific checks in config
+2. **Report:** Create GitHub issue with tested URL, failed check, and expected behavior.
 
 **GitHub Issues:** [https://github.com/anthropics/claude-code/issues](https://github.com/anthropics/claude-code/issues)
 
 ---
 
-## 9. Future Improvements
+## 9. Conclusion
 
-Planned enhancements to improve accuracy:
-
-### Version 1.2.0 (Q2 2025)
-- [ ] Google Search Console API integration (actual index status)
-- [ ] PageSpeed Insights API (official Google metrics)
-- [ ] Lighthouse integration (comprehensive performance)
-- [ ] Improved spam detection algorithm
-- [ ] Machine learning for content quality
-
-### Version 2.0.0 (Q3 2025)
-- [ ] Multi-device testing (real device farm)
-- [ ] Competitor comparison
-- [ ] Historical tracking and trends
-- [ ] Custom rule creation
-- [ ] Automated fix suggestions
-
----
-
-## 10. Conclusion
-
-**The e2e-seo tool is most accurate for:**
+**The aviary tool is most accurate for:**
 - ✅ Technical SEO fundamentals (meta tags, headers)
 - ✅ Structural issues (headings, links)
 - ✅ Basic accessibility
@@ -405,51 +312,11 @@ Planned enhancements to improve accuracy:
 - ✅ Structured data validation
 
 **Use with caution for:**
-- ⚠️ Spam detection (high false positive rate)
-- ⚠️ Content quality assessment (subjective)
+- ⚠️ Spam detection (shallow DOM checking)
+- ⚠️ Content quality assessment (subjective and regulatory gaps)
 - ⚠️ Performance metrics (network variability)
 - ⚠️ Readability scores (domain-dependent)
-
-**Cannot replace:**
-- ❌ Google Search Console (actual indexing)
-- ❌ Real device testing (mobile experience)
-- ❌ Human SEO expertise (strategy, content)
-- ❌ Competitor analysis tools (market research)
-
-**Recommendation:** Use this tool as a **first-pass audit** to identify potential issues, then verify critical findings with official tools and manual inspection before making changes.
-
----
-
-## Appendix: Check Accuracy Matrix
-
-| Check Name | Accuracy | False Positive Rate | Manual Verification Needed |
-|------------|----------|---------------------|----------------------------|
-| Title Tag | 98% | 2% | Rarely |
-| Meta Description | 98% | 2% | Rarely |
-| Canonical URL | 95% | 5% | Sometimes |
-| Open Graph | 95% | 5% | Sometimes |
-| HTTPS Check | 99% | 1% | No |
-| Security Headers | 90% | 10% | Sometimes |
-| Response Code | 95% | 5% | Rarely |
-| Compression | 90% | 10% | Sometimes |
-| Page Speed | 80% | 20% | Often |
-| Mobile Viewport | 95% | 5% | Rarely |
-| Tap Targets | 75% | 25% | Often |
-| Image Alt Text | 95% | 5% | Sometimes |
-| Image Formats | 85% | 15% | Sometimes |
-| Heading Structure | 90% | 10% | Sometimes |
-| Broken Links | 85% | 15% | Sometimes |
-| Schema Markup | 90% | 10% | Sometimes |
-| Readability | 70% | 30% | Always |
-| Spam Detection | 70% | 30% | Always |
-| Keyword Density | 65% | 35% | Always |
-| Hidden Text | 75% | 25% | Often |
-| Content Quality | 70% | 30% | Often |
-
-**Legend:**
-- **Accuracy:** Percentage of correct assessments
-- **False Positive Rate:** Percentage of flagged items that aren't real issues
-- **Manual Verification:** How often you should manually check flagged items
+- ⚠️ Heatmaps & Scroll depth (pages taller than viewport height)
 
 ---
 

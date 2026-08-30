@@ -1,6 +1,6 @@
 # Testing Guide
 
-This directory contains all tests for the e2e-seo project.
+This directory contains all tests for the aviary project.
 
 ## Directory Structure
 

@@ -73,7 +73,7 @@ async fn worker_manager(node_worker_path: String, mut rx: mpsc::Receiver<(String
     
     loop {
         // Start worker process
-        let socket_path = format!("/tmp/e2e-seo-worker-{}.sock", std::process::id());
+        let socket_path = format!("/tmp/aviary-worker-{}.sock", std::process::id());
         
         let _ = tokio::fs::remove_file(&socket_path).await;
 

@@ -41,7 +41,7 @@ impl SemanticAnalyzer for StubAnalyzer {
             intent_coherent: true,
             content_score: 0.5,
             suggestions: vec![
-                "Configure a semantic analyzer via E2E_SEO_LLM_PROVIDER env var".to_string(),
+                "Configure a semantic analyzer via AVIARY_LLM_PROVIDER env var".to_string(),
             ],
             provider: "stub".to_string(),
         })

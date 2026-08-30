@@ -73,7 +73,7 @@ Successfully implemented an MVP-level e2e SEO checker tool using TypeScript and 
 ## Project Structure
 
 ```
-e2e-seo/
+aviary/
 ├── src/
 │   ├── checkers/
 │   │   ├── metaTags.ts      # Meta tags validation
@@ -115,7 +115,7 @@ e2e-seo/
 
 ### Programmatic API
 ```typescript
-import { SEOChecker } from 'e2e-seo';
+import { SEOChecker } from 'aviary';
 
 const checker = new SEOChecker({
   url: 'https://example.com',
@@ -129,16 +129,16 @@ console.log(`SEO Score: ${report.score}/100`);
 ### CLI
 ```bash
 # Basic usage
-e2e-seo https://example.com
+aviary https://example.com
 
 # With JSON output
-e2e-seo https://example.com -o report.json
+aviary https://example.com -o report.json
 
 # Mobile viewport
-e2e-seo https://example.com --viewport 375x667
+aviary https://example.com --viewport 375x667
 
 # Headed mode (show browser)
-e2e-seo https://example.com --headed
+aviary https://example.com --headed
 ```
 
 ## Production Roadiness Roadmap
@@ -183,7 +183,7 @@ See [TODO.md](./TODO.md) for the comprehensive list of features needed for 100% 
 ## Installation
 
 ```bash
-npm install e2e-seo
+npm install aviary
 ```
 
 ## Next Steps

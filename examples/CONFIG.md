@@ -1,40 +1,40 @@
 # Configuration Guide
 
-The e2e-seo tool supports flexible configuration through JSON or YAML files. This allows you to customize which checks are run and how they're evaluated.
+The aviary tool supports flexible configuration through JSON or YAML files. This allows you to customize which checks are run and how they're evaluated.
 
 ## Quick Start
 
 ### Generate a default configuration file
 
 ```bash
-e2e-seo --init-config
+aviary --init-config
 ```
 
-This creates a `.e2e-seo.json` file with the "advanced" preset.
+This creates a `.aviary.json` file with the "advanced" preset.
 
 You can also specify a preset:
 
 ```bash
-e2e-seo --init-config --preset basic    # For basic checks
-e2e-seo --init-config --preset strict   # For strict checks
+aviary --init-config --preset basic    # For basic checks
+aviary --init-config --preset strict   # For strict checks
 ```
 
 ### Use a configuration file
 
 ```bash
 # Auto-detect config file in current directory
-e2e-seo https://example.com
+aviary https://example.com
 
 # Specify a custom config file
-e2e-seo https://example.com --config my-config.yaml
+aviary https://example.com --config my-config.yaml
 ```
 
 ### Use a preset without a file
 
 ```bash
-e2e-seo https://example.com --preset basic
-e2e-seo https://example.com --preset advanced
-e2e-seo https://example.com --preset strict
+aviary https://example.com --preset basic
+aviary https://example.com --preset advanced
+aviary https://example.com --preset strict
 ```
 
 ## Configuration Structure
@@ -181,28 +181,28 @@ The following checkers are available:
 
 See the `examples/` directory for sample configuration files:
 
-- `.e2e-seo.basic.json` - Basic preset example
-- `.e2e-seo.advanced.json` - Advanced preset example
-- `.e2e-seo.strict.yaml` - Strict preset example
-- `.e2e-seo.custom.yaml` - Custom configuration example
+- `.aviary.basic.json` - Basic preset example
+- `.aviary.advanced.json` - Advanced preset example
+- `.aviary.strict.yaml` - Strict preset example
+- `.aviary.custom.yaml` - Custom configuration example
 
 ## Configuration File Discovery
 
 The tool automatically searches for configuration files in the following order:
 
-1. `.e2e-seo.json`
-2. `.e2e-seo.yaml`
-3. `.e2e-seo.yml`
-4. `e2e-seo.config.json`
-5. `e2e-seo.config.yaml`
-6. `e2e-seo.config.yml`
+1. `.aviary.json`
+2. `.aviary.yaml`
+3. `.aviary.yml`
+4. `aviary.config.json`
+5. `aviary.config.yaml`
+6. `aviary.config.yml`
 
 You can override this by using the `--config` flag.
 
 ## Programmatic Usage
 
 ```javascript
-import { SEOChecker } from 'e2e-seo';
+import { SEOChecker } from 'aviary';
 
 const checker = new SEOChecker({
   url: 'https://example.com',
@@ -223,11 +223,11 @@ const report = await checker.check();
 Or use a config file:
 
 ```javascript
-import { SEOChecker } from 'e2e-seo';
+import { SEOChecker } from 'aviary';
 
 const checker = new SEOChecker({
   url: 'https://example.com',
-  configFile: '.e2e-seo.json'
+  configFile: '.aviary.json'
 });
 
 const report = await checker.check();

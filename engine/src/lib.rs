@@ -1,9 +1,9 @@
-//! `e2e-seo-engine` — Dual-engine SEO analysis library.
+//! `aviary-engine` — Dual-engine SEO analysis library.
 //!
 //! # Quick start
 //!
 //! ```rust,no_run
-//! use e2e_seo_engine::{run_analysis, config::EngineConfig};
+//! use aviary_engine::{run_analysis, config::EngineConfig};
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -49,7 +49,7 @@ pub struct EngineMetrics {
 pub fn metrics() -> &'static EngineMetrics {
     static METRICS: OnceLock<EngineMetrics> = OnceLock::new();
     METRICS.get_or_init(|| {
-        let meter = global::meter("e2e_seo_engine");
+        let meter = global::meter("aviary_engine");
         EngineMetrics {
             crawler_latency_ms: meter.f64_histogram("crawler_latency_ms").build(),
             cache_hit_ratio: meter.u64_counter("cache_hit_ratio").build(),

@@ -1,4 +1,4 @@
-use e2e_seo_engine::{run_analysis, config::EngineConfig};
+use aviary_engine::{run_analysis, config::EngineConfig};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

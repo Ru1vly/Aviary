@@ -1,4 +1,4 @@
-use e2e_seo_engine::{crawler::fetch, config::EngineConfig};
+use aviary_engine::{crawler::fetch, config::EngineConfig};
 use tokio::task::JoinSet;
 
 #[tokio::main]

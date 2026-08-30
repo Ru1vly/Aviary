@@ -1,6 +1,6 @@
 # TODO: Production Readiness Checklist
 
-This document outlines the remaining tasks to make the e2e-seo checker tool production-ready.
+This document outlines the remaining tasks to make the aviary checker tool production-ready.
 
 ## 🐛 Known Issues / Fixes Required
 - [x] **CLI Testing**: Integration tests time out even with 120s limit (fixed by replacing slow locator auto-waits with page.evaluate).

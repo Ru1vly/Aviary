@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * e2e-seo MCP Server
+ * aviary MCP Server
  * Exposes SEO audit capabilities as Model Context Protocol tools
  * Compatible with Claude Desktop, Cursor, Windsurf, and other MCP clients
  *
@@ -243,7 +243,7 @@ async function main() {
             result: {
               protocolVersion: '2024-11-05',
               capabilities: { tools: {} },
-              serverInfo: { name: 'e2e-seo', version: '1.0.0' },
+              serverInfo: { name: 'aviary', version: '1.0.0' },
             },
           };
         } else if (request.method === 'tools/list') {
