@@ -1,6 +1,21 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractJsonLdBlocks } from './shared/dom';
 
 export class SchemaValidationChecker extends BaseChecker {
+  private jsonLdPromise?: Promise<unknown[]>;
+
+  /**
+   * All 15 checks below used to independently re-run page.evaluate() + JSON.parse
+   * over every JSON-LD block on the page. Extracted once here and filtered in
+   * memory per check instead.
+   */
+  private getJsonLd(): Promise<unknown[]> {
+    if (!this.jsonLdPromise) {
+      this.jsonLdPromise = this.page.evaluate(extractJsonLdBlocks);
+    }
+    return this.jsonLdPromise;
+  }
+
   protected checks() {
     return [
       { id: 'organization-schema-complete', run: () => this.checkOrganizationSchema() },
@@ -23,34 +38,24 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkOrganizationSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const orgSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && (data['@type'] === 'Organization' || data['@type']?.includes('Organization')));
+      const schemas = await this.getJsonLd();
+      const orgSchemas = schemas.filter(
+        (data: any) => data && (data['@type'] === 'Organization' || data['@type']?.includes('Organization'))
+      ) as any[];
 
-        if (orgSchemas.length === 0) return { found: false };
-
-        const org = orgSchemas[0];
-        return {
-          found: true,
-          hasName: !!org.name,
-          hasUrl: !!org.url,
-          hasLogo: !!org.logo,
-          hasSameAs: !!org.sameAs,
-          hasContactPoint: !!org.contactPoint,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (orgSchemas.length === 0) {
         return this.pass('No Organization schema (optional but recommended for businesses)');
       }
+
+      const org = orgSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!org.name,
+        hasUrl: !!org.url,
+        hasLogo: !!org.logo,
+        hasSameAs: !!org.sameAs,
+        hasContactPoint: !!org.contactPoint,
+      };
 
       const issues: string[] = [];
       if (!schemaData.hasName) issues.push('missing name');
@@ -69,33 +74,21 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkPersonSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const personSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'Person');
+      const schemas = await this.getJsonLd();
+      const personSchemas = schemas.filter((data: any) => data && data['@type'] === 'Person') as any[];
 
-        if (personSchemas.length === 0) return { found: false };
-
-        const person = personSchemas[0];
-        return {
-          found: true,
-          hasName: !!person.name,
-          hasUrl: !!person.url,
-          hasImage: !!person.image,
-          hasJobTitle: !!person.jobTitle,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (personSchemas.length === 0) {
         return this.pass('No Person schema (optional, useful for personal brands)');
       }
+
+      const person = personSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!person.name,
+        hasUrl: !!person.url,
+        hasImage: !!person.image,
+        hasJobTitle: !!person.jobTitle,
+      };
 
       const issues: string[] = [];
       if (!schemaData.hasName) issues.push('missing name');
@@ -112,36 +105,24 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkProductSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const productSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'Product');
+      const schemas = await this.getJsonLd();
+      const productSchemas = schemas.filter((data: any) => data && data['@type'] === 'Product') as any[];
 
-        if (productSchemas.length === 0) return { found: false };
-
-        const product = productSchemas[0];
-        return {
-          found: true,
-          hasName: !!product.name,
-          hasImage: !!product.image,
-          hasDescription: !!product.description,
-          hasOffers: !!product.offers,
-          hasSKU: !!product.sku,
-          hasBrand: !!product.brand,
-          hasAggregateRating: !!product.aggregateRating,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (productSchemas.length === 0) {
         return this.pass('No Product schema (required for e-commerce pages)');
       }
+
+      const product = productSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!product.name,
+        hasImage: !!product.image,
+        hasDescription: !!product.description,
+        hasOffers: !!product.offers,
+        hasSKU: !!product.sku,
+        hasBrand: !!product.brand,
+        hasAggregateRating: !!product.aggregateRating,
+      };
 
       const issues: string[] = [];
       if (!schemaData.hasName) issues.push('missing name');
@@ -160,34 +141,25 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkArticleSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const articleSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && (data['@type'] === 'Article' || data['@type'] === 'NewsArticle' || data['@type'] === 'BlogPosting'));
+      const schemas = await this.getJsonLd();
+      const articleSchemas = schemas.filter(
+        (data: any) =>
+          data && (data['@type'] === 'Article' || data['@type'] === 'NewsArticle' || data['@type'] === 'BlogPosting')
+      ) as any[];
 
-        if (articleSchemas.length === 0) return { found: false };
-
-        const article = articleSchemas[0];
-        return {
-          found: true,
-          hasHeadline: !!article.headline,
-          hasImage: !!article.image,
-          hasDatePublished: !!article.datePublished,
-          hasAuthor: !!article.author,
-          hasPublisher: !!article.publisher,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (articleSchemas.length === 0) {
         return this.pass('No Article schema (recommended for blog posts and articles)');
       }
+
+      const article = articleSchemas[0];
+      const schemaData = {
+        found: true,
+        hasHeadline: !!article.headline,
+        hasImage: !!article.image,
+        hasDatePublished: !!article.datePublished,
+        hasAuthor: !!article.author,
+        hasPublisher: !!article.publisher,
+      };
 
       const issues: string[] = [];
       if (!schemaData.hasHeadline) issues.push('missing headline');
@@ -208,31 +180,19 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkBreadcrumbSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const breadcrumbSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'BreadcrumbList');
+      const schemas = await this.getJsonLd();
+      const breadcrumbSchemas = schemas.filter((data: any) => data && data['@type'] === 'BreadcrumbList') as any[];
 
-        if (breadcrumbSchemas.length === 0) return { found: false };
-
-        const breadcrumb = breadcrumbSchemas[0];
-        return {
-          found: true,
-          hasItemListElement: !!breadcrumb.itemListElement,
-          itemCount: breadcrumb.itemListElement?.length || 0,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (breadcrumbSchemas.length === 0) {
         return this.pass('No BreadcrumbList schema (recommended for better navigation)');
       }
+
+      const breadcrumb = breadcrumbSchemas[0];
+      const schemaData = {
+        found: true,
+        hasItemListElement: !!breadcrumb.itemListElement,
+        itemCount: breadcrumb.itemListElement?.length || 0,
+      };
 
       if (!schemaData.hasItemListElement || schemaData.itemCount === 0) {
         return this.fail('BreadcrumbList schema missing itemListElement', schemaData);
@@ -246,31 +206,19 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkFAQSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const faqSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'FAQPage');
+      const schemas = await this.getJsonLd();
+      const faqSchemas = schemas.filter((data: any) => data && data['@type'] === 'FAQPage') as any[];
 
-        if (faqSchemas.length === 0) return { found: false };
-
-        const faq = faqSchemas[0];
-        return {
-          found: true,
-          hasMainEntity: !!faq.mainEntity,
-          questionCount: faq.mainEntity?.length || 0,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (faqSchemas.length === 0) {
         return this.pass('No FAQPage schema (use for FAQ pages to get rich results)');
       }
+
+      const faq = faqSchemas[0];
+      const schemaData = {
+        found: true,
+        hasMainEntity: !!faq.mainEntity,
+        questionCount: faq.mainEntity?.length || 0,
+      };
 
       if (!schemaData.hasMainEntity || schemaData.questionCount === 0) {
         return this.fail('FAQPage schema missing questions', schemaData);
@@ -284,32 +232,20 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkHowToSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const howToSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'HowTo');
+      const schemas = await this.getJsonLd();
+      const howToSchemas = schemas.filter((data: any) => data && data['@type'] === 'HowTo') as any[];
 
-        if (howToSchemas.length === 0) return { found: false };
-
-        const howTo = howToSchemas[0];
-        return {
-          found: true,
-          hasName: !!howTo.name,
-          hasStep: !!howTo.step,
-          stepCount: howTo.step?.length || 0,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (howToSchemas.length === 0) {
         return this.pass('No HowTo schema (use for tutorial/how-to content)');
       }
+
+      const howTo = howToSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!howTo.name,
+        hasStep: !!howTo.step,
+        stepCount: howTo.step?.length || 0,
+      };
 
       const issues: string[] = [];
       if (!schemaData.hasName) issues.push('missing name');
@@ -327,33 +263,23 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkReviewSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const reviewSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && (data['@type'] === 'Review' || data['@type'] === 'AggregateRating'));
+      const schemas = await this.getJsonLd();
+      const reviewSchemas = schemas.filter(
+        (data: any) => data && (data['@type'] === 'Review' || data['@type'] === 'AggregateRating')
+      ) as any[];
 
-        if (reviewSchemas.length === 0) return { found: false };
-
-        const review = reviewSchemas[0];
-        return {
-          found: true,
-          type: review['@type'],
-          hasRatingValue: !!review.ratingValue,
-          hasReviewRating: !!review.reviewRating,
-          hasAuthor: !!review.author,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (reviewSchemas.length === 0) {
         return this.pass('No Review schema (use for product/business reviews)');
       }
+
+      const review = reviewSchemas[0];
+      const schemaData = {
+        found: true,
+        type: review['@type'],
+        hasRatingValue: !!review.ratingValue,
+        hasReviewRating: !!review.reviewRating,
+        hasAuthor: !!review.author,
+      };
 
       if (schemaData.type === 'Review' && !schemaData.hasAuthor) {
         return this.fail('Review schema missing author', schemaData);
@@ -367,32 +293,20 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkEventSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const eventSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'Event');
+      const schemas = await this.getJsonLd();
+      const eventSchemas = schemas.filter((data: any) => data && data['@type'] === 'Event') as any[];
 
-        if (eventSchemas.length === 0) return { found: false };
-
-        const event = eventSchemas[0];
-        return {
-          found: true,
-          hasName: !!event.name,
-          hasStartDate: !!event.startDate,
-          hasLocation: !!event.location,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (eventSchemas.length === 0) {
         return this.pass('No Event schema (use for event pages)');
       }
+
+      const event = eventSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!event.name,
+        hasStartDate: !!event.startDate,
+        hasLocation: !!event.location,
+      };
 
       const issues: string[] = [];
       if (!schemaData.hasName) issues.push('missing name');
@@ -411,33 +325,21 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkLocalBusinessSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const businessSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'LocalBusiness');
+      const schemas = await this.getJsonLd();
+      const businessSchemas = schemas.filter((data: any) => data && data['@type'] === 'LocalBusiness') as any[];
 
-        if (businessSchemas.length === 0) return { found: false };
-
-        const business = businessSchemas[0];
-        return {
-          found: true,
-          hasName: !!business.name,
-          hasAddress: !!business.address,
-          hasTelephone: !!business.telephone,
-          hasOpeningHours: !!business.openingHoursSpecification,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (businessSchemas.length === 0) {
         return this.pass('No LocalBusiness schema (use for local business pages)');
       }
+
+      const business = businessSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!business.name,
+        hasAddress: !!business.address,
+        hasTelephone: !!business.telephone,
+        hasOpeningHours: !!business.openingHoursSpecification,
+      };
 
       const issues: string[] = [];
       if (!schemaData.hasName) issues.push('missing name');
@@ -456,32 +358,20 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkWebPageSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const webPageSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'WebPage');
+      const schemas = await this.getJsonLd();
+      const webPageSchemas = schemas.filter((data: any) => data && data['@type'] === 'WebPage') as any[];
 
-        if (webPageSchemas.length === 0) return { found: false };
-
-        const webPage = webPageSchemas[0];
-        return {
-          found: true,
-          hasName: !!webPage.name,
-          hasUrl: !!webPage.url,
-          hasDescription: !!webPage.description,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (webPageSchemas.length === 0) {
         return this.pass('No WebPage schema (optional)');
       }
+
+      const webPage = webPageSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!webPage.name,
+        hasUrl: !!webPage.url,
+        hasDescription: !!webPage.description,
+      };
 
       return this.pass('WebPage schema present', schemaData);
     } catch (error) {
@@ -491,32 +381,20 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkWebSiteSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const webSiteSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'WebSite');
+      const schemas = await this.getJsonLd();
+      const webSiteSchemas = schemas.filter((data: any) => data && data['@type'] === 'WebSite') as any[];
 
-        if (webSiteSchemas.length === 0) return { found: false };
-
-        const webSite = webSiteSchemas[0];
-        return {
-          found: true,
-          hasName: !!webSite.name,
-          hasUrl: !!webSite.url,
-          hasPotentialAction: !!webSite.potentialAction,
-        };
-      });
-
-      if (!schemaData.found) {
+      if (webSiteSchemas.length === 0) {
         return this.pass('No WebSite schema (recommended for homepage)');
       }
+
+      const webSite = webSiteSchemas[0];
+      const schemaData = {
+        found: true,
+        hasName: !!webSite.name,
+        hasUrl: !!webSite.url,
+        hasPotentialAction: !!webSite.potentialAction,
+      };
 
       return this.pass(
         schemaData.hasPotentialAction ? 'WebSite schema with search action' : 'WebSite schema present',
@@ -529,23 +407,13 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkImageObjectSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const imageSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'ImageObject');
+      const schemas = await this.getJsonLd();
+      const imageSchemas = schemas.filter((data: any) => data && data['@type'] === 'ImageObject');
 
-        return {
-          found: imageSchemas.length > 0,
-          count: imageSchemas.length,
-        };
-      });
+      const schemaData = {
+        found: imageSchemas.length > 0,
+        count: imageSchemas.length,
+      };
 
       if (!schemaData.found) {
         return this.pass('No ImageObject schema (optional)');
@@ -559,27 +427,16 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkSchemaRequiredFields(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const allSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data);
+      const allSchemas = (await this.getJsonLd()) as any[];
 
-        const missingContexts = allSchemas.filter((schema) => !schema['@context']);
-        const missingTypes = allSchemas.filter((schema) => !schema['@type']);
+      const missingContexts = allSchemas.filter((schema) => !schema['@context']);
+      const missingTypes = allSchemas.filter((schema) => !schema['@type']);
 
-        return {
-          totalSchemas: allSchemas.length,
-          missingContexts: missingContexts.length,
-          missingTypes: missingTypes.length,
-        };
-      });
+      const schemaData = {
+        totalSchemas: allSchemas.length,
+        missingContexts: missingContexts.length,
+        missingTypes: missingTypes.length,
+      };
 
       if (schemaData.totalSchemas === 0) {
         return this.pass('No schema markup to validate');
@@ -605,32 +462,19 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkSchemaContext(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const allSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data);
+      const allSchemas = (await this.getJsonLd()) as any[];
 
-        const contexts = allSchemas
-          .map((schema) => schema['@context'])
-          .filter((ctx) => ctx);
+      const contexts = allSchemas.map((schema) => schema['@context']).filter((ctx) => ctx);
 
-        const validContexts = contexts.filter(
-          (ctx: string) => ctx === 'https://schema.org' || ctx === 'http://schema.org'
-        );
+      const validContexts = contexts.filter(
+        (ctx: string) => ctx === 'https://schema.org' || ctx === 'http://schema.org'
+      );
 
-        return {
-          totalSchemas: allSchemas.length,
-          totalContexts: contexts.length,
-          validContexts: validContexts.length,
-        };
-      });
+      const schemaData = {
+        totalSchemas: allSchemas.length,
+        totalContexts: contexts.length,
+        validContexts: validContexts.length,
+      };
 
       if (schemaData.totalSchemas === 0) {
         return this.pass('No schema markup to validate');
