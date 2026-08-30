@@ -77,17 +77,21 @@ fn extract_canonical(doc: &Html) -> Option<String> {
 }
 
 fn extract_headings(doc: &Html) -> Vec<(String, String)> {
-    let mut headings = Vec::new();
-    for tag in &["h1", "h2", "h3", "h4", "h5", "h6"] {
-        if let Ok(sel) = Selector::parse(tag) {
-            for el in doc.select(&sel) {
-                let text = el.text().collect::<String>();
-                let text = text.trim().to_string();
-                headings.push((tag.to_string(), text));
-            }
-        }
-    }
-    headings
+    // A single "h1, h2, h3, h4, h5, h6" selector (rather than one pass per
+    // tag) is what makes `doc.select` yield headings in document order —
+    // querying tag-by-tag would instead group all h1s, then all h2s, etc.,
+    // destroying the order the hierarchy rule needs to detect real skips.
+    let sel = match Selector::parse("h1, h2, h3, h4, h5, h6") {
+        Ok(s) => s,
+        Err(_) => return Vec::new(),
+    };
+    doc.select(&sel)
+        .map(|el| {
+            let tag = el.value().name().to_string();
+            let text = el.text().collect::<String>().trim().to_string();
+            (tag, text)
+        })
+        .collect()
 }
 
 fn extract_links(doc: &Html) -> Vec<String> {
@@ -170,33 +174,95 @@ fn extract_json_ld(doc: &Html) -> Vec<serde_json::Value> {
 }
 
 fn extract_text(doc: &Html) -> String {
-    // Exclude script/style content.
     let sel = match Selector::parse("body") {
         Ok(s) => s,
         Err(_) => return String::new(),
     };
-    let script_sel = Selector::parse("script, style, noscript").ok();
+    let excluded_sel = match Selector::parse("script, style, noscript") {
+        Ok(s) => s,
+        Err(_) => return String::new(),
+    };
 
-    if let Some(body) = doc.select(&sel).next() {
-        let mut text = String::new();
-        for node in body.descendants() {
-            // Skip children of script/style
-            if let Some(ref _ss) = script_sel {
-                // Check ancestors
-                // Simple approach: collect text nodes only
+    let Some(body) = doc.select(&sel).next() else {
+        return String::new();
+    };
+
+    // Node ids of every script/style/noscript element under <body>, so a
+    // text node can be skipped if any of its ancestors is one of them —
+    // this is what actually excludes script/style content; the previous
+    // implementation collected every text node unconditionally, script and
+    // style bodies included.
+    let excluded_ids: std::collections::HashSet<_> =
+        body.select(&excluded_sel).map(|el| el.id()).collect();
+
+    let mut text = String::new();
+    for node in body.descendants() {
+        if let scraper::node::Node::Text(t) = node.value() {
+            if node.ancestors().any(|a| excluded_ids.contains(&a.id())) {
+                continue;
             }
-            if let scraper::node::Node::Text(t) = node.value() {
-                let s = t.trim();
-                if !s.is_empty() {
-                    if !text.is_empty() {
-                        text.push(' ');
-                    }
-                    text.push_str(s);
+            let s = t.trim();
+            if !s.is_empty() {
+                if !text.is_empty() {
+                    text.push(' ');
                 }
+                text.push_str(s);
             }
         }
-        text
-    } else {
-        String::new()
+    }
+    text
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression test for the abandoned `extract_text` implementation:
+    /// script/style/noscript content was previously included in every word
+    /// count, content-to-html ratio, and the `looks_like_spa` heuristic.
+    #[test]
+    fn extract_text_excludes_script_and_style_content() {
+        let html = r#"
+            <html><body>
+                <h1>Real heading text</h1>
+                <script>var shouldNotAppear = "in the extracted text";</script>
+                <style>.also-should-not-appear { color: red; }</style>
+                <noscript>Enable JavaScript should not appear either</noscript>
+                <p>Real paragraph text.</p>
+            </body></html>
+        "#;
+        let doc = Html::parse_document(html);
+        let text = extract_text(&doc);
+
+        assert!(text.contains("Real heading text"));
+        assert!(text.contains("Real paragraph text."));
+        assert!(!text.contains("shouldNotAppear"));
+        assert!(!text.contains("also-should-not-appear"));
+        assert!(!text.contains("Enable JavaScript"));
+    }
+
+    /// Regression test for extract_headings looping tag-by-tag (h1s, then
+    /// h2s, ...), which destroyed document order and made a real
+    /// out-of-order heading skip unobservable.
+    #[test]
+    fn extract_headings_preserves_document_order() {
+        let html = r#"
+            <html><body>
+                <h1>Title</h1>
+                <h3>Skipped h2</h3>
+                <h2>Out of order</h2>
+            </body></html>
+        "#;
+        let doc = Html::parse_document(html);
+        let headings = extract_headings(&doc);
+
+        assert_eq!(
+            headings,
+            vec![
+                ("h1".to_string(), "Title".to_string()),
+                ("h3".to_string(), "Skipped h2".to_string()),
+                ("h2".to_string(), "Out of order".to_string()),
+            ]
+        );
     }
 }

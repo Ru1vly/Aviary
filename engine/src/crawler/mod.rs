@@ -1,28 +1,53 @@
 use std::collections::HashMap;
 use std::time::Instant;
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 use anyhow::{Context, Result};
 use tracing::debug;
 
 use crate::config::EngineConfig;
 
-static GLOBAL_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+// Keyed by (user_agent, timeout_ms) rather than a single OnceLock<Client>:
+// a bare OnceLock bakes in whichever EngineConfig the first caller in the
+// process happened to pass, silently ignoring every other caller's
+// user-agent/timeout for the process's lifetime. Caching per distinct
+// config still reuses (and pools connections on) a client across repeated
+// calls with the same config — the common case, since EngineConfig is
+// usually constructed once from env — while staying correct when it isn't.
+static CLIENT_CACHE: OnceLock<RwLock<HashMap<(String, u64), reqwest::Client>>> = OnceLock::new();
+
+fn client_for(config: &EngineConfig) -> reqwest::Client {
+    let cache = CLIENT_CACHE.get_or_init(|| RwLock::new(HashMap::new()));
+    let key = (config.user_agent.clone(), config.timeout_ms);
+
+    if let Some(client) = cache.read().expect("client cache poisoned").get(&key) {
+        return client.clone();
+    }
+
+    let mut cache = cache.write().expect("client cache poisoned");
+    // Re-check: another task may have built this config's client while we
+    // were waiting for the write lock.
+    if let Some(client) = cache.get(&key) {
+        return client.clone();
+    }
+
+    let client = reqwest::Client::builder()
+        .user_agent(&config.user_agent)
+        .timeout(std::time::Duration::from_millis(config.timeout_ms))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .pool_max_idle_per_host(10_000)
+        .pool_idle_timeout(std::time::Duration::from_secs(90))
+        .gzip(true)
+        .brotli(true)
+        .build()
+        .expect("Failed to build HTTP client");
+    cache.insert(key, client.clone());
+    client
+}
 
 /// Fetch a URL with plain HTTP and return raw bytes + headers + timing.
 pub async fn fetch(url: &str, config: &EngineConfig) -> Result<RawResponse> {
-    let client = GLOBAL_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
-            .user_agent(&config.user_agent)
-            .timeout(std::time::Duration::from_millis(config.timeout_ms))
-            .redirect(reqwest::redirect::Policy::limited(10))
-            .pool_max_idle_per_host(10_000)
-            .pool_idle_timeout(std::time::Duration::from_secs(90))
-            .gzip(true)
-            .brotli(true)
-            .build()
-            .expect("Failed to build HTTP client")
-    });
+    let client = client_for(config);
 
     let t0 = Instant::now();
     let response = client
@@ -53,7 +78,6 @@ pub async fn fetch(url: &str, config: &EngineConfig) -> Result<RawResponse> {
     let _span = tracing::info_span!("fetch", trace_id = %trace_id).entered();
     debug!(url, status, load_time_ms, trace_id = %trace_id, "Fetched page");
     crate::metrics().crawler_latency_ms.record(load_time_ms as f64, &[]);
-    crate::metrics().cache_hit_ratio.add(1, &[]);
 
     Ok(RawResponse {
         html,

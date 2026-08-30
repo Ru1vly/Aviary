@@ -13,20 +13,41 @@ if (fs.existsSync(socketPath)) {
     fs.unlinkSync(socketPath);
 }
 
+// A single msgpack-encoded SEOReport (230+ checks, each with a message and
+// details) can legitimately run to several hundred KB; this caps well above
+// that while still bounding how much memory a corrupted or malicious
+// 4-byte length prefix can make the process allocate before being read.
+const MAX_FRAME_BYTES = 64 * 1024 * 1024;
+
 const server = net.createServer((socket) => {
     let buffer = Buffer.alloc(0);
-    
-    socket.on('data', async (chunk) => {
+
+    // Deliberately not `async`: every complete frame is extracted from
+    // `buffer` in one synchronous pass first, and only then dispatched to
+    // handlePayload (fire-and-forget, not awaited here). Await-ing
+    // handlePayload directly inside this loop — the previous shape — meant
+    // a second 'data' event could start mutating the same outer `buffer`
+    // while this invocation was still suspended mid-loop; parsing
+    // everything up front removes any await between reading and mutating
+    // `buffer`, so there's nothing left for an overlapping event to race.
+    socket.on('data', (chunk) => {
         buffer = Buffer.concat([buffer, chunk]);
+
+        const payloads: Buffer[] = [];
         while (buffer.length >= 4) {
             const len = buffer.readUInt32BE(0);
-            if (buffer.length >= 4 + len) {
-                const payload = buffer.subarray(4, 4 + len);
-                buffer = buffer.subarray(4 + len);
-                await handlePayload(socket, payload);
-            } else {
-                break;
+            if (len > MAX_FRAME_BYTES) {
+                console.error(`Rejecting oversized frame (${len} bytes > ${MAX_FRAME_BYTES}), closing connection`);
+                socket.destroy();
+                return;
             }
+            if (buffer.length < 4 + len) break;
+            payloads.push(buffer.subarray(4, 4 + len));
+            buffer = buffer.subarray(4 + len);
+        }
+
+        for (const payload of payloads) {
+            void handlePayload(socket, payload);
         }
     });
 

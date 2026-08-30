@@ -1,17 +1,20 @@
 use aviary_engine::{crawler::fetch, config::EngineConfig};
 use tokio::task::JoinSet;
 
+#[path = "common/mod.rs"]
+mod common;
+
 #[tokio::main]
 async fn main() {
+    let base_url = common::spawn_fixture_server().await;
     let config = EngineConfig::default();
-    println!("🚀 Launching 500 concurrent fetch requests to https://www.kodfikirsanat.com...");
-    
+    println!("🚀 Launching 500 concurrent fetch requests to {base_url} (local fixture)...");
+
     let mut set = JoinSet::new();
     for _ in 0..500 {
         let cfg = config.clone();
-        set.spawn(async move {
-            fetch("https://www.kodfikirsanat.com", &cfg).await.ok()
-        });
+        let url = base_url.clone();
+        set.spawn(async move { fetch(&url, &cfg).await.ok() });
     }
     
     let mut successful = 0;

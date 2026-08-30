@@ -50,7 +50,8 @@ export interface SEOReport {
     internationalization: SEOCheckResult[];
     heatmap: SEOCheckResult[];
   };
-  score: number;
+  /** `null` when no check ran to weigh — see calculateWeightedScore in src/scoring.ts. */
+  score: number | null;
   summary: {
     total: number;
     passed: number;

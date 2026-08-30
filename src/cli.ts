@@ -304,7 +304,7 @@ async function main() {
 
     // All diagnostic output goes to stderr
     process.stderr.write(`📊 SEO Report for ${report.url}\n\n`);
-    process.stderr.write(`Score: ${report.score}/100\n`);
+    process.stderr.write(`Score: ${report.score !== null ? `${report.score}/100` : 'N/A (no checks ran)'}\n`);
     process.stderr.write(`Timestamp: ${report.timestamp}\n\n`);
 
     process.stderr.write('Summary:\n');

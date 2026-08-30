@@ -21,7 +21,8 @@ import { CHECKER_REGISTRY, CheckerKey } from '../checkers/registry';
 // listed 11).
 const CATEGORY_KEYS = CHECKER_REGISTRY.map((c) => c.key) as [CheckerKey, ...CheckerKey[]];
 
-function gradeFor(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
+function gradeFor(score: number | null): 'A' | 'B' | 'C' | 'D' | 'F' | 'N/A' {
+  if (score === null) return 'N/A';
   if (score >= 90) return 'A';
   if (score >= 80) return 'B';
   if (score >= 70) return 'C';

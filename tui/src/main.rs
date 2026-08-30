@@ -89,7 +89,9 @@ pub struct SEOReportChecks {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SEOReport {
     pub url: String,
-    pub score: usize,
+    /// `null` in the JSON when the audit checked nothing (see
+    /// calculateWeightedScore in src/scoring.ts) — not a magic 0 or 100.
+    pub score: Option<usize>,
     pub timestamp: String,
     pub summary: SEOReportSummary,
     pub checks: SEOReportChecks,
@@ -224,20 +226,16 @@ impl App {
     }
 
     fn get_grade(&self) -> &str {
-        if let Some(r) = &self.report {
-            if r.score >= 90 {
-                "A"
-            } else if r.score >= 80 {
-                "B"
-            } else if r.score >= 70 {
-                "C"
-            } else if r.score >= 60 {
-                "D"
-            } else {
-                "F"
-            }
-        } else {
-            ""
+        let Some(report) = &self.report else {
+            return "";
+        };
+        match report.score {
+            Some(score) if score >= 90 => "A",
+            Some(score) if score >= 80 => "B",
+            Some(score) if score >= 70 => "C",
+            Some(score) if score >= 60 => "D",
+            Some(_) => "F",
+            None => "N/A",
         }
     }
 
@@ -1027,17 +1025,20 @@ fn draw_dashboard(f: &mut Frame, area: Rect, app: &App) {
 fn draw_dashboard_header(f: &mut Frame, area: Rect, app: &App, report: &SEOReport) {
     let score = report.score;
     let grade = app.get_grade();
-    let grade_color = if score >= 80 {
-        GREEN
-    } else if score >= 60 {
-        YELLOW
-    } else {
-        RED
+    let grade_color = match score {
+        Some(s) if s >= 80 => GREEN,
+        Some(s) if s >= 60 => YELLOW,
+        Some(_) => RED,
+        None => MID,
+    };
+    let score_display = match score {
+        Some(s) => format!("{s}/100"),
+        None => "N/A".to_string(),
     };
 
     // Score bar: 20 chars wide
     let bar_width: usize = 20;
-    let filled = (score * bar_width / 100).min(bar_width);
+    let filled = score.map(|s| (s * bar_width / 100).min(bar_width)).unwrap_or(0);
     let empty = bar_width.saturating_sub(filled);
     let score_bar = format!("{}{}", "▓".repeat(filled), "░".repeat(empty));
 
@@ -1056,7 +1057,7 @@ fn draw_dashboard_header(f: &mut Frame, area: Rect, app: &App, report: &SEORepor
             Span::styled(url_display, Style::default().fg(MID)),
             Span::styled(" │ SCORE: ", Style::default().fg(DIM)),
             Span::styled(
-                format!("{}/100", score),
+                score_display,
                 Style::default()
                     .fg(grade_color)
                     .add_modifier(Modifier::BOLD),

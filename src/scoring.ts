@@ -25,9 +25,16 @@ function severityWeight(severity?: string): number {
  * Extracted from SEOChecker as a standalone, exported, pure function so it
  * can be unit-tested directly and reused as the single source of truth for
  * the score TS reports — including reconciling it against the Rust engine's
- * separate scoring formula.
+ * separate scoring formula (see compute_score in engine/src/lib.rs, which
+ * mirrors this function's weights and null-on-empty behavior exactly).
+ *
+ * Returns `null`, not a magic 0 or 100, when `checks` has nothing to weigh
+ * (e.g. every checker disabled, or an MCP `categories` filter matching
+ * nothing) — a passed/failed rate is undefined when nothing was checked,
+ * and picking either constant would misreport "everything passed" or
+ * "everything failed".
  */
-export function calculateWeightedScore(checks: SEOCheckResult[]): number {
+export function calculateWeightedScore(checks: SEOCheckResult[]): number | null {
   let totalWeight = 0;
   let passedWeight = 0;
 
@@ -37,6 +44,6 @@ export function calculateWeightedScore(checks: SEOCheckResult[]): number {
     if (check.passed) passedWeight += weight;
   }
 
-  if (totalWeight === 0) return 100;
+  if (totalWeight === 0) return null;
   return Math.round((passedWeight / totalWeight) * 100);
 }

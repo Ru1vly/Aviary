@@ -73,8 +73,13 @@ function renderChecks(checks: SEOCheckResult[]): string {
 // ─── Main template ────────────────────────────────────────────────────────────
 
 function generateHtml(report: SEOReport): string {
-  const color = scoreColor(report.score);
-  const grade = scoreGrade(report.score);
+  // report.score is null when nothing was checked (see calculateWeightedScore) —
+  // render "N/A" with a neutral color rather than feeding null into a
+  // >= comparison, which would silently fall through to the red/F case.
+  const reportScore = report.score;
+  const color = reportScore !== null ? scoreColor(reportScore) : '#94a3b8';
+  const grade = reportScore !== null ? scoreGrade(reportScore) : 'N/A';
+  const scoreDisplay = reportScore !== null ? String(reportScore) : 'N/A';
   const passRate = report.summary.total > 0
     ? Math.round((report.summary.passed / report.summary.total) * 100)
     : 0;
@@ -343,7 +348,7 @@ function generateHtml(report: SEOReport): string {
 <header class="header">
   <div class="header-inner">
     <div class="score-ring">
-      <span class="score-number">${report.score}</span>
+      <span class="score-number">${scoreDisplay}</span>
       <span class="score-label">Score</span>
     </div>
     <div class="header-meta">

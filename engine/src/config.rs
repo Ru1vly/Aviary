@@ -9,6 +9,11 @@ pub struct EngineConfig {
     pub node_cli_path: String,
     /// Whether to automatically fall back to the Node renderer for SPAs.
     pub auto_render_fallback: bool,
+    /// Timeout (ms) for a full Node-renderer round trip: launching Chromium
+    /// and running the complete 28-checker Playwright audit. Kept separate
+    /// from `timeout_ms` (the plain-HTTP fast path) since a full rendered
+    /// audit routinely takes far longer than a bare HTTP fetch.
+    pub render_timeout_ms: u64,
 }
 
 impl Default for EngineConfig {
@@ -27,6 +32,10 @@ impl Default for EngineConfig {
             auto_render_fallback: std::env::var("AVIARY_AUTO_RENDER")
                 .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
                 .unwrap_or(true),
+            render_timeout_ms: std::env::var("AVIARY_RENDER_TIMEOUT_MS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(60_000),
         }
     }
 }
