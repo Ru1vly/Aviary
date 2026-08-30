@@ -1,27 +1,22 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class AdvancedImagesChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkImageFormats());
-    results.push(await this.checkResponsiveImages());
-    results.push(await this.checkLazyLoading());
-    results.push(await this.checkImageDimensions());
-    results.push(await this.checkImageTitles());
-    results.push(await this.checkDecorativeImages());
-    results.push(await this.checkFigcaptions());
-    results.push(await this.checkImageSrcset());
-    results.push(await this.checkWebPSupport());
-    results.push(await this.checkImageCompression());
-
-    return results;
+export class AdvancedImagesChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'image-formats-modern', run: () => this.checkImageFormats() },
+      { id: 'responsive-images-adequate', run: () => this.checkResponsiveImages() },
+      { id: 'lazy-loading-present', run: () => this.checkLazyLoading() },
+      { id: 'image-dimensions-explicit', run: () => this.checkImageDimensions() },
+      { id: 'image-titles-present', run: () => this.checkImageTitles() },
+      { id: 'decorative-images-marked', run: () => this.checkDecorativeImages() },
+      { id: 'figcaptions-present', run: () => this.checkFigcaptions() },
+      { id: 'image-srcset-used', run: () => this.checkImageSrcset() },
+      { id: 'webp-support', run: () => this.checkWebPSupport() },
+      { id: 'image-compression-optimized', run: () => this.checkImageCompression() },
+    ];
   }
 
-  private async checkImageFormats(): Promise<SEOCheckResult> {
+  private async checkImageFormats(): Promise<CheckOutcome> {
     try {
       const formatData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -82,31 +77,20 @@ export class AdvancedImagesChecker {
       const hasOldFormats = Object.keys(formatData.formats).some((fmt: string) => oldFormats.includes(fmt));
 
       if (hasOldFormats) {
-        return {
-          passed: false,
-          message: 'Images use outdated formats (BMP, TIFF). Use JPG, PNG, WebP',
-          details: formatData,
-        };
+        return this.fail('Images use outdated formats (BMP, TIFF). Use JPG, PNG, WebP', formatData);
       }
 
       // Filter out 'unknown' and 'dynamic' for the display message
       const knownFormats = Object.keys(formatData.formats).filter(f => f !== 'unknown' && f !== 'dynamic');
       const displayFormats = knownFormats.length > 0 ? knownFormats.join(', ') : 'various formats';
 
-      return {
-        passed: true,
-        message: `Images use modern formats (${displayFormats})`,
-        details: formatData,
-      };
+      return this.pass(`Images use modern formats (${displayFormats})`, formatData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Image format check skipped',
-      };
+      return this.pass('Image format check skipped');
     }
   }
 
-  private async checkResponsiveImages(): Promise<SEOCheckResult> {
+  private async checkResponsiveImages(): Promise<CheckOutcome> {
     try {
       const responsiveData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -126,29 +110,24 @@ export class AdvancedImagesChecker {
         : 0;
 
       if (responsiveData.totalImages > 5 && responsivePercentage < 50) {
-        return {
-          passed: false,
-          message: `Only ${responsivePercentage.toFixed(0)}% of images are responsive (use srcset or picture)`,
-          details: responsiveData,
-        };
+        return this.fail(
+          `Only ${responsivePercentage.toFixed(0)}% of images are responsive (use srcset or picture)`,
+          responsiveData
+        );
       }
 
-      return {
-        passed: true,
-        message: responsiveData.totalImages > 0
+      return this.pass(
+        responsiveData.totalImages > 0
           ? `${responsivePercentage.toFixed(0)}% of images are responsive`
           : 'No images to check',
-        details: responsiveData,
-      };
+        responsiveData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Responsive images check skipped',
-      };
+      return this.pass('Responsive images check skipped');
     }
   }
 
-  private async checkLazyLoading(): Promise<SEOCheckResult> {
+  private async checkLazyLoading(): Promise<CheckOutcome> {
     try {
       const lazyData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -163,29 +142,21 @@ export class AdvancedImagesChecker {
       });
 
       if (lazyData.totalImages > 10 && lazyData.lazyLoaded === 0) {
-        return {
-          passed: false,
-          message: 'No lazy loading on images (consider adding loading="lazy" for performance)',
-          details: lazyData,
-        };
+        return this.fail('No lazy loading on images (consider adding loading="lazy" for performance)', lazyData);
       }
 
-      return {
-        passed: true,
-        message: lazyData.lazyLoaded > 0
+      return this.pass(
+        lazyData.lazyLoaded > 0
           ? `${lazyData.lazyLoaded} images use lazy loading`
           : 'Lazy loading not needed (few images)',
-        details: lazyData,
-      };
+        lazyData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Lazy loading check skipped',
-      };
+      return this.pass('Lazy loading check skipped');
     }
   }
 
-  private async checkImageDimensions(): Promise<SEOCheckResult> {
+  private async checkImageDimensions(): Promise<CheckOutcome> {
     try {
       const dimensionData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -198,27 +169,19 @@ export class AdvancedImagesChecker {
       });
 
       if (dimensionData.withoutDimensions > 3) {
-        return {
-          passed: false,
-          message: `${dimensionData.withoutDimensions} images missing width/height attributes (causes layout shift)`,
-          details: dimensionData,
-        };
+        return this.fail(
+          `${dimensionData.withoutDimensions} images missing width/height attributes (causes layout shift)`,
+          dimensionData
+        );
       }
 
-      return {
-        passed: true,
-        message: 'Most images have explicit dimensions',
-        details: dimensionData,
-      };
+      return this.pass('Most images have explicit dimensions', dimensionData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Image dimensions check skipped',
-      };
+      return this.pass('Image dimensions check skipped');
     }
   }
 
-  private async checkImageTitles(): Promise<SEOCheckResult> {
+  private async checkImageTitles(): Promise<CheckOutcome> {
     try {
       const titleData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -230,22 +193,18 @@ export class AdvancedImagesChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: titleData.withTitles > 0
+      return this.pass(
+        titleData.withTitles > 0
           ? `${titleData.withTitles} images have title attributes`
           : 'No image titles (optional but can improve accessibility)',
-        details: titleData,
-      };
+        titleData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Image titles check skipped',
-      };
+      return this.pass('Image titles check skipped');
     }
   }
 
-  private async checkDecorativeImages(): Promise<SEOCheckResult> {
+  private async checkDecorativeImages(): Promise<CheckOutcome> {
     try {
       const decorativeData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -261,22 +220,18 @@ export class AdvancedImagesChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: decorativeData.decorativeCount > 0
+      return this.pass(
+        decorativeData.decorativeCount > 0
           ? `${decorativeData.decorativeCount} decorative images properly marked`
           : 'All images have descriptive alt text',
-        details: decorativeData,
-      };
+        decorativeData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Decorative images check skipped',
-      };
+      return this.pass('Decorative images check skipped');
     }
   }
 
-  private async checkFigcaptions(): Promise<SEOCheckResult> {
+  private async checkFigcaptions(): Promise<CheckOutcome> {
     try {
       const figureData = await this.page.evaluate(() => {
         const figures = Array.from(document.querySelectorAll('figure'));
@@ -289,29 +244,21 @@ export class AdvancedImagesChecker {
       });
 
       if (figureData.totalFigures > 0 && figureData.withCaptions === 0) {
-        return {
-          passed: false,
-          message: `${figureData.totalFigures} <figure> elements missing <figcaption>`,
-          details: figureData,
-        };
+        return this.fail(`${figureData.totalFigures} <figure> elements missing <figcaption>`, figureData);
       }
 
-      return {
-        passed: true,
-        message: figureData.totalFigures > 0
+      return this.pass(
+        figureData.totalFigures > 0
           ? `${figureData.withCaptions}/${figureData.totalFigures} figures have captions`
           : 'No figure elements',
-        details: figureData,
-      };
+        figureData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Figcaption check skipped',
-      };
+      return this.pass('Figcaption check skipped');
     }
   }
 
-  private async checkImageSrcset(): Promise<SEOCheckResult> {
+  private async checkImageSrcset(): Promise<CheckOutcome> {
     try {
       const srcsetData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img[srcset]'));
@@ -328,22 +275,18 @@ export class AdvancedImagesChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: srcsetData.imagesWithSrcset > 0
+      return this.pass(
+        srcsetData.imagesWithSrcset > 0
           ? `${srcsetData.imagesWithSrcset} images use srcset (avg ${srcsetData.avgSrcsetSizes.toFixed(1)} variants)`
           : 'No srcset usage (consider for responsive images)',
-        details: srcsetData,
-      };
+        srcsetData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Srcset check skipped',
-      };
+      return this.pass('Srcset check skipped');
     }
   }
 
-  private async checkWebPSupport(): Promise<SEOCheckResult> {
+  private async checkWebPSupport(): Promise<CheckOutcome> {
     try {
       const webpData = await this.page.evaluate(() => {
         const pictures = Array.from(document.querySelectorAll('picture'));
@@ -365,22 +308,16 @@ export class AdvancedImagesChecker {
 
       const hasWebP = webpData.withWebP > 0 || webpData.directWebP > 0;
 
-      return {
-        passed: true,
-        message: hasWebP
-          ? 'WebP format in use (excellent for performance)'
-          : 'No WebP images (consider for better compression)',
-        details: webpData,
-      };
+      return this.pass(
+        hasWebP ? 'WebP format in use (excellent for performance)' : 'No WebP images (consider for better compression)',
+        webpData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'WebP support check skipped',
-      };
+      return this.pass('WebP support check skipped');
     }
   }
 
-  private async checkImageCompression(): Promise<SEOCheckResult> {
+  private async checkImageCompression(): Promise<CheckOutcome> {
     try {
       // This is a simplified check - we can't actually measure compression without downloading
       const compressionData = await this.page.evaluate(() => {
@@ -405,18 +342,14 @@ export class AdvancedImagesChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: compressionData.possiblyOptimized > 0
+      return this.pass(
+        compressionData.possiblyOptimized > 0
           ? `${compressionData.possiblyOptimized} images appear to use optimization services`
           : 'Image optimization status unclear (consider using CDN/optimization service)',
-        details: compressionData,
-      };
+        compressionData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Image compression check skipped',
-      };
+      return this.pass('Image compression check skipped');
     }
   }
 }

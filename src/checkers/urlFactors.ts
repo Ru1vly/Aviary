@@ -1,59 +1,45 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class URLFactorsChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkURLLength());
-    results.push(await this.checkURLReadability());
-    results.push(await this.checkURLStructure());
-    results.push(await this.checkURLKeywords());
-    results.push(await this.checkURLSpecialCharacters());
-    results.push(await this.checkURLCase());
-    results.push(await this.checkURLParameters());
-    results.push(await this.checkURLDepth());
-    results.push(await this.checkFileExtension());
-    results.push(await this.checkTrailingSlash());
-
-    return results;
+export class URLFactorsChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'url-length-acceptable', run: () => this.checkURLLength() },
+      { id: 'url-readability-acceptable', run: () => this.checkURLReadability() },
+      { id: 'url-structure-logical', run: () => this.checkURLStructure() },
+      { id: 'url-keywords-match-title', run: () => this.checkURLKeywords() },
+      { id: 'url-clean-characters', run: () => this.checkURLSpecialCharacters() },
+      { id: 'url-lowercase', run: () => this.checkURLCase() },
+      { id: 'url-parameters-clean', run: () => this.checkURLParameters() },
+      { id: 'url-depth-acceptable', run: () => this.checkURLDepth() },
+      { id: 'url-no-file-extension', run: () => this.checkFileExtension() },
+      { id: 'url-trailing-slash-consistent', run: () => this.checkTrailingSlash() },
+    ];
   }
 
-  private async checkURLLength(): Promise<SEOCheckResult> {
+  private async checkURLLength(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const urlLength = url.length;
 
       if (urlLength > 100) {
-        return {
-          passed: false,
-          message: `URL is too long (${urlLength} characters). Recommended: under 75 characters`,
-          details: { url, length: urlLength },
-        };
+        return this.fail(`URL is too long (${urlLength} characters). Recommended: under 75 characters`, {
+          url,
+          length: urlLength,
+        });
       } else if (urlLength > 75) {
-        return {
-          passed: true,
-          message: `URL length is acceptable (${urlLength} characters) but could be shorter`,
-          details: { url, length: urlLength },
-        };
+        return this.pass(`URL length is acceptable (${urlLength} characters) but could be shorter`, {
+          url,
+          length: urlLength,
+        });
       }
 
-      return {
-        passed: true,
-        message: `URL length is optimal (${urlLength} characters)`,
-        details: { url, length: urlLength },
-      };
+      return this.pass(`URL length is optimal (${urlLength} characters)`, { url, length: urlLength });
     } catch (error) {
-      return {
-        passed: false,
-        message: 'Error checking URL length',
-      };
+      return this.fail('Error checking URL length');
     }
   }
 
-  private async checkURLReadability(): Promise<SEOCheckResult> {
+  private async checkURLReadability(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const pathname = new URL(url).pathname;
@@ -84,27 +70,25 @@ export class URLFactorsChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `URL readability issues: ${issues.join(', ')}`,
-          details: { pathname, hasNumbers, hasSpecialChars, hasHyphens, hasUnderscores },
-        };
+        return this.fail(`URL readability issues: ${issues.join(', ')}`, {
+          pathname,
+          hasNumbers,
+          hasSpecialChars,
+          hasHyphens,
+          hasUnderscores,
+        });
       }
 
-      return {
-        passed: true,
-        message: hasHyphens ? 'URL is human-readable and SEO-friendly' : 'URL is readable',
-        details: { pathname, words: words.length },
-      };
+      return this.pass(hasHyphens ? 'URL is human-readable and SEO-friendly' : 'URL is readable', {
+        pathname,
+        words: words.length,
+      });
     } catch (error) {
-      return {
-        passed: false,
-        message: 'Error checking URL readability',
-      };
+      return this.fail('Error checking URL readability');
     }
   }
 
-  private async checkURLStructure(): Promise<SEOCheckResult> {
+  private async checkURLStructure(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const parsedUrl = new URL(url);
@@ -122,22 +106,14 @@ export class URLFactorsChecker {
         message: hasLogicalHierarchy
           ? `URL has logical hierarchy (${segments.length} levels)`
           : 'URL structure could be more logical',
-        details: {
-          protocol,
-          hasWWW,
-          segments,
-          depth: segments.length,
-        },
+        details: { protocol, hasWWW, segments, depth: segments.length },
       };
     } catch (error) {
-      return {
-        passed: false,
-        message: 'Error checking URL structure',
-      };
+      return this.fail('Error checking URL structure');
     }
   }
 
-  private async checkURLKeywords(): Promise<SEOCheckResult> {
+  private async checkURLKeywords(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const pathname = new URL(url).pathname;
@@ -161,30 +137,16 @@ export class URLFactorsChecker {
       );
 
       if (matchingKeywords.length === 0) {
-        return {
-          passed: false,
-          message: 'URL does not contain keywords from page title',
-          details: { urlWords, titleWords },
-        };
+        return this.fail('URL does not contain keywords from page title', { urlWords, titleWords });
       }
 
-      return {
-        passed: true,
-        message: `URL contains ${matchingKeywords.length} keyword(s) from title`,
-        details: { matchingKeywords },
-      };
+      return this.pass(`URL contains ${matchingKeywords.length} keyword(s) from title`, { matchingKeywords });
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'URL keyword check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'URL keyword check skipped due to error' };
     }
   }
 
-  private async checkURLSpecialCharacters(): Promise<SEOCheckResult> {
+  private async checkURLSpecialCharacters(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const decodedUrl = decodeURIComponent(url);
@@ -193,26 +155,21 @@ export class URLFactorsChecker {
       const hasSpecialChars = /[^a-zA-Z0-9\-_\/.:?&=]/.test(decodedUrl);
 
       if (hasEncodedCharacters || hasSpecialChars) {
-        return {
-          passed: false,
-          message: 'URL contains encoded or special characters (prefer clean URLs)',
-          details: { url, decodedUrl, hasEncodedCharacters, hasSpecialChars },
-        };
+        return this.fail('URL contains encoded or special characters (prefer clean URLs)', {
+          url,
+          decodedUrl,
+          hasEncodedCharacters,
+          hasSpecialChars,
+        });
       }
 
-      return {
-        passed: true,
-        message: 'URL uses clean, standard characters',
-      };
+      return this.pass('URL uses clean, standard characters');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'URL special characters check skipped',
-      };
+      return this.pass('URL special characters check skipped');
     }
   }
 
-  private async checkURLCase(): Promise<SEOCheckResult> {
+  private async checkURLCase(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const pathname = new URL(url).pathname;
@@ -220,26 +177,16 @@ export class URLFactorsChecker {
       const hasUpperCase = /[A-Z]/.test(pathname);
 
       if (hasUpperCase) {
-        return {
-          passed: false,
-          message: 'URL contains uppercase letters (lowercase is recommended)',
-          details: { pathname },
-        };
+        return this.fail('URL contains uppercase letters (lowercase is recommended)', { pathname });
       }
 
-      return {
-        passed: true,
-        message: 'URL uses lowercase letters (best practice)',
-      };
+      return this.pass('URL uses lowercase letters (best practice)');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'URL case check skipped',
-      };
+      return this.pass('URL case check skipped');
     }
   }
 
-  private async checkURLParameters(): Promise<SEOCheckResult> {
+  private async checkURLParameters(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const params = new URL(url).searchParams;
@@ -258,68 +205,44 @@ export class URLFactorsChecker {
       );
 
       if (hasSessionParams) {
-        return {
-          passed: false,
-          message: 'URL contains session parameters (can cause duplicate content)',
-          details: { paramCount, params: Array.from(params.keys()) },
-        };
+        return this.fail('URL contains session parameters (can cause duplicate content)', {
+          paramCount,
+          params: Array.from(params.keys()),
+        });
       }
 
       if (paramCount > 3 && !hasTrackingParams) {
-        return {
-          passed: false,
-          message: `URL has many parameters (${paramCount}). Consider cleaner URLs`,
-          details: { paramCount },
-        };
+        return this.fail(`URL has many parameters (${paramCount}). Consider cleaner URLs`, { paramCount });
       }
 
-      return {
-        passed: true,
-        message: paramCount === 0 ? 'Clean URL with no parameters' : `URL has ${paramCount} parameter(s)`,
-        details: { paramCount, hasTrackingParams },
-      };
+      return this.pass(paramCount === 0 ? 'Clean URL with no parameters' : `URL has ${paramCount} parameter(s)`, {
+        paramCount,
+        hasTrackingParams,
+      });
     } catch (error) {
-      return {
-        passed: true,
-        message: 'URL parameters check skipped',
-      };
+      return this.pass('URL parameters check skipped');
     }
   }
 
-  private async checkURLDepth(): Promise<SEOCheckResult> {
+  private async checkURLDepth(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const pathname = new URL(url).pathname;
       const depth = pathname.split('/').filter((s: string) => s.length > 0).length;
 
       if (depth > 4) {
-        return {
-          passed: false,
-          message: `URL depth is too deep (${depth} levels). Recommended: 3 or fewer`,
-          details: { depth, pathname },
-        };
+        return this.fail(`URL depth is too deep (${depth} levels). Recommended: 3 or fewer`, { depth, pathname });
       } else if (depth > 3) {
-        return {
-          passed: true,
-          message: `URL depth is acceptable (${depth} levels)`,
-          details: { depth },
-        };
+        return this.pass(`URL depth is acceptable (${depth} levels)`, { depth });
       }
 
-      return {
-        passed: true,
-        message: `URL depth is optimal (${depth} levels)`,
-        details: { depth },
-      };
+      return this.pass(`URL depth is optimal (${depth} levels)`, { depth });
     } catch (error) {
-      return {
-        passed: true,
-        message: 'URL depth check skipped',
-      };
+      return this.pass('URL depth check skipped');
     }
   }
 
-  private async checkFileExtension(): Promise<SEOCheckResult> {
+  private async checkFileExtension(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const pathname = new URL(url).pathname;
@@ -327,26 +250,16 @@ export class URLFactorsChecker {
       const hasExtension = /\.(html|htm|php|asp|jsp)$/i.test(pathname);
 
       if (hasExtension) {
-        return {
-          passed: false,
-          message: 'URL contains file extension (clean URLs are preferred)',
-          details: { pathname },
-        };
+        return this.fail('URL contains file extension (clean URLs are preferred)', { pathname });
       }
 
-      return {
-        passed: true,
-        message: 'URL is clean without file extension',
-      };
+      return this.pass('URL is clean without file extension');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'File extension check skipped',
-      };
+      return this.pass('File extension check skipped');
     }
   }
 
-  private async checkTrailingSlash(): Promise<SEOCheckResult> {
+  private async checkTrailingSlash(): Promise<CheckOutcome> {
     try {
       const url = this.page.url();
       const pathname = new URL(url).pathname;
@@ -355,23 +268,18 @@ export class URLFactorsChecker {
       const isRoot = pathname === '/';
 
       if (!isRoot && !hasTrailingSlash) {
-        return {
-          passed: true,
-          message: 'URL without trailing slash (ensure consistent usage across site)',
-          details: { pathname, hasTrailingSlash },
-        };
+        return this.pass('URL without trailing slash (ensure consistent usage across site)', {
+          pathname,
+          hasTrailingSlash,
+        });
       }
 
-      return {
-        passed: true,
-        message: hasTrailingSlash ? 'URL has trailing slash' : 'URL structure is consistent',
-        details: { pathname, hasTrailingSlash },
-      };
+      return this.pass(hasTrailingSlash ? 'URL has trailing slash' : 'URL structure is consistent', {
+        pathname,
+        hasTrailingSlash,
+      });
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Trailing slash check skipped',
-      };
+      return this.pass('Trailing slash check skipped');
     }
   }
 }

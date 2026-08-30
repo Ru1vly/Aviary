@@ -1,21 +1,16 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class UIElementsChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkFavicon());
-    results.push(await this.checkBreadcrumbs());
-    results.push(await this.checkLanguageTags());
-    results.push(await this.checkMobileViewport());
-
-    return results;
+export class UIElementsChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'favicon-present', run: () => this.checkFavicon() },
+      { id: 'breadcrumbs-structured', run: () => this.checkBreadcrumbs() },
+      { id: 'language-tags-configured', run: () => this.checkLanguageTags() },
+      { id: 'mobile-viewport-configured', run: () => this.checkMobileViewport() },
+    ];
   }
 
-  private async checkFavicon(): Promise<SEOCheckResult> {
+  private async checkFavicon(): Promise<CheckOutcome> {
     try {
       const faviconData = await this.page.evaluate(() => {
         const faviconLinks = [
@@ -39,26 +34,16 @@ export class UIElementsChecker {
       });
 
       if (!faviconData.hasFavicon) {
-        return {
-          passed: false,
-          message: 'No favicon found - important for branding and user experience',
-        };
+        return this.fail('No favicon found - important for branding and user experience');
       }
 
-      return {
-        passed: true,
-        message: `Favicon found (${faviconData.favicons.length} icon(s) defined)`,
-        details: faviconData,
-      };
+      return this.pass(`Favicon found (${faviconData.favicons.length} icon(s) defined)`, faviconData);
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking favicon: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(`Error checking favicon: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async checkBreadcrumbs(): Promise<SEOCheckResult> {
+  private async checkBreadcrumbs(): Promise<CheckOutcome> {
     try {
       const breadcrumbsData = await this.page.evaluate(() => {
         // Check for structured data breadcrumbs (JSON-LD)
@@ -96,32 +81,21 @@ export class UIElementsChecker {
       });
 
       if (!breadcrumbsData.hasJsonLd && !breadcrumbsData.hasMicrodata) {
-        return {
-          passed: false,
-          message: breadcrumbsData.hasHtmlBreadcrumbs
+        return this.fail(
+          breadcrumbsData.hasHtmlBreadcrumbs
             ? 'Breadcrumbs found but missing structured data (JSON-LD or Microdata)'
             : 'No breadcrumbs found - important for navigation and SEO',
-          details: breadcrumbsData,
-        };
+          breadcrumbsData
+        );
       }
 
-      return {
-        passed: true,
-        message: `Breadcrumbs properly implemented with structured data`,
-        details: breadcrumbsData,
-      };
+      return this.pass('Breadcrumbs properly implemented with structured data', breadcrumbsData);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Breadcrumbs check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Breadcrumbs check skipped due to error' };
     }
   }
 
-  private async checkLanguageTags(): Promise<SEOCheckResult> {
+  private async checkLanguageTags(): Promise<CheckOutcome> {
     try {
       const languageData = await this.page.evaluate(() => {
         const htmlLang = document.documentElement.getAttribute('lang');
@@ -157,32 +131,21 @@ export class UIElementsChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Language configuration issues: ${issues.join(', ')}`,
-          details: languageData,
-        };
+        return this.fail(`Language configuration issues: ${issues.join(', ')}`, languageData);
       }
 
-      return {
-        passed: true,
-        message: languageData.hasHreflang
+      return this.pass(
+        languageData.hasHreflang
           ? `Language properly configured with ${languageData.hreflangLinks.length} hreflang tag(s)`
           : 'Language configured (no hreflang needed for single-language sites)',
-        details: languageData,
-      };
+        languageData
+      );
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Language tags check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Language tags check skipped due to error' };
     }
   }
 
-  private async checkMobileViewport(): Promise<SEOCheckResult> {
+  private async checkMobileViewport(): Promise<CheckOutcome> {
     try {
       const viewportData = await this.page.evaluate(() => {
         const viewport = document.querySelector('meta[name="viewport"]');
@@ -205,10 +168,7 @@ export class UIElementsChecker {
       });
 
       if (!viewportData.hasViewport) {
-        return {
-          passed: false,
-          message: 'Missing viewport meta tag - critical for mobile SEO',
-        };
+        return this.fail('Missing viewport meta tag - critical for mobile SEO');
       }
 
       const issues: string[] = [];
@@ -226,23 +186,12 @@ export class UIElementsChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Viewport issues: ${issues.join(', ')}`,
-          details: viewportData,
-        };
+        return this.fail(`Viewport issues: ${issues.join(', ')}`, viewportData);
       }
 
-      return {
-        passed: true,
-        message: 'Viewport properly configured for mobile devices',
-        details: viewportData,
-      };
+      return this.pass('Viewport properly configured for mobile devices', viewportData);
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking viewport: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(`Error checking viewport: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

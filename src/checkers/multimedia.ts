@@ -1,27 +1,22 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class MultimediaChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkVideos());
-    results.push(await this.checkVideoMetadata());
-    results.push(await this.checkVideoTranscripts());
-    results.push(await this.checkAudioElements());
-    results.push(await this.checkEmbeds());
-    results.push(await this.checkAutoplay());
-    results.push(await this.checkVideoSchema());
-    results.push(await this.checkYouTubeEmbeds());
-    results.push(await this.checkVideoAccessibility());
-    results.push(await this.checkMediaControls());
-
-    return results;
+export class MultimediaChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'video-inventory', run: () => this.checkVideos() },
+      { id: 'video-metadata-complete', run: () => this.checkVideoMetadata() },
+      { id: 'video-captions-present', run: () => this.checkVideoTranscripts() },
+      { id: 'audio-elements-configured', run: () => this.checkAudioElements() },
+      { id: 'modern-embeds-used', run: () => this.checkEmbeds() },
+      { id: 'autoplay-muted', run: () => this.checkAutoplay() },
+      { id: 'video-schema-present', run: () => this.checkVideoSchema() },
+      { id: 'youtube-embeds-configured', run: () => this.checkYouTubeEmbeds() },
+      { id: 'video-accessibility-attributes', run: () => this.checkVideoAccessibility() },
+      { id: 'media-controls-present', run: () => this.checkMediaControls() },
+    ];
   }
 
-  private async checkVideos(): Promise<SEOCheckResult> {
+  private async checkVideos(): Promise<CheckOutcome> {
     try {
       const videoData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
@@ -34,22 +29,18 @@ export class MultimediaChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: videoData.totalVideos > 0
+      return this.pass(
+        videoData.totalVideos > 0
           ? `${videoData.totalVideos} video(s) found (${videoData.nativeVideos} native, ${videoData.embeddedVideos} embedded)`
           : 'No videos found',
-        details: videoData,
-      };
+        videoData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Video check skipped',
-      };
+      return this.pass('Video check skipped');
     }
   }
 
-  private async checkVideoMetadata(): Promise<SEOCheckResult> {
+  private async checkVideoMetadata(): Promise<CheckOutcome> {
     try {
       const metadataData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
@@ -64,10 +55,7 @@ export class MultimediaChecker {
       });
 
       if (metadataData.totalVideos === 0) {
-        return {
-          passed: true,
-          message: 'No native videos to check',
-        };
+        return this.pass('No native videos to check');
       }
 
       const issues: string[] = [];
@@ -81,27 +69,16 @@ export class MultimediaChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Video metadata issues: ${issues.join(', ')}`,
-          details: metadataData,
-        };
+        return this.fail(`Video metadata issues: ${issues.join(', ')}`, metadataData);
       }
 
-      return {
-        passed: true,
-        message: 'Videos have proper metadata',
-        details: metadataData,
-      };
+      return this.pass('Videos have proper metadata', metadataData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Video metadata check skipped',
-      };
+      return this.pass('Video metadata check skipped');
     }
   }
 
-  private async checkVideoTranscripts(): Promise<SEOCheckResult> {
+  private async checkVideoTranscripts(): Promise<CheckOutcome> {
     try {
       const transcriptData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
@@ -117,36 +94,22 @@ export class MultimediaChecker {
       });
 
       if (transcriptData.totalVideos === 0) {
-        return {
-          passed: true,
-          message: 'No videos to check for transcripts',
-        };
+        return this.pass('No videos to check for transcripts');
       }
 
       const hasAccessibility = transcriptData.withTrack > 0 || transcriptData.hasTranscriptElements;
 
       if (!hasAccessibility) {
-        return {
-          passed: false,
-          message: 'Videos missing captions/transcripts (important for accessibility and SEO)',
-          details: transcriptData,
-        };
+        return this.fail('Videos missing captions/transcripts (important for accessibility and SEO)', transcriptData);
       }
 
-      return {
-        passed: true,
-        message: 'Video accessibility features present',
-        details: transcriptData,
-      };
+      return this.pass('Video accessibility features present', transcriptData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Video transcripts check skipped',
-      };
+      return this.pass('Video transcripts check skipped');
     }
   }
 
-  private async checkAudioElements(): Promise<SEOCheckResult> {
+  private async checkAudioElements(): Promise<CheckOutcome> {
     try {
       const audioData = await this.page.evaluate(() => {
         const audio = Array.from(document.querySelectorAll('audio'));
@@ -161,10 +124,7 @@ export class MultimediaChecker {
       });
 
       if (audioData.totalAudio === 0) {
-        return {
-          passed: true,
-          message: 'No audio elements found',
-        };
+        return this.pass('No audio elements found');
       }
 
       const issues: string[] = [];
@@ -178,27 +138,16 @@ export class MultimediaChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Audio issues: ${issues.join(', ')}`,
-          details: audioData,
-        };
+        return this.fail(`Audio issues: ${issues.join(', ')}`, audioData);
       }
 
-      return {
-        passed: true,
-        message: `${audioData.totalAudio} audio element(s) properly configured`,
-        details: audioData,
-      };
+      return this.pass(`${audioData.totalAudio} audio element(s) properly configured`, audioData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Audio elements check skipped',
-      };
+      return this.pass('Audio elements check skipped');
     }
   }
 
-  private async checkEmbeds(): Promise<SEOCheckResult> {
+  private async checkEmbeds(): Promise<CheckOutcome> {
     try {
       const embedData = await this.page.evaluate(() => {
         const embeds = Array.from(document.querySelectorAll('embed, object'));
@@ -211,29 +160,19 @@ export class MultimediaChecker {
       });
 
       if (embedData.totalEmbeds > 0) {
-        return {
-          passed: false,
-          message: `Found ${embedData.totalEmbeds} <embed>/<object> elements (outdated, use HTML5)`,
-          details: embedData,
-        };
+        return this.fail(`Found ${embedData.totalEmbeds} <embed>/<object> elements (outdated, use HTML5)`, embedData);
       }
 
-      return {
-        passed: true,
-        message: embedData.totalIframes > 0
-          ? `Using modern iframe embeds (${embedData.totalIframes})`
-          : 'No embed elements',
-        details: embedData,
-      };
+      return this.pass(
+        embedData.totalIframes > 0 ? `Using modern iframe embeds (${embedData.totalIframes})` : 'No embed elements',
+        embedData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Embeds check skipped',
-      };
+      return this.pass('Embeds check skipped');
     }
   }
 
-  private async checkAutoplay(): Promise<SEOCheckResult> {
+  private async checkAutoplay(): Promise<CheckOutcome> {
     try {
       const autoplayData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video[autoplay]'));
@@ -250,29 +189,22 @@ export class MultimediaChecker {
       const totalAutoplay = autoplayData.autoplayVideos + autoplayData.autoplayAudio;
 
       if (totalAutoplay > 0 && autoplayData.withMuted < totalAutoplay) {
-        return {
-          passed: false,
-          message: `${totalAutoplay - autoplayData.withMuted} autoplay media elements without muted (bad UX)`,
-          details: autoplayData,
-        };
+        return this.fail(
+          `${totalAutoplay - autoplayData.withMuted} autoplay media elements without muted (bad UX)`,
+          autoplayData
+        );
       }
 
-      return {
-        passed: true,
-        message: totalAutoplay > 0
-          ? 'Autoplay media properly muted'
-          : 'No autoplay media (good for UX)',
-        details: autoplayData,
-      };
+      return this.pass(
+        totalAutoplay > 0 ? 'Autoplay media properly muted' : 'No autoplay media (good for UX)',
+        autoplayData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Autoplay check skipped',
-      };
+      return this.pass('Autoplay check skipped');
     }
   }
 
-  private async checkVideoSchema(): Promise<SEOCheckResult> {
+  private async checkVideoSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -294,29 +226,19 @@ export class MultimediaChecker {
       });
 
       if (schemaData.videoCount > 0 && !schemaData.hasVideoSchema) {
-        return {
-          passed: false,
-          message: 'Videos found but no VideoObject schema (recommended for rich results)',
-          details: schemaData,
-        };
+        return this.fail('Videos found but no VideoObject schema (recommended for rich results)', schemaData);
       }
 
-      return {
-        passed: true,
-        message: schemaData.hasVideoSchema
-          ? 'VideoObject schema present'
-          : 'No videos or schema not needed',
-        details: schemaData,
-      };
+      return this.pass(
+        schemaData.hasVideoSchema ? 'VideoObject schema present' : 'No videos or schema not needed',
+        schemaData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Video schema check skipped',
-      };
+      return this.pass('Video schema check skipped');
     }
   }
 
-  private async checkYouTubeEmbeds(): Promise<SEOCheckResult> {
+  private async checkYouTubeEmbeds(): Promise<CheckOutcome> {
     try {
       const youtubeData = await this.page.evaluate(() => {
         const iframes = Array.from(document.querySelectorAll('iframe[src*="youtube"]')) as HTMLIFrameElement[];
@@ -331,10 +253,7 @@ export class MultimediaChecker {
       });
 
       if (youtubeData.totalYouTube === 0) {
-        return {
-          passed: true,
-          message: 'No YouTube embeds',
-        };
+        return this.pass('No YouTube embeds');
       }
 
       const issues: string[] = [];
@@ -348,27 +267,16 @@ export class MultimediaChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `YouTube embed issues: ${issues.join(', ')}`,
-          details: youtubeData,
-        };
+        return this.fail(`YouTube embed issues: ${issues.join(', ')}`, youtubeData);
       }
 
-      return {
-        passed: true,
-        message: `${youtubeData.totalYouTube} YouTube embed(s) properly configured`,
-        details: youtubeData,
-      };
+      return this.pass(`${youtubeData.totalYouTube} YouTube embed(s) properly configured`, youtubeData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'YouTube embeds check skipped',
-      };
+      return this.pass('YouTube embeds check skipped');
     }
   }
 
-  private async checkVideoAccessibility(): Promise<SEOCheckResult> {
+  private async checkVideoAccessibility(): Promise<CheckOutcome> {
     try {
       const a11yData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
@@ -399,27 +307,16 @@ export class MultimediaChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Media accessibility issues: ${issues.join(', ')}`,
-          details: a11yData,
-        };
+        return this.fail(`Media accessibility issues: ${issues.join(', ')}`, a11yData);
       }
 
-      return {
-        passed: true,
-        message: 'Media elements have accessibility attributes',
-        details: a11yData,
-      };
+      return this.pass('Media elements have accessibility attributes', a11yData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Video accessibility check skipped',
-      };
+      return this.pass('Video accessibility check skipped');
     }
   }
 
-  private async checkMediaControls(): Promise<SEOCheckResult> {
+  private async checkMediaControls(): Promise<CheckOutcome> {
     try {
       const controlsData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
@@ -447,23 +344,12 @@ export class MultimediaChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Media controls issues: ${issues.join(', ')}`,
-          details: controlsData,
-        };
+        return this.fail(`Media controls issues: ${issues.join(', ')}`, controlsData);
       }
 
-      return {
-        passed: true,
-        message: 'Media elements have controls',
-        details: controlsData,
-      };
+      return this.pass('Media elements have controls', controlsData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Media controls check skipped',
-      };
+      return this.pass('Media controls check skipped');
     }
   }
 }

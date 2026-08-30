@@ -305,14 +305,14 @@ describe('TechnicalChecker', () => {
 describe('UIElementsChecker', () => {
   it('returns results array', async () => {
     const p = await withContent(`<!DOCTYPE html><html><head></head><body></body></html>`);
-    const checker = new UIElementsChecker(p as Page);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
   });
 
   it('fails when favicon is missing', async () => {
     const p = await withContent(`<!DOCTYPE html><html><head></head><body></body></html>`);
-    const checker = new UIElementsChecker(p as Page);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
     const results = await checker.checkAll();
     const faviconResult = results[0];
     expect(faviconResult.passed).toBe(false);
@@ -325,7 +325,7 @@ describe('UIElementsChecker', () => {
         <link rel="icon" href="/favicon.ico">
       </head><body></body></html>
     `);
-    const checker = new UIElementsChecker(p as Page);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(true);
   });
@@ -335,7 +335,7 @@ describe('UIElementsChecker', () => {
 describe('URLFactorsChecker', () => {
   it('returns results array', async () => {
     const mockPage = createMockPage({ url: 'https://example.com/about' }) as Page;
-    const checker = new URLFactorsChecker(mockPage);
+    const checker = new URLFactorsChecker({ page: mockPage, checkerKey: 'urlFactors' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r && 'message' in r)).toBe(true);
@@ -343,7 +343,7 @@ describe('URLFactorsChecker', () => {
 
   it('passes URL length check for a short URL', async () => {
     const mockPage = createMockPage({ url: 'https://example.com/about' }) as Page;
-    const checker = new URLFactorsChecker(mockPage);
+    const checker = new URLFactorsChecker({ page: mockPage, checkerKey: 'urlFactors' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(true);
     expect(results[0].message).toContain('optimal');
@@ -352,7 +352,7 @@ describe('URLFactorsChecker', () => {
   it('fails URL length check for a very long URL', async () => {
     const longUrl = 'https://example.com/' + 'a'.repeat(120);
     const mockPage = createMockPage({ url: longUrl }) as Page;
-    const checker = new URLFactorsChecker(mockPage);
+    const checker = new URLFactorsChecker({ page: mockPage, checkerKey: 'urlFactors' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(false);
     expect(results[0].message).toContain('too long');
@@ -360,7 +360,7 @@ describe('URLFactorsChecker', () => {
 
   it('fails readability check for URL with underscores', async () => {
     const mockPage = createMockPage({ url: 'https://example.com/my_page_about_seo' }) as Page;
-    const checker = new URLFactorsChecker(mockPage);
+    const checker = new URLFactorsChecker({ page: mockPage, checkerKey: 'urlFactors' });
     const results = await checker.checkAll();
     const readabilityResult = results[1];
     expect(readabilityResult.passed).toBe(false);

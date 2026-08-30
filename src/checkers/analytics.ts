@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class AnalyticsChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkGoogleAnalytics());
-    results.push(await this.checkGoogleTagManager());
-    results.push(await this.checkFacebookPixel());
-    results.push(await this.checkGoogleAds());
-    results.push(await this.checkHotjar());
-    results.push(await this.checkMixpanel());
-    results.push(await this.checkSegment());
-    results.push(await this.checkClarityOrSimilar());
-    results.push(await this.checkSearchConsoleVerification());
-    results.push(await this.checkBingWebmasterVerification());
-    results.push(await this.checkYandexVerification());
-    results.push(await this.checkPixelTracking());
-    results.push(await this.checkConversionTracking());
-    results.push(await this.checkHeatmapTools());
-    results.push(await this.checkABTestingTools());
-
-    return results;
+export class AnalyticsChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'google-analytics-detected', run: () => this.checkGoogleAnalytics() },
+      { id: 'google-tag-manager-configured', run: () => this.checkGoogleTagManager() },
+      { id: 'facebook-pixel-detected', run: () => this.checkFacebookPixel() },
+      { id: 'google-ads-detected', run: () => this.checkGoogleAds() },
+      { id: 'hotjar-detected', run: () => this.checkHotjar() },
+      { id: 'mixpanel-detected', run: () => this.checkMixpanel() },
+      { id: 'segment-detected', run: () => this.checkSegment() },
+      { id: 'behavior-analytics-detected', run: () => this.checkClarityOrSimilar() },
+      { id: 'search-console-verified', run: () => this.checkSearchConsoleVerification() },
+      { id: 'bing-webmaster-verified', run: () => this.checkBingWebmasterVerification() },
+      { id: 'yandex-verified', run: () => this.checkYandexVerification() },
+      { id: 'advertising-pixels-detected', run: () => this.checkPixelTracking() },
+      { id: 'conversion-tracking-detected', run: () => this.checkConversionTracking() },
+      { id: 'heatmap-tools-detected', run: () => this.checkHeatmapTools() },
+      { id: 'ab-testing-tools-detected', run: () => this.checkABTestingTools() },
+    ];
   }
 
-  private async checkGoogleAnalytics(): Promise<SEOCheckResult> {
+  private async checkGoogleAnalytics(): Promise<CheckOutcome> {
     try {
       const gaData = await this.page.evaluate(() => {
         const hasGA4 = !!(window as any).gtag || !!(window as any).dataLayer;
@@ -43,29 +38,19 @@ export class AnalyticsChecker {
       });
 
       if (!gaData.hasGA4 && !gaData.hasUA && !gaData.hasGtag && !gaData.hasAnalytics) {
-        return {
-          passed: false,
-          message: 'Google Analytics not detected (recommended for tracking)',
-          details: gaData,
-        };
+        return this.fail('Google Analytics not detected (recommended for tracking)', gaData);
       }
 
-      return {
-        passed: true,
-        message: gaData.hasGA4
-          ? 'Google Analytics 4 detected'
-          : 'Google Analytics (UA) detected - consider upgrading to GA4',
-        details: gaData,
-      };
+      return this.pass(
+        gaData.hasGA4 ? 'Google Analytics 4 detected' : 'Google Analytics (UA) detected - consider upgrading to GA4',
+        gaData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Google Analytics check skipped',
-      };
+      return this.pass('Google Analytics check skipped');
     }
   }
 
-  private async checkGoogleTagManager(): Promise<SEOCheckResult> {
+  private async checkGoogleTagManager(): Promise<CheckOutcome> {
     try {
       const gtmData = await this.page.evaluate(() => {
         const hasGTM = !!(window as any).google_tag_manager;
@@ -80,29 +65,19 @@ export class AnalyticsChecker {
       });
 
       if (gtmData.hasGTM && !gtmData.hasNoscript) {
-        return {
-          passed: false,
-          message: 'GTM detected but missing <noscript> fallback',
-          details: gtmData,
-        };
+        return this.fail('GTM detected but missing <noscript> fallback', gtmData);
       }
 
-      return {
-        passed: true,
-        message: gtmData.hasGTM
-          ? 'Google Tag Manager properly implemented'
-          : 'No Google Tag Manager (optional)',
-        details: gtmData,
-      };
+      return this.pass(
+        gtmData.hasGTM ? 'Google Tag Manager properly implemented' : 'No Google Tag Manager (optional)',
+        gtmData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'GTM check skipped',
-      };
+      return this.pass('GTM check skipped');
     }
   }
 
-  private async checkFacebookPixel(): Promise<SEOCheckResult> {
+  private async checkFacebookPixel(): Promise<CheckOutcome> {
     try {
       const fbData = await this.page.evaluate(() => {
         const hasFBQ = !!(window as any).fbq;
@@ -114,22 +89,16 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: fbData.hasFacebookPixel
-          ? 'Facebook Pixel detected'
-          : 'No Facebook Pixel (optional)',
-        details: fbData,
-      };
+      return this.pass(
+        fbData.hasFacebookPixel ? 'Facebook Pixel detected' : 'No Facebook Pixel (optional)',
+        fbData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Facebook Pixel check skipped',
-      };
+      return this.pass('Facebook Pixel check skipped');
     }
   }
 
-  private async checkGoogleAds(): Promise<SEOCheckResult> {
+  private async checkGoogleAds(): Promise<CheckOutcome> {
     try {
       const adsData = await this.page.evaluate(() => {
         const hasGoogleAds = document.querySelector('script[src*="googleadservices.com"]') ||
@@ -140,22 +109,13 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: adsData.hasGoogleAds
-          ? 'Google Ads tracking detected'
-          : 'No Google Ads (optional)',
-        details: adsData,
-      };
+      return this.pass(adsData.hasGoogleAds ? 'Google Ads tracking detected' : 'No Google Ads (optional)', adsData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Google Ads check skipped',
-      };
+      return this.pass('Google Ads check skipped');
     }
   }
 
-  private async checkHotjar(): Promise<SEOCheckResult> {
+  private async checkHotjar(): Promise<CheckOutcome> {
     try {
       const hotjarData = await this.page.evaluate(() => {
         const hasHotjar = !!(window as any).hj;
@@ -167,22 +127,13 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: hotjarData.hasHotjar
-          ? 'Hotjar detected'
-          : 'No Hotjar (optional heatmap tool)',
-        details: hotjarData,
-      };
+      return this.pass(hotjarData.hasHotjar ? 'Hotjar detected' : 'No Hotjar (optional heatmap tool)', hotjarData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Hotjar check skipped',
-      };
+      return this.pass('Hotjar check skipped');
     }
   }
 
-  private async checkMixpanel(): Promise<SEOCheckResult> {
+  private async checkMixpanel(): Promise<CheckOutcome> {
     try {
       const mixpanelData = await this.page.evaluate(() => {
         const hasMixpanel = !!(window as any).mixpanel;
@@ -194,22 +145,13 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: mixpanelData.hasMixpanel
-          ? 'Mixpanel detected'
-          : 'No Mixpanel (optional)',
-        details: mixpanelData,
-      };
+      return this.pass(mixpanelData.hasMixpanel ? 'Mixpanel detected' : 'No Mixpanel (optional)', mixpanelData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mixpanel check skipped',
-      };
+      return this.pass('Mixpanel check skipped');
     }
   }
 
-  private async checkSegment(): Promise<SEOCheckResult> {
+  private async checkSegment(): Promise<CheckOutcome> {
     try {
       const segmentData = await this.page.evaluate(() => {
         const hasSegment = !!(window as any).analytics;
@@ -221,22 +163,13 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: segmentData.hasSegment
-          ? 'Segment detected'
-          : 'No Segment (optional)',
-        details: segmentData,
-      };
+      return this.pass(segmentData.hasSegment ? 'Segment detected' : 'No Segment (optional)', segmentData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Segment check skipped',
-      };
+      return this.pass('Segment check skipped');
     }
   }
 
-  private async checkClarityOrSimilar(): Promise<SEOCheckResult> {
+  private async checkClarityOrSimilar(): Promise<CheckOutcome> {
     try {
       const clarityData = await this.page.evaluate(() => {
         const hasClarity = !!(window as any).clarity;
@@ -256,22 +189,16 @@ export class AnalyticsChecker {
       if (clarityData.hasMouseflow) tools.push('Mouseflow');
       if (clarityData.hasCrazyEgg) tools.push('CrazyEgg');
 
-      return {
-        passed: true,
-        message: tools.length > 0
-          ? `Behavior analytics detected: ${tools.join(', ')}`
-          : 'No behavior analytics tools',
-        details: clarityData,
-      };
+      return this.pass(
+        tools.length > 0 ? `Behavior analytics detected: ${tools.join(', ')}` : 'No behavior analytics tools',
+        clarityData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Behavior analytics check skipped',
-      };
+      return this.pass('Behavior analytics check skipped');
     }
   }
 
-  private async checkSearchConsoleVerification(): Promise<SEOCheckResult> {
+  private async checkSearchConsoleVerification(): Promise<CheckOutcome> {
     try {
       const verification = await this.page.evaluate(() => {
         const meta = document.querySelector('meta[name="google-site-verification"]');
@@ -281,22 +208,18 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: verification.hasVerification
+      return this.pass(
+        verification.hasVerification
           ? 'Google Search Console verification found'
           : 'No Search Console verification (add for better SEO insights)',
-        details: verification,
-      };
+        verification
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Search Console verification check skipped',
-      };
+      return this.pass('Search Console verification check skipped');
     }
   }
 
-  private async checkBingWebmasterVerification(): Promise<SEOCheckResult> {
+  private async checkBingWebmasterVerification(): Promise<CheckOutcome> {
     try {
       const verification = await this.page.evaluate(() => {
         const meta = document.querySelector('meta[name="msvalidate.01"]');
@@ -306,22 +229,18 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: verification.hasVerification
+      return this.pass(
+        verification.hasVerification
           ? 'Bing Webmaster Tools verification found'
           : 'No Bing Webmaster verification (optional)',
-        details: verification,
-      };
+        verification
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Bing verification check skipped',
-      };
+      return this.pass('Bing verification check skipped');
     }
   }
 
-  private async checkYandexVerification(): Promise<SEOCheckResult> {
+  private async checkYandexVerification(): Promise<CheckOutcome> {
     try {
       const verification = await this.page.evaluate(() => {
         const meta = document.querySelector('meta[name="yandex-verification"]');
@@ -331,22 +250,16 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: verification.hasVerification
-          ? 'Yandex Webmaster verification found'
-          : 'No Yandex verification (optional)',
-        details: verification,
-      };
+      return this.pass(
+        verification.hasVerification ? 'Yandex Webmaster verification found' : 'No Yandex verification (optional)',
+        verification
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Yandex verification check skipped',
-      };
+      return this.pass('Yandex verification check skipped');
     }
   }
 
-  private async checkPixelTracking(): Promise<SEOCheckResult> {
+  private async checkPixelTracking(): Promise<CheckOutcome> {
     try {
       const pixelData = await this.page.evaluate(() => {
         const pixels = {
@@ -368,22 +281,18 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: pixelData.count > 0
+      return this.pass(
+        pixelData.count > 0
           ? `${pixelData.count} advertising pixels detected: ${pixelData.detected.join(', ')}`
           : 'No advertising pixels detected',
-        details: pixelData,
-      };
+        pixelData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Pixel tracking check skipped',
-      };
+      return this.pass('Pixel tracking check skipped');
     }
   }
 
-  private async checkConversionTracking(): Promise<SEOCheckResult> {
+  private async checkConversionTracking(): Promise<CheckOutcome> {
     try {
       const conversionData = await this.page.evaluate(() => {
         const hasGoogleConversion = document.querySelector('script[src*="googleadservices.com/pagead/conversion"]');
@@ -402,22 +311,16 @@ export class AnalyticsChecker {
       if (conversionData.hasFBConversion) tools.push('Facebook');
       if (conversionData.hasLinkedInConversion) tools.push('LinkedIn');
 
-      return {
-        passed: true,
-        message: tools.length > 0
-          ? `Conversion tracking: ${tools.join(', ')}`
-          : 'No conversion tracking detected',
-        details: conversionData,
-      };
+      return this.pass(
+        tools.length > 0 ? `Conversion tracking: ${tools.join(', ')}` : 'No conversion tracking detected',
+        conversionData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Conversion tracking check skipped',
-      };
+      return this.pass('Conversion tracking check skipped');
     }
   }
 
-  private async checkHeatmapTools(): Promise<SEOCheckResult> {
+  private async checkHeatmapTools(): Promise<CheckOutcome> {
     try {
       const heatmapData = await this.page.evaluate(() => {
         const tools = {
@@ -439,22 +342,18 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: heatmapData.count > 0
+      return this.pass(
+        heatmapData.count > 0
           ? `Heatmap tools detected: ${heatmapData.detected.join(', ')}`
           : 'No heatmap tools (consider for UX insights)',
-        details: heatmapData,
-      };
+        heatmapData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Heatmap tools check skipped',
-      };
+      return this.pass('Heatmap tools check skipped');
     }
   }
 
-  private async checkABTestingTools(): Promise<SEOCheckResult> {
+  private async checkABTestingTools(): Promise<CheckOutcome> {
     try {
       const abTestData = await this.page.evaluate(() => {
         const tools = {
@@ -475,18 +374,14 @@ export class AnalyticsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: abTestData.count > 0
+      return this.pass(
+        abTestData.count > 0
           ? `A/B testing tools detected: ${abTestData.detected.join(', ')}`
           : 'No A/B testing tools (optional)',
-        details: abTestData,
-      };
+        abTestData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'A/B testing tools check skipped',
-      };
+      return this.pass('A/B testing tools check skipped');
     }
   }
 }
