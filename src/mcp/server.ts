@@ -9,279 +9,104 @@
  *   { "command": "node", "args": ["path/to/dist/mcp/server.js"] }
  */
 
-import { SEOChecker } from '../index';
-import { generateHtmlReport } from '../reporter';
-
-// MCP JSON-RPC protocol types
-interface MCPRequest {
-  jsonrpc: '2.0';
-  id: string | number;
-  method: string;
-  params?: Record<string, unknown>;
-}
-
-interface MCPResponse {
-  jsonrpc: '2.0';
-  id: string | number;
-  result?: unknown;
-  error?: { code: number; message: string };
-}
-
-// MCP Tools definition
-const TOOLS = [
-  {
-    name: 'seo_audit',
-    description:
-      'Run a comprehensive SEO audit on a URL. Returns detailed check results across 27 categories including meta tags, headings, performance, accessibility, security, and more.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: { type: 'string', description: 'The URL to audit (must include https://)' },
-        preset: {
-          type: 'string',
-          enum: ['basic', 'advanced', 'strict'],
-          description: 'Audit preset (default: advanced)',
-        },
-        categories: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Specific categories to check (optional, runs all if omitted)',
-        },
-      },
-      required: ['url'],
-    },
-  },
-  {
-    name: 'seo_score',
-    description:
-      'Get a quick SEO score for a URL without full details. Returns score 0-100 and grade (A-F).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: { type: 'string', description: 'The URL to score' },
-      },
-      required: ['url'],
-    },
-  },
-  {
-    name: 'seo_check_category',
-    description:
-      'Run SEO checks for a specific category only (e.g., metaTags, security, performance).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: { type: 'string', description: 'The URL to check' },
-        category: {
-          type: 'string',
-          enum: [
-            'metaTags',
-            'headings',
-            'images',
-            'performance',
-            'security',
-            'accessibility',
-            'content',
-            'links',
-            'structuredData',
-            'mobileUX',
-            'coreWebVitals',
-          ],
-          description: 'Category to check',
-        },
-      },
-      required: ['url', 'category'],
-    },
-  },
-];
-
+import { McpServer } from '@modelcontextprotocol/server';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 
-const SeoScoreSchema = z.object({
-  url: z.string().url('Must be a valid URL starting with http:// or https://'),
-});
+import { SEOChecker } from '../index';
+import { CHECKER_REGISTRY, CheckerKey } from '../checkers/registry';
 
-const SeoAuditSchema = z.object({
-  url: z.string().url('Must be a valid URL'),
-  preset: z.enum(['basic', 'advanced', 'strict']).optional().default('advanced'),
-  categories: z.array(z.string()).optional(),
-});
+// Single source of truth for valid category names, instead of a hand-typed
+// list that drifts from the real 28-checker registry (the old version only
+// listed 11).
+const CATEGORY_KEYS = CHECKER_REGISTRY.map((c) => c.key) as [CheckerKey, ...CheckerKey[]];
 
-const SeoCheckCategorySchema = z.object({
-  url: z.string().url('Must be a valid URL'),
-  category: z.enum([
-    'metaTags',
-    'headings',
-    'images',
-    'performance',
-    'security',
-    'accessibility',
-    'content',
-    'links',
-    'structuredData',
-    'mobileUX',
-    'coreWebVitals',
-  ]),
-});
-
-function sanitizeOutput(obj: unknown): unknown {
-  if (typeof obj === 'string') {
-    const lower = obj.toLowerCase();
-    if (
-      lower.includes('<script') ||
-      lower.includes('javascript:') ||
-      lower.includes('onerror=') ||
-      lower.includes('onload=') ||
-      lower.match(/union\s+select/i) ||
-      lower.match(/drop\s+table/i) ||
-      lower.match(/select\s+.*\s+from/i)
-    ) {
-      return '[REDACTED: Potential Security Payload Detected]';
-    }
-    return obj;
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeOutput);
-  }
-  if (typeof obj === 'object' && obj !== null) {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      result[key] = sanitizeOutput(value);
-    }
-    return result;
-  }
-  return obj;
+function gradeFor(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
 }
 
-async function handleToolCall(name: string, args: Record<string, unknown>): Promise<string> {
-  if (name === 'seo_score') {
-    const parsed = SeoScoreSchema.parse(args);
-    const { url } = parsed;
-    const checker = new SEOChecker({ url, headless: true });
-    const report = await checker.check();
-    const grade =
-      report.score >= 90
-        ? 'A'
-        : report.score >= 80
-          ? 'B'
-          : report.score >= 70
-            ? 'C'
-            : report.score >= 60
-              ? 'D'
-              : 'F';
-    return JSON.stringify(
-      sanitizeOutput({
+function createServer(): McpServer {
+  const server = new McpServer({ name: 'aviary', version: '1.0.0' });
+
+  server.registerTool(
+    'seo_audit',
+    {
+      description: `Run a comprehensive SEO audit on a URL. Returns detailed check results across ${CHECKER_REGISTRY.length} categories including meta tags, headings, performance, accessibility, security, and more.`,
+      inputSchema: z.object({
+        url: z.string().url('Must be a valid URL starting with http:// or https://'),
+        preset: z
+          .enum(['basic', 'advanced', 'strict'])
+          .optional()
+          .default('advanced')
+          .describe('Audit preset (default: advanced)'),
+        categories: z
+          .array(z.enum(CATEGORY_KEYS))
+          .optional()
+          .describe('Specific categories to check (optional, runs all if omitted)'),
+      }),
+    },
+    async ({ url, preset, categories }) => {
+      const checker = new SEOChecker({ url, headless: true, config: { preset }, categories });
+      const report = await checker.check();
+      return { content: [{ type: 'text', text: JSON.stringify(report, null, 2) }] };
+    }
+  );
+
+  server.registerTool(
+    'seo_score',
+    {
+      description: 'Get a quick SEO score for a URL without full details. Returns score 0-100 and grade (A-F).',
+      inputSchema: z.object({
+        url: z.string().url('Must be a valid URL'),
+      }),
+    },
+    async ({ url }) => {
+      const checker = new SEOChecker({ url, headless: true });
+      const report = await checker.check();
+      const summary = {
         url,
         score: report.score,
-        grade,
+        grade: gradeFor(report.score),
         passed: report.summary.passed,
         failed: report.summary.failed,
         total: report.summary.total,
-      }),
-      null,
-      2,
-    );
-  }
-
-  if (name === 'seo_audit') {
-    const parsed = SeoAuditSchema.parse(args);
-    const { url, preset } = parsed;
-    const checker = new SEOChecker({
-      url,
-      headless: true,
-      config: { preset },
-    });
-    const report = await checker.check();
-    const sanitizedReport = sanitizeOutput(report);
-    return JSON.stringify(sanitizedReport, null, 2);
-  }
-
-  if (name === 'seo_check_category') {
-    const parsed = SeoCheckCategorySchema.parse(args);
-    const { url, category } = parsed;
-    const checker = new SEOChecker({
-      url,
-      headless: true,
-      config: { preset: 'advanced' },
-    });
-    const report = await checker.check();
-    const checks = (report.checks as Record<string, unknown>)[category];
-    const sanitizedOutput = sanitizeOutput({ url, category, checks });
-    return JSON.stringify(sanitizedOutput, null, 2);
-  }
-
-  throw new Error(`Unknown tool: ${name}`);
-}
-
-async function main() {
-  // MCP uses stdio for communication
-  process.stdin.setEncoding('utf8');
-
-  let buffer = '';
-
-  process.stdin.on('data', async (chunk: string) => {
-    buffer += chunk;
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-
-      let request: MCPRequest;
-      try {
-        request = JSON.parse(line);
-      } catch {
-        continue;
-      }
-
-      let response: MCPResponse;
-
-      try {
-        if (request.method === 'initialize') {
-          response = {
-            jsonrpc: '2.0',
-            id: request.id,
-            result: {
-              protocolVersion: '2024-11-05',
-              capabilities: { tools: {} },
-              serverInfo: { name: 'aviary', version: '1.0.0' },
-            },
-          };
-        } else if (request.method === 'tools/list') {
-          response = { jsonrpc: '2.0', id: request.id, result: { tools: TOOLS } };
-        } else if (request.method === 'tools/call') {
-          const { name, arguments: toolArgs } = request.params as {
-            name: string;
-            arguments: Record<string, unknown>;
-          };
-          const result = await handleToolCall(name, toolArgs);
-          response = {
-            jsonrpc: '2.0',
-            id: request.id,
-            result: { content: [{ type: 'text', text: result }] },
-          };
-        } else {
-          response = {
-            jsonrpc: '2.0',
-            id: request.id,
-            error: { code: -32601, message: 'Method not found' },
-          };
-        }
-      } catch (err) {
-        response = {
-          jsonrpc: '2.0',
-          id: request.id,
-          error: { code: -32603, message: (err as Error).message },
-        };
-      }
-
-      process.stdout.write(JSON.stringify(response) + '\n');
+      };
+      return { content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }] };
     }
-  });
+  );
 
-  process.stdin.on('end', () => process.exit(0));
+  server.registerTool(
+    'seo_check_category',
+    {
+      description: 'Run SEO checks for a specific category only (e.g., metaTags, security, performance).',
+      inputSchema: z.object({
+        url: z.string().url('Must be a valid URL'),
+        category: z.enum(CATEGORY_KEYS).describe('Category to check'),
+      }),
+    },
+    async ({ url, category }) => {
+      const checker = new SEOChecker({
+        url,
+        headless: true,
+        config: { preset: 'advanced' },
+        categories: [category],
+      });
+      const report = await checker.check();
+      const checks = report.checks[category];
+      return { content: [{ type: 'text', text: JSON.stringify({ url, category, checks }, null, 2) }] };
+    }
+  );
+
+  return server;
 }
 
-main().catch((err) => {
-  process.stderr.write(JSON.stringify({ level: 'error', message: err.message }) + '\n');
-  process.exit(1);
+void serveStdio(createServer, {
+  onerror: (err) => {
+    process.stderr.write(JSON.stringify({ level: 'error', message: err.message }) + '\n');
+  },
 });
+process.stderr.write('aviary MCP server running on stdio\n');

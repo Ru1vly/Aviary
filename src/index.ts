@@ -113,9 +113,13 @@ export class SEOChecker {
    */
   private async runAllCheckers(): Promise<SEOReport['checks']> {
     const ctx: CheckerContext = { page: this.page!, response: this.response, config: this.config };
+    const requested = this.options.categories;
 
     const resultsByKey = await Promise.all(
       CHECKER_REGISTRY.map(async ({ key, create }): Promise<[CheckerKey, SEOCheckResult[]]> => {
+        if (requested && !requested.includes(key)) {
+          return [key, []];
+        }
         if (!ConfigLoader.isCheckerEnabled(this.config, key)) {
           return [key, []];
         }

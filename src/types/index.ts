@@ -68,6 +68,15 @@ export interface SEOCheckerOptions {
   };
   config?: import('../config').SEOConfig;
   configFile?: string;
+  /**
+   * Restrict the audit to these checker keys (see CHECKER_REGISTRY in
+   * src/checkers/registry.ts). Runs every checker (subject to config
+   * enable/disable) when omitted. Typed as string[] rather than CheckerKey
+   * here to avoid a type-only circular import between this file and
+   * checkers/registry.ts (which imports SEOReport from here); invalid keys
+   * are simply never matched against the registry, not rejected.
+   */
+  categories?: string[];
 }
 
 export interface MetaTag {
