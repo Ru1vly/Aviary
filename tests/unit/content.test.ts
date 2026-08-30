@@ -9,7 +9,7 @@ describe('ContentChecker', () => {
       const longContent = 'word '.repeat(500);
       const mockPage = createMockPage({ html: `<p>${longContent}</p>` }) as Page;
 
-      const checker = new ContentChecker(mockPage);
+      const checker = new ContentChecker({ page: mockPage, checkerKey: 'content' });
       const results = await checker.checkAll();
       const wordCountResult = results[0];
 
@@ -21,7 +21,7 @@ describe('ContentChecker', () => {
       const shortContent = 'word '.repeat(50);
       const mockPage = createMockPage({ html: `<p>${shortContent}</p>` }) as Page;
 
-      const checker = new ContentChecker(mockPage);
+      const checker = new ContentChecker({ page: mockPage, checkerKey: 'content' });
       const results = await checker.checkAll();
       const wordCountResult = results[0];
 
@@ -33,7 +33,7 @@ describe('ContentChecker', () => {
       const excellentContent = 'word '.repeat(1500);
       const mockPage = createMockPage({ html: `<p>${excellentContent}</p>` }) as Page;
 
-      const checker = new ContentChecker(mockPage);
+      const checker = new ContentChecker({ page: mockPage, checkerKey: 'content' });
       const results = await checker.checkAll();
       const wordCountResult = results[0];
 
@@ -56,7 +56,7 @@ describe('ContentChecker', () => {
       `;
       const mockPage = createMockPage({ html }) as Page;
 
-      const checker = new ContentChecker(mockPage);
+      const checker = new ContentChecker({ page: mockPage, checkerKey: 'content' });
       const results = await checker.checkAll();
       const wordCountResult = results[0];
 
@@ -73,7 +73,7 @@ describe('ContentChecker', () => {
         html: `<h1>Heading</h1><p>${'word '.repeat(500)}</p><ul><li>item</li></ul>`,
       }) as Page;
 
-      const checker = new ContentChecker(mockPage);
+      const checker = new ContentChecker({ page: mockPage, checkerKey: 'content' });
       const results = await checker.checkAll();
 
       expect(results.length).toBeGreaterThan(0);

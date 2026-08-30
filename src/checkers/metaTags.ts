@@ -1,120 +1,91 @@
-import { Page } from 'playwright';
-import { SEOCheckResult, MetaTag } from '../types';
+import { MetaTag } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class MetaTagsChecker {
-  constructor(private page: Page) { }
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkTitle());
-    results.push(await this.checkMetaDescription());
-    results.push(await this.checkMetaKeywords());
-    results.push(await this.checkOpenGraphTags());
-    results.push(await this.checkCanonicalUrl());
-    results.push(await this.checkViewport());
-
-    return results;
+export class MetaTagsChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'title-length-valid', run: () => this.checkTitle() },
+      { id: 'meta-description-length-valid', run: () => this.checkMetaDescription() },
+      { id: 'meta-keywords-present', run: () => this.checkMetaKeywords() },
+      { id: 'og-tags-configured', run: () => this.checkOpenGraphTags() },
+      { id: 'canonical-url-exists', run: () => this.checkCanonicalUrl() },
+      { id: 'viewport-meta-exists', run: () => this.checkViewport() },
+    ];
   }
 
-  private async checkTitle(): Promise<SEOCheckResult> {
+  private async checkTitle(): Promise<CheckOutcome> {
     try {
       const title = await this.page.title();
       const titleLength = title.length;
 
       if (!title || titleLength === 0) {
-        return {
-          passed: false,
-          message: 'Page title is missing',
-        };
+        return this.fail('Page title is missing');
       }
 
       if (titleLength < 30) {
-        return {
-          passed: false,
-          message: `Title is too short (${titleLength} characters). Recommended: 30-60 characters`,
-          details: { title, length: titleLength },
-        };
+        return this.fail(`Title is too short (${titleLength} characters). Recommended: 30-60 characters`, {
+          title,
+          length: titleLength,
+        });
       }
 
       if (titleLength > 60) {
-        return {
-          passed: false,
-          message: `Title is too long (${titleLength} characters). Recommended: 30-60 characters`,
-          details: { title, length: titleLength },
-        };
+        return this.fail(`Title is too long (${titleLength} characters). Recommended: 30-60 characters`, {
+          title,
+          length: titleLength,
+        });
       }
 
-      return {
-        passed: true,
-        message: `Title is optimal (${titleLength} characters)`,
-        details: { title, length: titleLength },
-      };
+      return this.pass(`Title is optimal (${titleLength} characters)`, { title, length: titleLength });
     } catch (error) {
-      return {
-        passed: false,
-        message: `Failed to check title: ${(error as Error).message}`,
-      };
+      return this.fail(`Failed to check title: ${(error as Error).message}`);
     }
   }
 
-  private async checkMetaDescription(): Promise<SEOCheckResult> {
+  private async checkMetaDescription(): Promise<CheckOutcome> {
     const description = await this.page.evaluate(() => {
       return document.querySelector('meta[name="description"]')?.getAttribute('content') || null;
     });
 
     if (!description) {
-      return {
-        passed: false,
-        message: 'Meta description is missing',
-      };
+      return this.fail('Meta description is missing');
     }
 
     const descLength = description.length;
 
     if (descLength < 120) {
-      return {
-        passed: false,
-        message: `Meta description is too short (${descLength} characters). Recommended: 120-160 characters`,
-        details: { description, length: descLength },
-      };
+      return this.fail(
+        `Meta description is too short (${descLength} characters). Recommended: 120-160 characters`,
+        { description, length: descLength }
+      );
     }
 
     if (descLength > 160) {
-      return {
-        passed: false,
-        message: `Meta description is too long (${descLength} characters). Recommended: 120-160 characters`,
-        details: { description, length: descLength },
-      };
+      return this.fail(
+        `Meta description is too long (${descLength} characters). Recommended: 120-160 characters`,
+        { description, length: descLength }
+      );
     }
 
-    return {
-      passed: true,
-      message: `Meta description is optimal (${descLength} characters)`,
-      details: { description, length: descLength },
-    };
+    return this.pass(`Meta description is optimal (${descLength} characters)`, {
+      description,
+      length: descLength,
+    });
   }
 
-  private async checkMetaKeywords(): Promise<SEOCheckResult> {
+  private async checkMetaKeywords(): Promise<CheckOutcome> {
     const keywords = await this.page.evaluate(() => {
       return document.querySelector('meta[name="keywords"]')?.getAttribute('content') || null;
     });
 
     if (!keywords) {
-      return {
-        passed: true,
-        message: 'Meta keywords not present (optional, not critical for modern SEO)',
-      };
+      return this.pass('Meta keywords not present (optional, not critical for modern SEO)');
     }
 
-    return {
-      passed: true,
-      message: 'Meta keywords present',
-      details: { keywords },
-    };
+    return this.pass('Meta keywords present', { keywords });
   }
 
-  private async checkOpenGraphTags(): Promise<SEOCheckResult> {
+  private async checkOpenGraphTags(): Promise<CheckOutcome> {
     const ogTags: MetaTag[] = await this.page.evaluate(() => {
       const tags = Array.from(document.querySelectorAll('meta[property^="og:"]'));
       return tags.map((tag) => ({
@@ -142,11 +113,12 @@ export class MetaTagsChecker {
     if (!hasOgImage) missingTags.push('og:image');
 
     if (missingTags.length > 0) {
-      return {
-        passed: false,
-        message: `Missing essential Open Graph tags: ${missingTags.join(', ')}`,
-        details: { ogTags, hasOgTitle, hasOgDescription, hasOgImage },
-      };
+      return this.fail(`Missing essential Open Graph tags: ${missingTags.join(', ')}`, {
+        ogTags,
+        hasOgTitle,
+        hasOgDescription,
+        hasOgImage,
+      });
     }
 
     if (!ogImageIsAbsolute) {
@@ -160,55 +132,39 @@ export class MetaTagsChecker {
     }
 
     if (issues.length > 0) {
-      return {
-        passed: false,
-        message: `Open Graph issues: ${issues.join('; ')}`,
-        details: { ogTags, issues, hasOgType, hasOgUrl, ogImageIsAbsolute },
-      };
+      return this.fail(`Open Graph issues: ${issues.join('; ')}`, {
+        ogTags,
+        issues,
+        hasOgType,
+        hasOgUrl,
+        ogImageIsAbsolute,
+      });
     }
 
-    return {
-      passed: true,
-      message: `Open Graph tags properly configured (${ogTags.length} tags found)`,
-      details: { ogTags },
-    };
+    return this.pass(`Open Graph tags properly configured (${ogTags.length} tags found)`, { ogTags });
   }
 
-  private async checkCanonicalUrl(): Promise<SEOCheckResult> {
+  private async checkCanonicalUrl(): Promise<CheckOutcome> {
     const canonical = await this.page.evaluate(() => {
       return document.querySelector('link[rel="canonical"]')?.getAttribute('href') || null;
     });
 
     if (!canonical) {
-      return {
-        passed: false,
-        message: 'Canonical URL is missing',
-      };
+      return this.fail('Canonical URL is missing');
     }
 
-    return {
-      passed: true,
-      message: 'Canonical URL is present',
-      details: { canonical },
-    };
+    return this.pass('Canonical URL is present', { canonical });
   }
 
-  private async checkViewport(): Promise<SEOCheckResult> {
+  private async checkViewport(): Promise<CheckOutcome> {
     const viewport = await this.page.evaluate(() => {
       return document.querySelector('meta[name="viewport"]')?.getAttribute('content') || null;
     });
 
     if (!viewport) {
-      return {
-        passed: false,
-        message: 'Viewport meta tag is missing (important for mobile SEO)',
-      };
+      return this.fail('Viewport meta tag is missing (important for mobile SEO)');
     }
 
-    return {
-      passed: true,
-      message: 'Viewport meta tag is present',
-      details: { viewport },
-    };
+    return this.pass('Viewport meta tag is present', { viewport });
   }
 }

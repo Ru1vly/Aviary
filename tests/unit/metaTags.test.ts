@@ -10,7 +10,7 @@ describe('MetaTagsChecker', () => {
         title: 'This is an optimal SEO title here',
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const titleResult = results[0];
 
@@ -21,7 +21,7 @@ describe('MetaTagsChecker', () => {
     it('should fail when title is missing', async () => {
       const mockPage = createMockPage({ title: '' }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const titleResult = results[0];
 
@@ -32,7 +32,7 @@ describe('MetaTagsChecker', () => {
     it('should fail when title is too short', async () => {
       const mockPage = createMockPage({ title: 'Short' }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const titleResult = results[0];
 
@@ -46,7 +46,7 @@ describe('MetaTagsChecker', () => {
           'This is a very long title that exceeds the recommended sixty character limit for SEO optimization',
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const titleResult = results[0];
 
@@ -64,7 +64,7 @@ describe('MetaTagsChecker', () => {
         },
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const descResult = results[1];
 
@@ -75,7 +75,7 @@ describe('MetaTagsChecker', () => {
     it('should fail when meta description is missing', async () => {
       const mockPage = createMockPage({ metaTags: {} }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const descResult = results[1];
 
@@ -88,7 +88,7 @@ describe('MetaTagsChecker', () => {
         metaTags: { description: 'Too short' },
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const descResult = results[1];
 
@@ -104,7 +104,7 @@ describe('MetaTagsChecker', () => {
         },
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const descResult = results[1];
 
@@ -117,7 +117,7 @@ describe('MetaTagsChecker', () => {
     it('should pass even when keywords are missing', async () => {
       const mockPage = createMockPage({ metaTags: {} }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const keywordsResult = results[2];
 
@@ -130,7 +130,7 @@ describe('MetaTagsChecker', () => {
         metaTags: { keywords: 'seo, testing, web' },
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const keywordsResult = results[2];
 
@@ -150,7 +150,7 @@ describe('MetaTagsChecker', () => {
         `,
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const ogResult = results[3];
 
@@ -163,7 +163,7 @@ describe('MetaTagsChecker', () => {
         headHtml: '<meta property="og:title" content="Test Title">',
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const ogResult = results[3];
 
@@ -182,7 +182,7 @@ describe('MetaTagsChecker', () => {
         `,
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const ogResult = results[3];
 
@@ -197,7 +197,7 @@ describe('MetaTagsChecker', () => {
         metaTags: { canonical: 'https://example.com/page' },
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const canonicalResult = results[4];
 
@@ -208,7 +208,7 @@ describe('MetaTagsChecker', () => {
     it('should fail when canonical URL is missing', async () => {
       const mockPage = createMockPage({ metaTags: {} }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const canonicalResult = results[4];
 
@@ -223,7 +223,7 @@ describe('MetaTagsChecker', () => {
         metaTags: { viewport: 'width=device-width, initial-scale=1.0' },
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const viewportResult = results[5];
 
@@ -234,7 +234,7 @@ describe('MetaTagsChecker', () => {
     it('should fail when viewport meta tag is missing', async () => {
       const mockPage = createMockPage({ metaTags: {} }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
       const viewportResult = results[5];
 
@@ -254,7 +254,7 @@ describe('MetaTagsChecker', () => {
         },
       }) as Page;
 
-      const checker = new MetaTagsChecker(mockPage);
+      const checker = new MetaTagsChecker({ page: mockPage, checkerKey: 'metaTags' });
       const results = await checker.checkAll();
 
       expect(results).toHaveLength(6);

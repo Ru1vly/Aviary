@@ -1,27 +1,19 @@
-import { Page, Response } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class TechnicalChecker {
-  constructor(private page: Page, private response: Response | null = null) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkResponseCode());
-    results.push(await this.checkPageSize());
-    results.push(await this.checkCompression());
-    results.push(await this.checkDuplicateTitles());
-
-    return results;
+export class TechnicalChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'response-code-valid', run: () => this.checkResponseCode() },
+      { id: 'page-size-acceptable', run: () => this.checkPageSize() },
+      { id: 'compression-enabled', run: () => this.checkCompression() },
+      { id: 'h1-structure-valid', run: () => this.checkDuplicateTitles() },
+    ];
   }
 
-  private async checkResponseCode(): Promise<SEOCheckResult> {
+  private async checkResponseCode(): Promise<CheckOutcome> {
     try {
       if (!this.response) {
-        return {
-          passed: false,
-          message: 'Could not get response from page',
-        };
+        return this.fail('Could not get response from page');
       }
 
       const status = this.response.status();
@@ -44,59 +36,30 @@ export class TechnicalChecker {
               redirectCount === 1
                 ? 'Page accessible with 1 redirect (acceptable)'
                 : `Warning: Page has ${redirectCount} redirects in chain (should be minimized)`,
-            details: {
-              status,
-              url,
-              redirectCount,
-            },
+            details: { status, url, redirectCount },
           };
         }
 
-        return {
-          passed: true,
-          message: 'Page returns 200 OK status with no redirects',
-          details: { status, url },
-        };
+        return this.pass('Page returns 200 OK status with no redirects', { status, url });
       } else if (status >= 300 && status < 400) {
-        return {
-          passed: false,
-          message: `Page returns redirect status ${status} - should return 200`,
-          details: { status, url },
-        };
+        return this.fail(`Page returns redirect status ${status} - should return 200`, { status, url });
       } else if (status === 404) {
-        return {
-          passed: false,
-          message: 'Page not found (404 error)',
-          details: { status, url },
-        };
+        return this.fail('Page not found (404 error)', { status, url });
       } else if (status >= 400 && status < 500) {
-        return {
-          passed: false,
-          message: `Client error: ${status}`,
-          details: { status, url },
-        };
+        return this.fail(`Client error: ${status}`, { status, url });
       } else if (status >= 500) {
-        return {
-          passed: false,
-          message: `Server error: ${status}`,
-          details: { status, url },
-        };
+        return this.fail(`Server error: ${status}`, { status, url });
       }
 
-      return {
-        passed: false,
-        message: `Unexpected status code: ${status}`,
-        details: { status, url },
-      };
+      return this.fail(`Unexpected status code: ${status}`, { status, url });
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking response code: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(
+        `Error checking response code: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
-  private async checkPageSize(): Promise<SEOCheckResult> {
+  private async checkPageSize(): Promise<CheckOutcome> {
     try {
       const pageSize = await this.page.evaluate(() => {
         const html = document.documentElement.outerHTML;
@@ -108,42 +71,21 @@ export class TechnicalChecker {
 
       // Recommended: HTML size should be under 100KB for optimal performance
       if (pageSize.htmlSizeKB > 200) {
-        return {
-          passed: false,
-          message: `HTML size is large (${pageSize.htmlSizeKB} KB). Recommended: under 100 KB`,
-          details: pageSize,
-        };
+        return this.fail(`HTML size is large (${pageSize.htmlSizeKB} KB). Recommended: under 100 KB`, pageSize);
       } else if (pageSize.htmlSizeKB > 100) {
-        return {
-          passed: true,
-          message: `HTML size is acceptable (${pageSize.htmlSizeKB} KB) but could be optimized`,
-          details: pageSize,
-        };
+        return this.pass(`HTML size is acceptable (${pageSize.htmlSizeKB} KB) but could be optimized`, pageSize);
       }
 
-      return {
-        passed: true,
-        message: `HTML size is optimal (${pageSize.htmlSizeKB} KB)`,
-        details: pageSize,
-      };
+      return this.pass(`HTML size is optimal (${pageSize.htmlSizeKB} KB)`, pageSize);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Page size check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Page size check skipped due to error' };
     }
   }
 
-  private async checkCompression(): Promise<SEOCheckResult> {
+  private async checkCompression(): Promise<CheckOutcome> {
     try {
       if (!this.response) {
-        return {
-          passed: false,
-          message: 'Could not check compression - no response',
-        };
+        return this.fail('Could not check compression - no response');
       }
 
       const headers = this.response.headers();
@@ -155,34 +97,18 @@ export class TechnicalChecker {
       );
 
       if (!hasCompression) {
-        return {
-          passed: false,
-          message: 'No compression detected - enable gzip/brotli compression for better performance',
-          details: {
-            'content-encoding': contentEncoding || 'none',
-          },
-        };
+        return this.fail('No compression detected - enable gzip/brotli compression for better performance', {
+          'content-encoding': contentEncoding || 'none',
+        });
       }
 
-      return {
-        passed: true,
-        message: `Compression enabled (${contentEncoding})`,
-        details: {
-          'content-encoding': contentEncoding,
-        },
-      };
+      return this.pass(`Compression enabled (${contentEncoding})`, { 'content-encoding': contentEncoding });
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Compression check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Compression check skipped due to error' };
     }
   }
 
-  private async checkDuplicateTitles(): Promise<SEOCheckResult> {
+  private async checkDuplicateTitles(): Promise<CheckOutcome> {
     try {
       const duplicates = await this.page.evaluate(() => {
         const title = document.title;
@@ -220,28 +146,17 @@ export class TechnicalChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Heading issues: ${issues.join(', ')}`,
-          details: duplicates,
-        };
+        return this.fail(`Heading issues: ${issues.join(', ')}`, duplicates);
       }
 
-      return {
-        passed: true,
-        message: duplicates.h1MatchesTitle
+      return this.pass(
+        duplicates.h1MatchesTitle
           ? 'H1 and Title are optimally aligned'
           : 'H1 structure is correct (different from title is acceptable)',
-        details: duplicates,
-      };
+        duplicates
+      );
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Duplicate title check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Duplicate title check skipped due to error' };
     }
   }
 }

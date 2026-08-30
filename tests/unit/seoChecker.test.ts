@@ -137,11 +137,25 @@ describe('SEOChecker', () => {
       expect(mockBrowser.close).toHaveBeenCalled();
     });
 
-    it('should degrade a crashing checker to one failed result instead of failing the whole audit', async () => {
+    it('should degrade a crashing checker to failed results instead of failing the whole audit', async () => {
       // Every checker that calls page.evaluate() will now throw. Before the
       // resilience fix, this would reject the shared Promise.all in
       // runAllCheckers() and take every other checker's results down with
       // it — check() would reject entirely instead of returning a report.
+      //
+      // Two independent safety nets now exist. safeCheckAll() in index.ts
+      // catches a checker whose checkAll() rejects outright and synthesizes
+      // one "<checker> checker crashed: ..." result with a hardcoded 'error'
+      // severity — but as of Phase 3, every checker either has its own
+      // per-method try/catch or extends BaseChecker (src/checkers/base.ts),
+      // which catches per-*check*, not per-checker, and produces a "Check
+      // '<id>' crashed: ..." result with config-resolved severity instead —
+      // finer-grained than before, since the checker's other checks keep
+      // running. This test asserts the outcome both nets guarantee (crashed
+      // checks are marked failed, name the original error, and carry a
+      // valid severity) rather than which specific net catches it, since
+      // that's an implementation detail of how far Phase 3's migration has
+      // progressed, not the behavior being verified.
       mockPage.evaluate = vi.fn().mockRejectedValue(new Error('boom: injected checker failure'));
 
       const checker = new SEOChecker({ url: 'https://example.com' });
@@ -152,14 +166,17 @@ describe('SEOChecker', () => {
       expect(report.summary.total).toBeGreaterThan(0);
 
       const allChecks = Object.values(report.checks).flat();
-      const crashedChecks = allChecks.filter((c) => c.message.includes('checker crashed'));
-      // At least one evaluate()-dependent checker should have degraded to a
-      // single synthesized failed result naming the crash, proving the
-      // failure was contained rather than propagated or silently dropped.
+      const crashedChecks = allChecks.filter(
+        (c) => c.message.includes('crashed') && c.message.includes('boom: injected checker failure')
+      );
+      // At least one evaluate()-dependent check should have degraded to a
+      // failed result naming the crash, proving the failure was contained
+      // rather than propagated or silently dropped.
       expect(crashedChecks.length).toBeGreaterThan(0);
-      expect(crashedChecks[0].passed).toBe(false);
-      expect(crashedChecks[0].severity).toBe('error');
-      expect(crashedChecks[0].message).toContain('boom: injected checker failure');
+      for (const check of crashedChecks) {
+        expect(check.passed).toBe(false);
+        expect(['error', 'warning', 'info']).toContain(check.severity);
+      }
     });
   });
 

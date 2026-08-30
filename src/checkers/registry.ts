@@ -76,7 +76,7 @@ export interface CheckerDescriptor {
  * just to be listed here.
  */
 export const CHECKER_REGISTRY: CheckerDescriptor[] = [
-  { key: 'metaTags', label: 'Meta Tags', icon: '🏷️', create: (ctx) => new MetaTagsChecker(ctx.page) },
+  { key: 'metaTags', label: 'Meta Tags', icon: '🏷️', create: (ctx) => new MetaTagsChecker({ ...ctx, checkerKey: 'metaTags' }) },
   { key: 'headings', label: 'Headings', icon: '📝', create: (ctx) => new HeadingsChecker({ ...ctx, checkerKey: 'headings' }) },
   { key: 'images', label: 'Images', icon: '🖼️', create: (ctx) => new ImagesChecker({ ...ctx, checkerKey: 'images' }) },
   { key: 'performance', label: 'Performance', icon: '⚡', create: (ctx) => new PerformanceChecker({ ...ctx, checkerKey: 'performance' }) },
@@ -85,11 +85,11 @@ export const CHECKER_REGISTRY: CheckerDescriptor[] = [
   { key: 'security', label: 'Security', icon: '🔒', create: (ctx) => new SecurityChecker({ ...ctx, checkerKey: 'security' }) },
   { key: 'structuredData', label: 'Structured Data', icon: '📋', create: (ctx) => new StructuredDataChecker({ ...ctx, checkerKey: 'structuredData' }) },
   { key: 'socialMedia', label: 'Social Media', icon: '📱', create: (ctx) => new SocialMediaChecker({ ...ctx, checkerKey: 'socialMedia' }) },
-  { key: 'content', label: 'Content', icon: '📄', create: (ctx) => new ContentChecker(ctx.page) },
-  { key: 'links', label: 'Links', icon: '🔗', create: (ctx) => new LinksChecker(ctx.page) },
+  { key: 'content', label: 'Content', icon: '📄', create: (ctx) => new ContentChecker({ ...ctx, checkerKey: 'content' }) },
+  { key: 'links', label: 'Links', icon: '🔗', create: (ctx) => new LinksChecker({ ...ctx, checkerKey: 'links' }) },
   { key: 'uiElements', label: 'UI Elements', icon: '🎨', create: (ctx) => new UIElementsChecker(ctx.page) },
-  { key: 'technical', label: 'Technical SEO', icon: '⚙️', create: (ctx) => new TechnicalChecker(ctx.page, ctx.response) },
-  { key: 'accessibility', label: 'Accessibility', icon: '♿', create: (ctx) => new AccessibilityChecker(ctx.page) },
+  { key: 'technical', label: 'Technical SEO', icon: '⚙️', create: (ctx) => new TechnicalChecker({ ...ctx, checkerKey: 'technical' }) },
+  { key: 'accessibility', label: 'Accessibility', icon: '♿', create: (ctx) => new AccessibilityChecker({ ...ctx, checkerKey: 'accessibility' }) },
   { key: 'urlFactors', label: 'URL Factors', icon: '🌐', create: (ctx) => new URLFactorsChecker(ctx.page) },
   { key: 'spamDetection', label: 'Spam Detection', icon: '🚫', create: (ctx) => new SpamDetectionChecker(ctx.page) },
   { key: 'pageQuality', label: 'Page Quality', icon: '⭐', create: (ctx) => new PageQualityChecker(ctx.page) },

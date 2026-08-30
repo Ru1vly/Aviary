@@ -1,20 +1,15 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class LinksChecker {
-  constructor(private page: Page) { }
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkLinkStructure());
-    results.push(await this.checkExternalLinks());
-    results.push(await this.checkInternalLinks());
-
-    return results;
+export class LinksChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'link-structure-valid', run: () => this.checkLinkStructure() },
+      { id: 'external-links-secure', run: () => this.checkExternalLinks() },
+      { id: 'internal-links-descriptive', run: () => this.checkInternalLinks() },
+    ];
   }
 
-  private async checkLinkStructure(): Promise<SEOCheckResult> {
+  private async checkLinkStructure(): Promise<CheckOutcome> {
     try {
       const linkData = await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a[href]'));
@@ -68,11 +63,7 @@ export class LinksChecker {
       const issues: string[] = [];
 
       if (linkData.total === 0) {
-        return {
-          passed: false,
-          message: 'No links found on page',
-          details: linkData,
-        };
+        return this.fail('No links found on page', linkData);
       }
 
       if (linkData.internal === 0) {
@@ -84,27 +75,21 @@ export class LinksChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Link structure issues: ${issues.join(', ')}`,
-          details: linkData,
-        };
+        return this.fail(`Link structure issues: ${issues.join(', ')}`, linkData);
       }
 
-      return {
-        passed: true,
-        message: `Good link structure (${linkData.total} links: ${linkData.internal} internal, ${linkData.external} external)`,
-        details: linkData,
-      };
+      return this.pass(
+        `Good link structure (${linkData.total} links: ${linkData.internal} internal, ${linkData.external} external)`,
+        linkData
+      );
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking link structure: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(
+        `Error checking link structure: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
-  private async checkExternalLinks(): Promise<SEOCheckResult> {
+  private async checkExternalLinks(): Promise<CheckOutcome> {
     try {
       const externalLinks = await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a[href]'));
@@ -137,10 +122,7 @@ export class LinksChecker {
       });
 
       if (externalLinks.length === 0) {
-        return {
-          passed: true,
-          message: 'No external links found',
-        };
+        return this.pass('No external links found');
       }
 
       const issues: string[] = [];
@@ -153,34 +135,22 @@ export class LinksChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: issues.join(', '),
-          details: {
-            total: externalLinks.length,
-            withoutNoopener: linksWithoutNoopener.length,
-          },
-        };
+        return this.fail(issues.join(', '), {
+          total: externalLinks.length,
+          withoutNoopener: linksWithoutNoopener.length,
+        });
       }
 
-      return {
-        passed: true,
-        message: `${externalLinks.length} external links properly configured`,
-        details: {
-          total: externalLinks.length,
-          withNofollow: externalLinks.filter((link: any) => link.hasNofollow).length,
-        },
-      };
+      return this.pass(`${externalLinks.length} external links properly configured`, {
+        total: externalLinks.length,
+        withNofollow: externalLinks.filter((link: any) => link.hasNofollow).length,
+      });
     } catch (error) {
-      return {
-        passed: false,
-        severity: 'info',
-        message: 'External links check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'External links check skipped due to error' };
     }
   }
 
-  private async checkInternalLinks(): Promise<SEOCheckResult> {
+  private async checkInternalLinks(): Promise<CheckOutcome> {
     try {
       const internalLinks = await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a[href]'));
@@ -210,36 +180,23 @@ export class LinksChecker {
       });
 
       if (internalLinks.length === 0) {
-        return {
-          passed: false,
-          message: 'No internal links found - important for SEO and site navigation',
-        };
+        return this.fail('No internal links found - important for SEO and site navigation');
       }
 
       const linksWithoutText = internalLinks.filter((link: any) => !link.hasText);
 
       if (linksWithoutText.length > 0) {
-        return {
-          passed: false,
-          message: `${linksWithoutText.length} internal links missing descriptive text`,
-          details: {
-            total: internalLinks.length,
-            withoutText: linksWithoutText.length,
-          },
-        };
+        return this.fail(`${linksWithoutText.length} internal links missing descriptive text`, {
+          total: internalLinks.length,
+          withoutText: linksWithoutText.length,
+        });
       }
 
-      return {
-        passed: true,
-        message: `${internalLinks.length} internal links with descriptive text`,
-        details: { total: internalLinks.length },
-      };
+      return this.pass(`${internalLinks.length} internal links with descriptive text`, {
+        total: internalLinks.length,
+      });
     } catch (error) {
-      return {
-        passed: false,
-        severity: 'info',
-        message: 'Internal links check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Internal links check skipped due to error' };
     }
   }
 }

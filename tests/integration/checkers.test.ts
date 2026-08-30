@@ -48,23 +48,23 @@ describe('Integration Tests - Multiple Checkers', () => {
     await page.setContent(testHTML);
 
     // Test MetaTagsChecker
-    const metaChecker = new MetaTagsChecker(page);
+    const metaChecker = new MetaTagsChecker({ page, checkerKey: 'metaTags' });
     const metaResults = await metaChecker.checkAll();
     expect(metaResults.length).toBeGreaterThan(0);
     expect(metaResults.some((r) => r.passed)).toBe(true);
 
     // Test HeadingsChecker
-    const headingsChecker = new HeadingsChecker(page);
+    const headingsChecker = new HeadingsChecker({ page, checkerKey: 'headings' });
     const headingResults = await headingsChecker.checkAll();
     expect(headingResults.length).toBeGreaterThan(0);
 
     // Test ImagesChecker
-    const imagesChecker = new ImagesChecker(page);
+    const imagesChecker = new ImagesChecker({ page, checkerKey: 'images' });
     const imageResults = await imagesChecker.checkAll();
     expect(imageResults.length).toBeGreaterThan(0);
 
     // Test ContentChecker
-    const contentChecker = new ContentChecker(page);
+    const contentChecker = new ContentChecker({ page, checkerKey: 'content' });
     const contentResults = await contentChecker.checkAll();
     expect(contentResults.length).toBeGreaterThan(0);
   });
@@ -84,7 +84,7 @@ describe('Integration Tests - Multiple Checkers', () => {
 
     await page.setContent(testHTML);
 
-    const metaChecker = new MetaTagsChecker(page);
+    const metaChecker = new MetaTagsChecker({ page, checkerKey: 'metaTags' });
     const results = await metaChecker.checkAll();
 
     // Should have failing checks for missing meta tags
@@ -117,7 +117,7 @@ describe('Integration Tests - Multiple Checkers', () => {
 
     await page.setContent(testHTML);
 
-    const metaChecker = new MetaTagsChecker(page);
+    const metaChecker = new MetaTagsChecker({ page, checkerKey: 'metaTags' });
     const results = await metaChecker.checkAll();
 
     // Most checks should pass

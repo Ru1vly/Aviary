@@ -1,21 +1,16 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class ContentChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkWordCount());
-    results.push(await this.checkReadability());
-    results.push(await this.checkContentStructure());
-    results.push(await this.checkTextToHtmlRatio());
-
-    return results;
+export class ContentChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'word-count-adequate', run: () => this.checkWordCount() },
+      { id: 'readability-acceptable', run: () => this.checkReadability() },
+      { id: 'content-structure-present', run: () => this.checkContentStructure() },
+      { id: 'text-to-html-ratio-acceptable', run: () => this.checkTextToHtmlRatio() },
+    ];
   }
 
-  private async checkWordCount(): Promise<SEOCheckResult> {
+  private async checkWordCount(): Promise<CheckOutcome> {
     try {
       const content = await this.page.evaluate(() => {
         // Get main content, excluding script, style, nav, footer
@@ -31,33 +26,20 @@ export class ContentChecker {
       const wordCount = words.length;
 
       if (wordCount < 300) {
-        return {
-          passed: false,
-          message: `Content is too short (${wordCount} words). Recommended: at least 300 words`,
-          details: { wordCount },
-        };
+        return this.fail(`Content is too short (${wordCount} words). Recommended: at least 300 words`, {
+          wordCount,
+        });
       } else if (wordCount >= 300 && wordCount < 1000) {
-        return {
-          passed: true,
-          message: `Good content length (${wordCount} words)`,
-          details: { wordCount },
-        };
+        return this.pass(`Good content length (${wordCount} words)`, { wordCount });
       } else {
-        return {
-          passed: true,
-          message: `Excellent content length (${wordCount} words)`,
-          details: { wordCount },
-        };
+        return this.pass(`Excellent content length (${wordCount} words)`, { wordCount });
       }
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking word count: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(`Error checking word count: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async checkReadability(): Promise<SEOCheckResult> {
+  private async checkReadability(): Promise<CheckOutcome> {
     try {
       const content = await this.page.evaluate(() => {
         const clone = document.body.cloneNode(true) as HTMLElement;
@@ -74,10 +56,7 @@ export class ContentChecker {
       const syllables = words.reduce((acc: number, word: string) => acc + this.countSyllables(word), 0);
 
       if (sentences.length === 0 || words.length === 0) {
-        return {
-          passed: false,
-          message: 'Not enough content to calculate readability',
-        };
+        return this.fail('Not enough content to calculate readability');
       }
 
       const avgWordsPerSentence = words.length / sentences.length;
@@ -117,13 +96,7 @@ export class ContentChecker {
         },
       };
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Readability check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Readability check skipped due to error' };
     }
   }
 
@@ -138,7 +111,7 @@ export class ContentChecker {
     return matches ? matches.length : 1;
   }
 
-  private async checkContentStructure(): Promise<SEOCheckResult> {
+  private async checkContentStructure(): Promise<CheckOutcome> {
     try {
       const structure = await this.page.evaluate(() => {
         const paragraphs = document.querySelectorAll('p');
@@ -165,33 +138,20 @@ export class ContentChecker {
       }
 
       if (issues.length === 0) {
-        return {
-          passed: true,
-          message: 'Content has good structural elements',
-          details: structure,
-        };
+        return this.pass('Content has good structural elements', structure);
       } else {
         return {
           passed: issues.length <= 1,
-          message:
-            issues.length === 1
-              ? issues[0]
-              : `Content structure issues: ${issues.join(', ')}`,
+          message: issues.length === 1 ? issues[0] : `Content structure issues: ${issues.join(', ')}`,
           details: structure,
         };
       }
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Content structure check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Content structure check skipped due to error' };
     }
   }
 
-  private async checkTextToHtmlRatio(): Promise<SEOCheckResult> {
+  private async checkTextToHtmlRatio(): Promise<CheckOutcome> {
     try {
       const ratio = await this.page.evaluate(() => {
         const htmlSize = document.documentElement.outerHTML.length;
@@ -208,32 +168,14 @@ export class ContentChecker {
       const ratioPercent = Math.round(ratio.ratio);
 
       if (ratioPercent < 10) {
-        return {
-          passed: false,
-          message: `Low text-to-HTML ratio (${ratioPercent}%). Page may have too much code`,
-          details: ratio,
-        };
+        return this.fail(`Low text-to-HTML ratio (${ratioPercent}%). Page may have too much code`, ratio);
       } else if (ratioPercent >= 25) {
-        return {
-          passed: true,
-          message: `Excellent text-to-HTML ratio (${ratioPercent}%)`,
-          details: ratio,
-        };
+        return this.pass(`Excellent text-to-HTML ratio (${ratioPercent}%)`, ratio);
       } else {
-        return {
-          passed: true,
-          message: `Acceptable text-to-HTML ratio (${ratioPercent}%)`,
-          details: ratio,
-        };
+        return this.pass(`Acceptable text-to-HTML ratio (${ratioPercent}%)`, ratio);
       }
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Text-to-HTML ratio check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Text-to-HTML ratio check skipped due to error' };
     }
   }
 }

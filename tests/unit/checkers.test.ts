@@ -45,7 +45,7 @@ describe('AccessibilityChecker', () => {
         <nav aria-label="Main navigation"><a href="/">Home</a></nav>
       </body></html>
     `);
-    const checker = new AccessibilityChecker(p as Page);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r && 'message' in r)).toBe(true);
@@ -53,7 +53,7 @@ describe('AccessibilityChecker', () => {
 
   it('detects missing ARIA landmarks', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body><p>Just text</p></body></html>`);
-    const checker = new AccessibilityChecker(p as Page);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
     const results = await checker.checkAll();
     const ariaResult = results[0];
     expect(ariaResult.passed).toBe(false);
@@ -66,7 +66,7 @@ describe('AccessibilityChecker', () => {
         <header></header><main><h1>Title</h1></main><footer></footer><nav></nav>
       </body></html>
     `);
-    const checker = new AccessibilityChecker(p as Page);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
     const results = await checker.checkAll();
     // ARIA check (index 0) should pass – landmarks exist
     expect(results[0].passed).toBe(true);
@@ -79,7 +79,7 @@ describe('AccessibilityChecker', () => {
         <form><input type="text"><input type="email"></form>
       </body></html>
     `);
-    const checker = new AccessibilityChecker(p as Page);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
     const results = await checker.checkAll();
     const formResult = results[1];
     expect(formResult.passed).toBe(false);
@@ -96,7 +96,7 @@ describe('AccessibilityChecker', () => {
         </form>
       </body></html>
     `);
-    const checker = new AccessibilityChecker(p as Page);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
     const results = await checker.checkAll();
     expect(results[1].passed).toBe(true);
   });
@@ -111,14 +111,14 @@ describe('LinksChecker', () => {
         <a href="https://external.com" rel="noopener">External</a>
       </body></html>
     `);
-    const checker = new LinksChecker(p as Page);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
   });
 
   it('fails when no links exist', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body><p>No links</p></body></html>`);
-    const checker = new LinksChecker(p as Page);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
     const results = await checker.checkAll();
     const linkStructure = results[0];
     expect(linkStructure.passed).toBe(false);
@@ -132,7 +132,7 @@ describe('LinksChecker', () => {
         <a href="https://evil.com" target="_blank">External without noopener</a>
       </body></html>
     `);
-    const checker = new LinksChecker(p as Page);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
     const results = await checker.checkAll();
     const externalResult = results[1];
     expect(externalResult.passed).toBe(false);
@@ -146,7 +146,7 @@ describe('LinksChecker', () => {
         <a href="https://example.com" rel="noopener noreferrer">External</a>
       </body></html>
     `);
-    const checker = new LinksChecker(p as Page);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
     const results = await checker.checkAll();
     const externalResult = results[1];
     expect(externalResult.passed).toBe(true);
@@ -263,7 +263,7 @@ describe('TechnicalChecker', () => {
       <!DOCTYPE html><html><head><title>Test Page Title</title></head>
       <body><h1>Main Heading</h1></body></html>
     `);
-    const checker = new TechnicalChecker(p as Page, null);
+    const checker = new TechnicalChecker({ page: p as Page, response: null, checkerKey: 'technical' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r && 'message' in r)).toBe(true);
@@ -271,7 +271,7 @@ describe('TechnicalChecker', () => {
 
   it('fails response code check when no response provided', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body></body></html>`);
-    const checker = new TechnicalChecker(p as Page, null);
+    const checker = new TechnicalChecker({ page: p as Page, response: null, checkerKey: 'technical' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(false);
     expect(results[0].message).toContain('response');
@@ -282,7 +282,7 @@ describe('TechnicalChecker', () => {
       <!DOCTYPE html><html><head><title>Test</title></head>
       <body><h1>First H1</h1><h1>Second H1</h1></body></html>
     `);
-    const checker = new TechnicalChecker(p as Page, null);
+    const checker = new TechnicalChecker({ page: p as Page, response: null, checkerKey: 'technical' });
     const results = await checker.checkAll();
     const duplicateResult = results[3]; // checkDuplicateTitles
     expect(duplicateResult.passed).toBe(false);
@@ -294,7 +294,7 @@ describe('TechnicalChecker', () => {
       <!DOCTYPE html><html><head><title>Test</title></head>
       <body><h1>Only One Heading</h1></body></html>
     `);
-    const checker = new TechnicalChecker(p as Page, null);
+    const checker = new TechnicalChecker({ page: p as Page, response: null, checkerKey: 'technical' });
     const results = await checker.checkAll();
     const duplicateResult = results[3];
     expect(duplicateResult.passed).toBe(true);
@@ -376,14 +376,14 @@ describe('ContentChecker', () => {
         <p>${'Content word. '.repeat(200)}</p>
       </body></html>
     `);
-    const checker = new ContentChecker(p as Page);
+    const checker = new ContentChecker({ page: p as Page, checkerKey: 'content' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
   });
 
   it('fails word count check for thin content', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body><p>Too short.</p></body></html>`);
-    const checker = new ContentChecker(p as Page);
+    const checker = new ContentChecker({ page: p as Page, checkerKey: 'content' });
     const results = await checker.checkAll();
     const wordCountResult = results[0];
     expect(wordCountResult.passed).toBe(false);
@@ -395,7 +395,7 @@ describe('ContentChecker', () => {
         <p>${'The quick brown fox jumps over the lazy dog. '.repeat(80)}</p>
       </body></html>
     `);
-    const checker = new ContentChecker(p as Page);
+    const checker = new ContentChecker({ page: p as Page, checkerKey: 'content' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(true);
   });

@@ -1,21 +1,16 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class AccessibilityChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkAriaLabels());
-    results.push(await this.checkFormLabels());
-    results.push(await this.checkSkipLinks());
-    results.push(await this.checkTabIndex());
-
-    return results;
+export class AccessibilityChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'aria-labels-adequate', run: () => this.checkAriaLabels() },
+      { id: 'form-inputs-labeled', run: () => this.checkFormLabels() },
+      { id: 'skip-links-present', run: () => this.checkSkipLinks() },
+      { id: 'tab-order-natural', run: () => this.checkTabIndex() },
+    ];
   }
 
-  private async checkAriaLabels(): Promise<SEOCheckResult> {
+  private async checkAriaLabels(): Promise<CheckOutcome> {
     try {
       const ariaData = await this.page.evaluate(() => {
         const elementsWithAria = document.querySelectorAll('[aria-label], [aria-labelledby], [aria-describedby]');
@@ -58,30 +53,16 @@ export class AccessibilityChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Accessibility issues: ${issues.join(', ')}`,
-          details: ariaData,
-        };
+        return this.fail(`Accessibility issues: ${issues.join(', ')}`, ariaData);
       }
 
-      return {
-        passed: true,
-        message: `Good accessibility structure with ${ariaData.landmarksCount} landmarks`,
-        details: ariaData,
-      };
+      return this.pass(`Good accessibility structure with ${ariaData.landmarksCount} landmarks`, ariaData);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'ARIA labels check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'ARIA labels check skipped due to error' };
     }
   }
 
-  private async checkFormLabels(): Promise<SEOCheckResult> {
+  private async checkFormLabels(): Promise<CheckOutcome> {
     try {
       const formData = await this.page.evaluate(() => {
         const inputs = Array.from(document.querySelectorAll('input, select, textarea'));
@@ -108,37 +89,20 @@ export class AccessibilityChecker {
       });
 
       if (formData.totalInputs === 0) {
-        return {
-          passed: true,
-          message: 'No form inputs found on page',
-        };
+        return this.pass('No form inputs found on page');
       }
 
       if (formData.inputsWithoutLabels > 0) {
-        return {
-          passed: false,
-          message: `${formData.inputsWithoutLabels} form inputs missing labels (accessibility issue)`,
-          details: formData,
-        };
+        return this.fail(`${formData.inputsWithoutLabels} form inputs missing labels (accessibility issue)`, formData);
       }
 
-      return {
-        passed: true,
-        message: `All ${formData.totalInputs} form inputs have proper labels`,
-        details: formData,
-      };
+      return this.pass(`All ${formData.totalInputs} form inputs have proper labels`, formData);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Form labels check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Form labels check skipped due to error' };
     }
   }
 
-  private async checkSkipLinks(): Promise<SEOCheckResult> {
+  private async checkSkipLinks(): Promise<CheckOutcome> {
     try {
       const skipLinkData = await this.page.evaluate(() => {
         const skipLinks = Array.from(document.querySelectorAll('a[href^="#"]')).filter((link) => {
@@ -153,29 +117,16 @@ export class AccessibilityChecker {
       });
 
       if (!skipLinkData.hasSkipLinks) {
-        return {
-          passed: false,
-          message: 'No skip navigation links found - recommended for accessibility',
-        };
+        return this.fail('No skip navigation links found - recommended for accessibility');
       }
 
-      return {
-        passed: true,
-        message: `Skip navigation link(s) found (${skipLinkData.count})`,
-        details: skipLinkData,
-      };
+      return this.pass(`Skip navigation link(s) found (${skipLinkData.count})`, skipLinkData);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Skip links check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Skip links check skipped due to error' };
     }
   }
 
-  private async checkTabIndex(): Promise<SEOCheckResult> {
+  private async checkTabIndex(): Promise<CheckOutcome> {
     try {
       const tabIndexData = await this.page.evaluate(() => {
         const negativeTabIndex = document.querySelectorAll('[tabindex^="-"]');
@@ -201,26 +152,12 @@ export class AccessibilityChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Tab order issues: ${issues.join(', ')}`,
-          details: tabIndexData,
-        };
+        return this.fail(`Tab order issues: ${issues.join(', ')}`, tabIndexData);
       }
 
-      return {
-        passed: true,
-        message: 'Tab order follows natural document flow',
-        details: tabIndexData,
-      };
+      return this.pass('Tab order follows natural document flow', tabIndexData);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Tab index check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Tab index check skipped due to error' };
     }
   }
 }
