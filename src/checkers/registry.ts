@@ -77,8 +77,8 @@ export interface CheckerDescriptor {
  */
 export const CHECKER_REGISTRY: CheckerDescriptor[] = [
   { key: 'metaTags', label: 'Meta Tags', icon: '🏷️', create: (ctx) => new MetaTagsChecker(ctx.page) },
-  { key: 'headings', label: 'Headings', icon: '📝', create: (ctx) => new HeadingsChecker(ctx.page) },
-  { key: 'images', label: 'Images', icon: '🖼️', create: (ctx) => new ImagesChecker(ctx.page) },
+  { key: 'headings', label: 'Headings', icon: '📝', create: (ctx) => new HeadingsChecker({ ...ctx, checkerKey: 'headings' }) },
+  { key: 'images', label: 'Images', icon: '🖼️', create: (ctx) => new ImagesChecker({ ...ctx, checkerKey: 'images' }) },
   { key: 'performance', label: 'Performance', icon: '⚡', create: (ctx) => new PerformanceChecker({ ...ctx, checkerKey: 'performance' }) },
   { key: 'robotsTxt', label: 'Robots.txt', icon: '🤖', create: (ctx) => new RobotsTxtChecker(ctx.page) },
   { key: 'sitemap', label: 'Sitemap', icon: '🗺️', create: (ctx) => new SitemapChecker(ctx.page) },

@@ -1,76 +1,61 @@
-import { Page } from 'playwright';
-import { SEOCheckResult, ImageInfo } from '../types';
+import { ImageInfo } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class ImagesChecker {
-  constructor(private page: Page) {}
+export class ImagesChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'images-have-alt', run: () => this.checkAltTags() },
+      { id: 'image-count-reasonable', run: () => this.checkImageCount() },
+    ];
+  }
 
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
+  private imagesPromise?: Promise<ImageInfo[]>;
 
+  private getImages(): Promise<ImageInfo[]> {
+    if (!this.imagesPromise) {
+      this.imagesPromise = this.page.evaluate(() => {
+        const imgs = Array.from(document.querySelectorAll('img'));
+        return imgs.map((img) => ({
+          src: img.src,
+          alt: img.alt || null,
+          hasAlt: img.hasAttribute('alt') && img.alt.trim().length > 0,
+        }));
+      });
+    }
+    return this.imagesPromise;
+  }
+
+  private async checkAltTags(): Promise<CheckOutcome> {
     const images = await this.getImages();
-    results.push(this.checkAltTags(images));
-    results.push(this.checkImageCount(images));
-
-    return results;
-  }
-
-  private async getImages(): Promise<ImageInfo[]> {
-    return await this.page.evaluate(() => {
-      const imgs = Array.from(document.querySelectorAll('img'));
-      return imgs.map((img) => ({
-        src: img.src,
-        alt: img.alt || null,
-        hasAlt: img.hasAttribute('alt') && img.alt.trim().length > 0,
-      }));
-    });
-  }
-
-  private checkAltTags(images: ImageInfo[]): SEOCheckResult {
     const missingAlt = images.filter((img) => !img.hasAlt);
 
     if (missingAlt.length === 0) {
-      return {
-        passed: true,
-        message: `All ${images.length} images have alt text`,
-        details: { totalImages: images.length },
-      };
+      return this.pass(`All ${images.length} images have alt text`, { totalImages: images.length });
     }
 
     if (missingAlt.length === images.length) {
-      return {
-        passed: false,
-        message: `All ${images.length} images are missing alt text`,
-        details: { missingAlt },
-      };
+      return this.fail(`All ${images.length} images are missing alt text`, { missingAlt });
     }
 
-    return {
-      passed: false,
-      message: `${missingAlt.length} out of ${images.length} images are missing alt text`,
-      details: { missingAlt, totalImages: images.length },
-    };
+    return this.fail(`${missingAlt.length} out of ${images.length} images are missing alt text`, {
+      missingAlt,
+      totalImages: images.length,
+    });
   }
 
-  private checkImageCount(images: ImageInfo[]): SEOCheckResult {
+  private async checkImageCount(): Promise<CheckOutcome> {
+    const images = await this.getImages();
+
     if (images.length === 0) {
-      return {
-        passed: true,
-        message: 'No images found on the page',
-      };
+      return this.pass('No images found on the page');
     }
 
     if (images.length > 50) {
-      return {
-        passed: false,
-        message: `High number of images (${images.length}). Consider optimization for performance`,
-        details: { imageCount: images.length },
-      };
+      return this.fail(`High number of images (${images.length}). Consider optimization for performance`, {
+        imageCount: images.length,
+      });
     }
 
-    return {
-      passed: true,
-      message: `Image count is reasonable (${images.length})`,
-      details: { imageCount: images.length },
-    };
+    return this.pass(`Image count is reasonable (${images.length})`, { imageCount: images.length });
   }
 }

@@ -17,7 +17,7 @@ describe('ImagesChecker', () => {
         html: '<img src="image1.jpg" alt="Description 1"><img src="image2.jpg" alt="Description 2">',
       }) as Page;
 
-      const checker = new ImagesChecker(mockPage);
+      const checker = new ImagesChecker({ page: mockPage, checkerKey: 'images' });
       const results = await checker.checkAll();
       const altResult = results[0];
 
@@ -31,7 +31,7 @@ describe('ImagesChecker', () => {
         html: '<img src="image1.jpg" alt="Description 1"><img src="image2.jpg"><img src="image3.jpg">',
       }) as Page;
 
-      const checker = new ImagesChecker(mockPage);
+      const checker = new ImagesChecker({ page: mockPage, checkerKey: 'images' });
       const results = await checker.checkAll();
       const altResult = results[0];
 
@@ -44,7 +44,7 @@ describe('ImagesChecker', () => {
         html: '<img src="image1.jpg"><img src="image2.jpg">',
       }) as Page;
 
-      const checker = new ImagesChecker(mockPage);
+      const checker = new ImagesChecker({ page: mockPage, checkerKey: 'images' });
       const results = await checker.checkAll();
       const altResult = results[0];
 
@@ -58,7 +58,7 @@ describe('ImagesChecker', () => {
     it('should pass when no images are present', async () => {
       const mockPage = createMockPage({ html: '<p>No images here.</p>' }) as Page;
 
-      const checker = new ImagesChecker(mockPage);
+      const checker = new ImagesChecker({ page: mockPage, checkerKey: 'images' });
       const results = await checker.checkAll();
       const countResult = results[1];
 
@@ -69,7 +69,7 @@ describe('ImagesChecker', () => {
     it('should pass with reasonable image count', async () => {
       const mockPage = createMockPage({ html: imgTags(20, true) }) as Page;
 
-      const checker = new ImagesChecker(mockPage);
+      const checker = new ImagesChecker({ page: mockPage, checkerKey: 'images' });
       const results = await checker.checkAll();
       const countResult = results[1];
 
@@ -80,7 +80,7 @@ describe('ImagesChecker', () => {
     it('should fail with too many images', async () => {
       const mockPage = createMockPage({ html: imgTags(60, true) }) as Page;
 
-      const checker = new ImagesChecker(mockPage);
+      const checker = new ImagesChecker({ page: mockPage, checkerKey: 'images' });
       const results = await checker.checkAll();
       const countResult = results[1];
 
@@ -95,7 +95,7 @@ describe('ImagesChecker', () => {
         html: '<img src="image1.jpg" alt="Description 1">',
       }) as Page;
 
-      const checker = new ImagesChecker(mockPage);
+      const checker = new ImagesChecker({ page: mockPage, checkerKey: 'images' });
       const results = await checker.checkAll();
 
       expect(results).toHaveLength(2);

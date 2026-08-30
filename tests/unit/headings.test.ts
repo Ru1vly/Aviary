@@ -10,7 +10,7 @@ describe('HeadingsChecker', () => {
         html: '<h1>Main Title</h1><h2>Subtitle</h2>',
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
       const h1Result = results[0];
 
@@ -23,7 +23,7 @@ describe('HeadingsChecker', () => {
         html: '<h2>Subtitle</h2><h3>Section</h3>',
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
       const h1Result = results[0];
 
@@ -36,7 +36,7 @@ describe('HeadingsChecker', () => {
         html: '<h1>First Title</h1><h1>Second Title</h1><h2>Subtitle</h2>',
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
       const h1Result = results[0];
 
@@ -51,7 +51,7 @@ describe('HeadingsChecker', () => {
         html: '<h1>Main Title</h1><h2>Section 1</h2><h3>Subsection 1.1</h3><h2>Section 2</h2>',
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
       const hierarchyResult = results[1];
 
@@ -65,7 +65,7 @@ describe('HeadingsChecker', () => {
         html: '<h1>Main Title</h1><h3>Subsection</h3>',
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
       const hierarchyResult = results[1];
 
@@ -80,7 +80,7 @@ describe('HeadingsChecker', () => {
         html: '<h1>Short Title</h1><h2>Another Good Length Heading</h2>',
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
       const lengthResult = results[2];
 
@@ -95,7 +95,7 @@ describe('HeadingsChecker', () => {
         html: `<h1>${longHeading}</h1>`,
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
       const lengthResult = results[2];
 
@@ -110,7 +110,7 @@ describe('HeadingsChecker', () => {
         html: '<h1>Main Title</h1><h2>Section</h2>',
       }) as Page;
 
-      const checker = new HeadingsChecker(mockPage);
+      const checker = new HeadingsChecker({ page: mockPage, checkerKey: 'headings' });
       const results = await checker.checkAll();
 
       expect(results).toHaveLength(3);
