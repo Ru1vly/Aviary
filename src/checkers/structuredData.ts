@@ -1,20 +1,15 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class StructuredDataChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkJSONLD());
-    results.push(await this.checkMicrodata());
-    results.push(await this.checkSchemaTypes());
-
-    return results;
+export class StructuredDataChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'json-ld-present', run: () => this.checkJSONLD() },
+      { id: 'microdata-detected', run: () => this.checkMicrodata() },
+      { id: 'beneficial-schema-types-present', run: () => this.checkSchemaTypes() },
+    ];
   }
 
-  private async checkJSONLD(): Promise<SEOCheckResult> {
+  private async checkJSONLD(): Promise<CheckOutcome> {
     try {
       const jsonLdScripts = await this.page.evaluate(() => {
         const scripts = Array.from(
@@ -30,10 +25,7 @@ export class StructuredDataChecker {
       });
 
       if (jsonLdScripts.length === 0) {
-        return {
-          passed: false,
-          message: 'No JSON-LD structured data found',
-        };
+        return this.fail('No JSON-LD structured data found');
       }
 
       // Extract schema types
@@ -44,24 +36,17 @@ export class StructuredDataChecker {
         return [];
       }).flat();
 
-      return {
-        passed: true,
-        message: `Found ${jsonLdScripts.length} JSON-LD structured data block(s)`,
-        details: {
-          count: jsonLdScripts.length,
-          types: schemaTypes,
-          data: jsonLdScripts,
-        },
-      };
+      return this.pass(`Found ${jsonLdScripts.length} JSON-LD structured data block(s)`, {
+        count: jsonLdScripts.length,
+        types: schemaTypes,
+        data: jsonLdScripts,
+      });
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking JSON-LD: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(`Error checking JSON-LD: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async checkMicrodata(): Promise<SEOCheckResult> {
+  private async checkMicrodata(): Promise<CheckOutcome> {
     try {
       const microdataElements = await this.page.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('[itemscope]'));
@@ -72,10 +57,7 @@ export class StructuredDataChecker {
       });
 
       if (microdataElements.length === 0) {
-        return {
-          passed: true,
-          message: 'No Microdata found (JSON-LD is preferred)',
-        };
+        return this.pass('No Microdata found (JSON-LD is preferred)');
       }
 
       const itemTypes = microdataElements
@@ -83,26 +65,16 @@ export class StructuredDataChecker {
         .filter((type: any) => type)
         .filter((value: any, index: any, self: any) => self.indexOf(value) === index);
 
-      return {
-        passed: true,
-        message: `Found ${microdataElements.length} Microdata elements`,
-        details: {
-          count: microdataElements.length,
-          types: itemTypes,
-        },
-      };
+      return this.pass(`Found ${microdataElements.length} Microdata elements`, {
+        count: microdataElements.length,
+        types: itemTypes,
+      });
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Microdata check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Microdata check skipped due to error' };
     }
   }
 
-  private async checkSchemaTypes(): Promise<SEOCheckResult> {
+  private async checkSchemaTypes(): Promise<CheckOutcome> {
     try {
       const jsonLdScripts = await this.page.evaluate(() => {
         const scripts = Array.from(
@@ -118,10 +90,7 @@ export class StructuredDataChecker {
       });
 
       if (jsonLdScripts.length === 0) {
-        return {
-          passed: true,
-          message: 'Schema type validation skipped (no JSON-LD found)',
-        };
+        return this.pass('Schema type validation skipped (no JSON-LD found)');
       }
 
       const schemaTypes: string[] = [];
@@ -178,13 +147,7 @@ export class StructuredDataChecker {
         },
       };
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Schema type validation skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Schema type validation skipped due to error' };
     }
   }
 }

@@ -157,7 +157,7 @@ describe('LinksChecker', () => {
 describe('SecurityChecker', () => {
   it('passes HTTPS check for HTTPS URL', () => {
     const mockPage = createMockPage({ url: 'https://example.com' }) as Page;
-    const checker = new SecurityChecker(mockPage, null);
+    const checker = new SecurityChecker({ page: mockPage, response: null, checkerKey: 'security' });
     return checker.checkAll().then((results) => {
       expect(results[0].passed).toBe(true);
       expect(results[0].message).toContain('HTTPS');
@@ -166,7 +166,7 @@ describe('SecurityChecker', () => {
 
   it('fails HTTPS check for HTTP URL', () => {
     const mockPage = createMockPage({ url: 'http://example.com' }) as Page;
-    const checker = new SecurityChecker(mockPage, null);
+    const checker = new SecurityChecker({ page: mockPage, response: null, checkerKey: 'security' });
     return checker.checkAll().then((results) => {
       expect(results[0].passed).toBe(false);
       expect(results[0].message).toContain('not using HTTPS');
@@ -175,7 +175,7 @@ describe('SecurityChecker', () => {
 
   it('fails security headers check when no response available', () => {
     const mockPage = createMockPage({ url: 'https://example.com' }) as Page;
-    const checker = new SecurityChecker(mockPage, null);
+    const checker = new SecurityChecker({ page: mockPage, response: null, checkerKey: 'security' });
     return checker.checkAll().then((results) => {
       expect(results[2].passed).toBe(false);
     });
@@ -183,7 +183,7 @@ describe('SecurityChecker', () => {
 
   it('returns exactly 3 check results', () => {
     const mockPage = createMockPage({ url: 'https://example.com' }) as Page;
-    const checker = new SecurityChecker(mockPage, null);
+    const checker = new SecurityChecker({ page: mockPage, response: null, checkerKey: 'security' });
     return checker.checkAll().then((results) => {
       expect(results).toHaveLength(3);
     });
@@ -194,7 +194,7 @@ describe('SecurityChecker', () => {
 describe('StructuredDataChecker', () => {
   it('fails when no structured data found', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body><p>No schema</p></body></html>`);
-    const checker = new StructuredDataChecker(p as Page);
+    const checker = new StructuredDataChecker({ page: p as Page, checkerKey: 'structuredData' });
     const results = await checker.checkAll();
     const jsonLdResult = results[0];
     expect(jsonLdResult.passed).toBe(false);
@@ -209,7 +209,7 @@ describe('StructuredDataChecker', () => {
         </script>
       </head><body></body></html>
     `);
-    const checker = new StructuredDataChecker(p as Page);
+    const checker = new StructuredDataChecker({ page: p as Page, checkerKey: 'structuredData' });
     const results = await checker.checkAll();
     const jsonLdResult = results[0];
     expect(jsonLdResult.passed).toBe(true);
@@ -217,7 +217,7 @@ describe('StructuredDataChecker', () => {
 
   it('returns results for all checks', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body></body></html>`);
-    const checker = new StructuredDataChecker(p as Page);
+    const checker = new StructuredDataChecker({ page: p as Page, checkerKey: 'structuredData' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r && 'message' in r)).toBe(true);
@@ -228,7 +228,7 @@ describe('StructuredDataChecker', () => {
 describe('SocialMediaChecker', () => {
   it('fails when Twitter card is missing', async () => {
     const p = await withContent(`<!DOCTYPE html><html><head></head><body></body></html>`);
-    const checker = new SocialMediaChecker(p as Page);
+    const checker = new SocialMediaChecker({ page: p as Page, checkerKey: 'socialMedia' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(false);
   });
@@ -242,14 +242,14 @@ describe('SocialMediaChecker', () => {
         <meta name="twitter:image" content="https://example.com/img.jpg">
       </head><body></body></html>
     `);
-    const checker = new SocialMediaChecker(p as Page);
+    const checker = new SocialMediaChecker({ page: p as Page, checkerKey: 'socialMedia' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(true);
   });
 
   it('returns results array', async () => {
     const p = await withContent(`<!DOCTYPE html><html><head></head><body></body></html>`);
-    const checker = new SocialMediaChecker(p as Page);
+    const checker = new SocialMediaChecker({ page: p as Page, checkerKey: 'socialMedia' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r)).toBe(true);
@@ -444,7 +444,7 @@ describe('SpamDetectionChecker', () => {
 describe('SitemapChecker', () => {
   it('returns results array', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body></body></html>`);
-    const checker = new SitemapChecker(p as Page);
+    const checker = new SitemapChecker({ page: p as Page, checkerKey: 'sitemap' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r && 'message' in r)).toBe(true);
@@ -452,7 +452,7 @@ describe('SitemapChecker', () => {
 
   it('returns exactly 2 checks', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body></body></html>`);
-    const checker = new SitemapChecker(p as Page);
+    const checker = new SitemapChecker({ page: p as Page, checkerKey: 'sitemap' });
     const results = await checker.checkAll();
     expect(results).toHaveLength(2);
   });

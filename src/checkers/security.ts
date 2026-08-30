@@ -1,45 +1,31 @@
-import { Page, Response } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class SecurityChecker {
-  constructor(private page: Page, private response: Response | null = null) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkHTTPS());
-    results.push(await this.checkMixedContent());
-    results.push(await this.checkSecurityHeaders());
-
-    return results;
+export class SecurityChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'https-enabled', run: () => this.checkHTTPS() },
+      { id: 'mixed-content-check', run: () => this.checkMixedContent() },
+      { id: 'security-headers', run: () => this.checkSecurityHeaders() },
+    ];
   }
 
-  private async checkHTTPS(): Promise<SEOCheckResult> {
+  private async checkHTTPS(): Promise<CheckOutcome> {
     const url = new URL(this.page.url());
 
     if (url.protocol === 'https:') {
-      return {
-        passed: true,
-        message: 'Site is using HTTPS (secure connection)',
-        details: { protocol: url.protocol },
-      };
+      return this.pass('Site is using HTTPS (secure connection)', { protocol: url.protocol });
     } else {
-      return {
-        passed: false,
-        message: 'Site is not using HTTPS - this negatively impacts SEO and user trust',
-        details: { protocol: url.protocol },
-      };
+      return this.fail('Site is not using HTTPS - this negatively impacts SEO and user trust', {
+        protocol: url.protocol,
+      });
     }
   }
 
-  private async checkMixedContent(): Promise<SEOCheckResult> {
+  private async checkMixedContent(): Promise<CheckOutcome> {
     const url = new URL(this.page.url());
 
     if (url.protocol !== 'https:') {
-      return {
-        passed: true,
-        message: 'Mixed content check skipped (not HTTPS)',
-      };
+      return this.pass('Mixed content check skipped (not HTTPS)');
     }
 
     try {
@@ -66,36 +52,22 @@ export class SecurityChecker {
       });
 
       if (mixedContent.length > 0) {
-        return {
-          passed: false,
-          message: `Found ${mixedContent.length} mixed content resources (HTTP on HTTPS page)`,
-          details: {
-            mixedContent: mixedContent.slice(0, 10), // First 10
-            total: mixedContent.length,
-          },
-        };
+        return this.fail(`Found ${mixedContent.length} mixed content resources (HTTP on HTTPS page)`, {
+          mixedContent: mixedContent.slice(0, 10), // First 10
+          total: mixedContent.length,
+        });
       }
 
-      return {
-        passed: true,
-        message: 'No mixed content detected',
-      };
+      return this.pass('No mixed content detected');
     } catch (error) {
-      return {
-        passed: false,
-        severity: 'info',
-        message: 'Mixed content check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Mixed content check skipped due to error' };
     }
   }
 
-  private async checkSecurityHeaders(): Promise<SEOCheckResult> {
+  private async checkSecurityHeaders(): Promise<CheckOutcome> {
     try {
       if (!this.response) {
-        return {
-          passed: false,
-          message: 'Could not check security headers - no response available',
-        };
+        return this.fail('Could not check security headers - no response available');
       }
 
       const headers = this.response.headers();
@@ -112,27 +84,15 @@ export class SecurityChecker {
         .map(([key]) => key);
 
       if (missingHeaders.length === 0) {
-        return {
-          passed: true,
-          message: 'All important security headers are present',
-          details: { headers: securityHeaders },
-        };
+        return this.pass('All important security headers are present', { headers: securityHeaders });
       } else {
-        return {
-          passed: false,
-          message: `Missing ${missingHeaders.length} security headers`,
-          details: {
-            present: presentHeaders.map(([key]) => key),
-            missing: missingHeaders,
-          },
-        };
+        return this.fail(`Missing ${missingHeaders.length} security headers`, {
+          present: presentHeaders.map(([key]) => key),
+          missing: missingHeaders,
+        });
       }
     } catch (error) {
-      return {
-        passed: false,
-        severity: 'info',
-        message: 'Security headers check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Security headers check skipped due to error' };
     }
   }
 }

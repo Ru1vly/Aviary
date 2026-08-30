@@ -1,19 +1,14 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class SitemapChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkSitemapExists());
-    results.push(await this.checkSitemapInRobotsTxt());
-
-    return results;
+export class SitemapChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'sitemap-exists', run: () => this.checkSitemapExists() },
+      { id: 'sitemap-referenced-in-robots-txt', run: () => this.checkSitemapInRobotsTxt() },
+    ];
   }
 
-  private async checkSitemapExists(): Promise<SEOCheckResult> {
+  private async checkSitemapExists(): Promise<CheckOutcome> {
     try {
       const url = new URL(this.page.url());
       const commonSitemapUrls = [
@@ -38,15 +33,11 @@ export class SitemapChecker {
               const urlMatches = content.match(/<loc>/g);
               const urlCount = urlMatches ? urlMatches.length : 0;
 
-              return {
-                passed: true,
-                message: `XML sitemap found with ${urlCount} URLs`,
-                details: {
-                  url: sitemapUrl,
-                  urlCount,
-                  size: content.length,
-                },
-              };
+              return this.pass(`XML sitemap found with ${urlCount} URLs`, {
+                url: sitemapUrl,
+                urlCount,
+                size: content.length,
+              });
             }
           }
         } catch (error) {
@@ -55,22 +46,15 @@ export class SitemapChecker {
         }
       }
 
-      return {
-        passed: false,
-        message: 'XML sitemap not found at common locations (sitemap.xml, sitemap_index.xml)',
-        details: {
-          checkedUrls: commonSitemapUrls,
-        },
-      };
+      return this.fail('XML sitemap not found at common locations (sitemap.xml, sitemap_index.xml)', {
+        checkedUrls: commonSitemapUrls,
+      });
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking sitemap: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(`Error checking sitemap: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async checkSitemapInRobotsTxt(): Promise<SEOCheckResult> {
+  private async checkSitemapInRobotsTxt(): Promise<CheckOutcome> {
     try {
       const url = new URL(this.page.url());
       const robotsUrl = `${url.protocol}//${url.host}/robots.txt`;
@@ -89,33 +73,17 @@ export class SitemapChecker {
         if (sitemapLines.length > 0) {
           const sitemaps = sitemapLines.map((line: string) => line.split(':').slice(1).join(':').trim());
 
-          return {
-            passed: true,
-            message: `Sitemap referenced in robots.txt (${sitemapLines.length} sitemap(s) found)`,
-            details: {
-              sitemaps,
-            },
-          };
+          return this.pass(`Sitemap referenced in robots.txt (${sitemapLines.length} sitemap(s) found)`, {
+            sitemaps,
+          });
         } else {
-          return {
-            passed: false,
-            message: 'Sitemap not referenced in robots.txt',
-          };
+          return this.fail('Sitemap not referenced in robots.txt');
         }
       } else {
-        return {
-          passed: true,
-          message: 'robots.txt not found, sitemap reference check skipped',
-        };
+        return this.pass('robots.txt not found, sitemap reference check skipped');
       }
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Sitemap reference check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Sitemap reference check skipped due to error' };
     }
   }
 }

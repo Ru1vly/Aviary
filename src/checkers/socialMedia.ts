@@ -1,20 +1,15 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class SocialMediaChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkTwitterCards());
-    results.push(await this.checkOpenGraphTags());
-    results.push(await this.checkFacebookTags());
-
-    return results;
+export class SocialMediaChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'twitter-card-configured', run: () => this.checkTwitterCards() },
+      { id: 'open-graph-configured', run: () => this.checkOpenGraphTags() },
+      { id: 'facebook-tags-present', run: () => this.checkFacebookTags() },
+    ];
   }
 
-  private async checkTwitterCards(): Promise<SEOCheckResult> {
+  private async checkTwitterCards(): Promise<CheckOutcome> {
     try {
       const twitterTags = await this.page.evaluate(() => {
         const tags = Array.from(document.querySelectorAll('meta[name^="twitter:"]'));
@@ -49,33 +44,20 @@ export class SocialMediaChecker {
       }
 
       if (issues.length === 0) {
-        return {
-          passed: true,
-          message: `Twitter Card properly configured (${Object.keys(twitterTags).length} tags)`,
-          details: { tags: twitterTags },
-        };
+        return this.pass(`Twitter Card properly configured (${Object.keys(twitterTags).length} tags)`, {
+          tags: twitterTags,
+        });
       } else if (Object.keys(twitterTags).length === 0) {
-        return {
-          passed: false,
-          message: 'No Twitter Card tags found',
-          details: { issues },
-        };
+        return this.fail('No Twitter Card tags found', { issues });
       } else {
-        return {
-          passed: false,
-          message: `Twitter Card incomplete: ${issues.join(', ')}`,
-          details: { tags: twitterTags, issues },
-        };
+        return this.fail(`Twitter Card incomplete: ${issues.join(', ')}`, { tags: twitterTags, issues });
       }
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking Twitter Cards: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(`Error checking Twitter Cards: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async checkOpenGraphTags(): Promise<SEOCheckResult> {
+  private async checkOpenGraphTags(): Promise<CheckOutcome> {
     try {
       const ogTags = await this.page.evaluate(() => {
         const tags = Array.from(document.querySelectorAll('meta[property^="og:"]'));
@@ -119,33 +101,22 @@ export class SocialMediaChecker {
       }
 
       if (issues.length === 0) {
-        return {
-          passed: true,
-          message: `Open Graph tags properly configured (${Object.keys(ogTags).length} tags)`,
-          details: { tags: ogTags },
-        };
+        return this.pass(`Open Graph tags properly configured (${Object.keys(ogTags).length} tags)`, {
+          tags: ogTags,
+        });
       } else if (Object.keys(ogTags).length === 0) {
-        return {
-          passed: false,
-          message: 'No Open Graph tags found',
-          details: { issues },
-        };
+        return this.fail('No Open Graph tags found', { issues });
       } else {
-        return {
-          passed: false,
-          message: `Open Graph incomplete: ${issues.slice(0, 3).join(', ')}`,
-          details: { tags: ogTags, issues },
-        };
+        return this.fail(`Open Graph incomplete: ${issues.slice(0, 3).join(', ')}`, { tags: ogTags, issues });
       }
     } catch (error) {
-      return {
-        passed: false,
-        message: `Error checking Open Graph tags: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
+      return this.fail(
+        `Error checking Open Graph tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
-  private async checkFacebookTags(): Promise<SEOCheckResult> {
+  private async checkFacebookTags(): Promise<CheckOutcome> {
     try {
       const fbTags = await this.page.evaluate(() => {
         const appId = document.querySelector('meta[property="fb:app_id"]');
@@ -160,28 +131,14 @@ export class SocialMediaChecker {
       });
 
       if (fbTags.hasAppId || fbTags.hasAdmins) {
-        return {
-          passed: true,
-          message: 'Facebook-specific tags found',
-          details: fbTags,
-        };
+        return this.pass('Facebook-specific tags found', fbTags);
       } else {
-        return {
-          passed: true,
-          message: 'No Facebook-specific tags (optional, but recommended for Facebook Insights)',
-          details: {
-            recommendation: 'Consider adding fb:app_id for Facebook Insights integration',
-          },
-        };
+        return this.pass('No Facebook-specific tags (optional, but recommended for Facebook Insights)', {
+          recommendation: 'Consider adding fb:app_id for Facebook Insights integration',
+        });
       }
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Facebook tags check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Facebook tags check skipped due to error' };
     }
   }
 }

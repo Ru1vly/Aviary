@@ -1,25 +1,23 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
 import { CheckerErrorHandler } from '../errors/index.js';
+import { BaseChecker, BaseCheckerDeps, CheckOutcome } from './base';
 
-export class RobotsTxtChecker {
+export class RobotsTxtChecker extends BaseChecker {
   private errorHandler: CheckerErrorHandler;
 
-  constructor(private page: Page) {
-    this.errorHandler = new CheckerErrorHandler(page, 'RobotsTxtChecker');
+  constructor(deps: BaseCheckerDeps) {
+    super(deps);
+    this.errorHandler = new CheckerErrorHandler(this.page, 'RobotsTxtChecker');
   }
 
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkRobotsTxtExists());
-    results.push(await this.checkRobotsTxtAccessible());
-
-    return results;
+  protected checks() {
+    return [
+      { id: 'robots-txt-exists', run: () => this.checkRobotsTxtExists() },
+      { id: 'robots-txt-configured', run: () => this.checkRobotsTxtAccessible() },
+    ];
   }
 
-  private async checkRobotsTxtExists(): Promise<SEOCheckResult> {
-    return this.errorHandler.executeCheck(async () => {
+  private async checkRobotsTxtExists(): Promise<CheckOutcome> {
+    const result = await this.errorHandler.executeCheck(async () => {
       const url = new URL(this.page.url());
       const robotsUrl = `${url.protocol}//${url.host}/robots.txt`;
 
@@ -65,10 +63,12 @@ export class RobotsTxtChecker {
         };
       }
     }, 'checkRobotsTxtExists');
+
+    return { passed: result.passed, message: result.message, details: result.details, severity: result.severity };
   }
 
-  private async checkRobotsTxtAccessible(): Promise<SEOCheckResult> {
-    return this.errorHandler.executeCheck(async () => {
+  private async checkRobotsTxtAccessible(): Promise<CheckOutcome> {
+    const result = await this.errorHandler.executeCheck(async () => {
       const url = new URL(this.page.url());
       const robotsUrl = `${url.protocol}//${url.host}/robots.txt`;
 
@@ -130,5 +130,7 @@ export class RobotsTxtChecker {
       passOnError: true, // Gracefully degrade if check fails
       messagePrefix: 'robots.txt validation skipped due to error',
     });
+
+    return { passed: result.passed, message: result.message, details: result.details, severity: result.severity };
   }
 }

@@ -29,7 +29,7 @@ describe('RobotsTxtChecker', () => {
       status: 200,
       text: 'User-agent: *\nDisallow: /admin\nSitemap: https://example.com/sitemap.xml',
     });
-    const checker = new RobotsTxtChecker(page);
+    const checker = new RobotsTxtChecker({ page, checkerKey: 'robotsTxt' });
     const results = await checker.checkAll();
 
     expect(results).toHaveLength(2);
@@ -44,7 +44,7 @@ describe('RobotsTxtChecker', () => {
 
   it('fails when robots.txt returns 404', async () => {
     const page = mockPageWithRobotsResponse({ status: 404, text: '' });
-    const checker = new RobotsTxtChecker(page);
+    const checker = new RobotsTxtChecker({ page, checkerKey: 'robotsTxt' });
     const results = await checker.checkAll();
 
     expect(results[0].passed).toBe(false);
@@ -56,7 +56,7 @@ describe('RobotsTxtChecker', () => {
       status: 200,
       text: 'User-agent: *\nDisallow: /',
     });
-    const checker = new RobotsTxtChecker(page);
+    const checker = new RobotsTxtChecker({ page, checkerKey: 'robotsTxt' });
     const results = await checker.checkAll();
 
     const accessibleResult = results[1];
@@ -73,7 +73,7 @@ describe('RobotsTxtChecker', () => {
   // 'info' and would silently render with no severity badge.
   it('degrades gracefully with a valid lowercase RuleSeverity when the network request keeps failing', async () => {
     const page = mockPageWithRobotsResponse(null); // always rejects
-    const checker = new RobotsTxtChecker(page);
+    const checker = new RobotsTxtChecker({ page, checkerKey: 'robotsTxt' });
 
     const results = await checker.checkAll();
 
