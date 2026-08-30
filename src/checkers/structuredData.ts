@@ -1,6 +1,16 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractJsonLdBlocks } from './shared/dom';
 
 export class StructuredDataChecker extends BaseChecker {
+  private jsonLdPromise?: Promise<unknown[]>;
+
+  private getJsonLd(): Promise<unknown[]> {
+    if (!this.jsonLdPromise) {
+      this.jsonLdPromise = this.page.evaluate(extractJsonLdBlocks);
+    }
+    return this.jsonLdPromise;
+  }
+
   protected checks() {
     return [
       { id: 'json-ld-present', run: () => this.checkJSONLD() },
@@ -11,18 +21,7 @@ export class StructuredDataChecker extends BaseChecker {
 
   private async checkJSONLD(): Promise<CheckOutcome> {
     try {
-      const jsonLdScripts = await this.page.evaluate(() => {
-        const scripts = Array.from(
-          document.querySelectorAll('script[type="application/ld+json"]')
-        );
-        return scripts.map((script) => {
-          try {
-            return JSON.parse(script.textContent || '{}');
-          } catch {
-            return null;
-          }
-        }).filter((data) => data !== null);
-      });
+      const jsonLdScripts = await this.getJsonLd();
 
       if (jsonLdScripts.length === 0) {
         return this.fail('No JSON-LD structured data found');
@@ -76,18 +75,7 @@ export class StructuredDataChecker extends BaseChecker {
 
   private async checkSchemaTypes(): Promise<CheckOutcome> {
     try {
-      const jsonLdScripts = await this.page.evaluate(() => {
-        const scripts = Array.from(
-          document.querySelectorAll('script[type="application/ld+json"]')
-        );
-        return scripts.map((script) => {
-          try {
-            return JSON.parse(script.textContent || '{}');
-          } catch {
-            return null;
-          }
-        }).filter((data) => data !== null);
-      });
+      const jsonLdScripts = await this.getJsonLd();
 
       if (jsonLdScripts.length === 0) {
         return this.pass('Schema type validation skipped (no JSON-LD found)');

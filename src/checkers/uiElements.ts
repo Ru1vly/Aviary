@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractJsonLdBlocks } from './shared/dom';
 
 export class UIElementsChecker extends BaseChecker {
   protected checks() {
@@ -45,40 +46,24 @@ export class UIElementsChecker extends BaseChecker {
 
   private async checkBreadcrumbs(): Promise<CheckOutcome> {
     try {
-      const breadcrumbsData = await this.page.evaluate(() => {
-        // Check for structured data breadcrumbs (JSON-LD)
-        const jsonLdBreadcrumbs = Array.from(
-          document.querySelectorAll('script[type="application/ld+json"]')
-        )
-          .map((script) => {
-            try {
-              const data = JSON.parse(script.textContent || '{}');
-              return data['@type'] === 'BreadcrumbList' ? data : null;
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data !== null);
+      const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
+      const jsonLdBreadcrumbCount = jsonLdScripts.filter(
+        (data: any) => data['@type'] === 'BreadcrumbList'
+      ).length;
 
-        // Check for Microdata breadcrumbs
-        const microdataBreadcrumbs = document.querySelectorAll(
-          '[itemtype*="BreadcrumbList"]'
-        );
+      const domCounts = await this.page.evaluate(() => ({
+        microdataCount: document.querySelectorAll('[itemtype*="BreadcrumbList"]').length,
+        htmlCount: document.querySelectorAll('[class*="breadcrumb"], [id*="breadcrumb"], nav ol, nav ul').length,
+      }));
 
-        // Check for common breadcrumb HTML patterns
-        const commonBreadcrumbs = document.querySelectorAll(
-          '[class*="breadcrumb"], [id*="breadcrumb"], nav ol, nav ul'
-        );
-
-        return {
-          hasJsonLd: jsonLdBreadcrumbs.length > 0,
-          hasMicrodata: microdataBreadcrumbs.length > 0,
-          hasHtmlBreadcrumbs: commonBreadcrumbs.length > 0,
-          jsonLdCount: jsonLdBreadcrumbs.length,
-          microdataCount: microdataBreadcrumbs.length,
-          htmlCount: commonBreadcrumbs.length,
-        };
-      });
+      const breadcrumbsData = {
+        hasJsonLd: jsonLdBreadcrumbCount > 0,
+        hasMicrodata: domCounts.microdataCount > 0,
+        hasHtmlBreadcrumbs: domCounts.htmlCount > 0,
+        jsonLdCount: jsonLdBreadcrumbCount,
+        microdataCount: domCounts.microdataCount,
+        htmlCount: domCounts.htmlCount,
+      };
 
       if (!breadcrumbsData.hasJsonLd && !breadcrumbsData.hasMicrodata) {
         return this.fail(

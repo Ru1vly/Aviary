@@ -1,5 +1,6 @@
 import { ImageInfo } from '../types';
 import { BaseChecker, CheckOutcome } from './base';
+import { extractImages } from './shared/dom';
 
 export class ImagesChecker extends BaseChecker {
   protected checks() {
@@ -13,14 +14,13 @@ export class ImagesChecker extends BaseChecker {
 
   private getImages(): Promise<ImageInfo[]> {
     if (!this.imagesPromise) {
-      this.imagesPromise = this.page.evaluate(() => {
-        const imgs = Array.from(document.querySelectorAll('img'));
-        return imgs.map((img) => ({
+      this.imagesPromise = this.page.evaluate(extractImages).then((images) =>
+        images.map((img) => ({
           src: img.src,
           alt: img.alt || null,
-          hasAlt: img.hasAttribute('alt') && img.alt.trim().length > 0,
-        }));
-      });
+          hasAlt: img.hasAltAttribute && !!img.alt?.trim().length,
+        }))
+      );
     }
     return this.imagesPromise;
   }

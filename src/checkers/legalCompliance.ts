@@ -1,6 +1,37 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractImages, extractLinks, LinkData } from './shared/dom';
 
 export class LegalComplianceChecker extends BaseChecker {
+  private linksPromise?: Promise<LinkData[]>;
+
+  private getLinks(): Promise<LinkData[]> {
+    if (!this.linksPromise) {
+      this.linksPromise = this.page.evaluate(extractLinks);
+    }
+    return this.linksPromise;
+  }
+
+  /** Replaces the checker's 10 copy-pasted `querySelectorAll('a').filter(...)` blocks. */
+  private async matchLinks(
+    keywords: string[],
+    options: { matchHref?: boolean; footerOnly?: boolean; extra?: (link: LinkData) => boolean } = {}
+  ): Promise<{ found: boolean; count: number; inFooter: boolean }> {
+    const { matchHref = true, footerOnly = false, extra } = options;
+    const links = await this.getLinks();
+    const pool = footerOnly ? links.filter((link) => link.inFooter) : links;
+    const matches = pool.filter(
+      (link) =>
+        keywords.some((keyword) => link.text.includes(keyword) || (matchHref && link.href.includes(keyword))) ||
+        (extra?.(link) ?? false)
+    );
+
+    return {
+      found: matches.length > 0,
+      count: matches.length,
+      inFooter: matches.some((link) => link.inFooter),
+    };
+  }
+
   protected checks() {
     return [
       { id: 'privacy-policy-linked', run: () => this.checkPrivacyPolicy() },
@@ -23,22 +54,7 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkPrivacyPolicy(): Promise<CheckOutcome> {
     try {
-      const privacyData = await this.page.evaluate(() => {
-        const privacyLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          const href = link.getAttribute('href')?.toLowerCase() || '';
-          return text.includes('privacy') || href.includes('privacy');
-        });
-
-        return {
-          found: privacyLinks.length > 0,
-          count: privacyLinks.length,
-          inFooter: Array.from(document.querySelectorAll('footer a')).some((link) => {
-            const text = link.textContent?.toLowerCase() || '';
-            return text.includes('privacy');
-          }),
-        };
-      });
+      const privacyData = await this.matchLinks(['privacy']);
 
       if (!privacyData.found) {
         return this.fail('No privacy policy link found (required for most websites)', privacyData);
@@ -55,22 +71,7 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkTermsOfService(): Promise<CheckOutcome> {
     try {
-      const termsData = await this.page.evaluate(() => {
-        const termsLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          const href = link.getAttribute('href')?.toLowerCase() || '';
-          return text.includes('terms') || text.includes('conditions') || href.includes('terms');
-        });
-
-        return {
-          found: termsLinks.length > 0,
-          count: termsLinks.length,
-          inFooter: Array.from(document.querySelectorAll('footer a')).some((link) => {
-            const text = link.textContent?.toLowerCase() || '';
-            return text.includes('terms');
-          }),
-        };
-      });
+      const termsData = await this.matchLinks(['terms', 'conditions']);
 
       if (!termsData.found) {
         return this.fail('No terms of service link found (recommended for all websites)', termsData);
@@ -113,23 +114,16 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkGDPRCompliance(): Promise<CheckOutcome> {
     try {
-      const gdprData = await this.page.evaluate(() => {
-        const gdprKeywords = ['gdpr', 'data protection', 'right to access', 'right to erasure', 'data controller'];
+      const gdprKeywords = ['gdpr', 'data protection', 'right to access', 'right to erasure', 'data controller'];
 
+      const hasGDPRMentions = await this.page.evaluate((keywords) => {
         const bodyText = document.body.textContent?.toLowerCase() || '';
-        const hasGDPRMentions = gdprKeywords.some((keyword) => bodyText.includes(keyword));
+        return keywords.some((keyword) => bodyText.includes(keyword));
+      }, gdprKeywords);
 
-        const gdprLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          const href = link.getAttribute('href')?.toLowerCase() || '';
-          return gdprKeywords.some((keyword) => text.includes(keyword) || href.includes(keyword));
-        });
+      const gdprLinks = await this.matchLinks(gdprKeywords);
 
-        return {
-          hasGDPRMentions,
-          gdprLinks: gdprLinks.length,
-        };
-      });
+      const gdprData = { hasGDPRMentions, gdprLinks: gdprLinks.count };
 
       if (!gdprData.hasGDPRMentions) {
         return this.pass('No GDPR mentions (ensure compliance if serving EU users)');
@@ -143,23 +137,19 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkCCPACompliance(): Promise<CheckOutcome> {
     try {
-      const ccpaData = await this.page.evaluate(() => {
-        const ccpaKeywords = ['ccpa', 'california privacy', 'do not sell', 'opt-out'];
+      const ccpaKeywords = ['ccpa', 'california privacy', 'do not sell', 'opt-out'];
 
+      const bodyKeywordData = await this.page.evaluate((keywords) => {
         const bodyText = document.body.textContent?.toLowerCase() || '';
-        const hasCCPAMentions = ccpaKeywords.some((keyword) => bodyText.includes(keyword));
-
-        const ccpaLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          return ccpaKeywords.some((keyword) => text.includes(keyword));
-        });
-
         return {
-          hasCCPAMentions,
-          ccpaLinks: ccpaLinks.length,
+          hasCCPAMentions: keywords.some((keyword) => bodyText.includes(keyword)),
           hasDoNotSell: bodyText.includes('do not sell'),
         };
-      });
+      }, ccpaKeywords);
+
+      const ccpaLinks = await this.matchLinks(ccpaKeywords, { matchHref: false });
+
+      const ccpaData = { ...bodyKeywordData, ccpaLinks: ccpaLinks.count };
 
       if (!ccpaData.hasCCPAMentions) {
         return this.pass('No CCPA mentions (ensure compliance if serving California users)');
@@ -176,18 +166,11 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkCookiePolicy(): Promise<CheckOutcome> {
     try {
-      const policyData = await this.page.evaluate(() => {
-        const policyLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          const href = link.getAttribute('href')?.toLowerCase() || '';
-          return (text.includes('cookie') && text.includes('policy')) || href.includes('cookie');
-        });
-
-        return {
-          found: policyLinks.length > 0,
-          count: policyLinks.length,
-        };
+      const match = await this.matchLinks([], {
+        matchHref: false,
+        extra: (link) => (link.text.includes('cookie') && link.text.includes('policy')) || link.href.includes('cookie'),
       });
+      const policyData = { found: match.found, count: match.count };
 
       if (!policyData.found) {
         return this.fail('No cookie policy link found (required if using cookies)', policyData);
@@ -228,21 +211,18 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkAccessibility(): Promise<CheckOutcome> {
     try {
-      const accessibilityData = await this.page.evaluate(() => {
-        const accessibilityLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          return text.includes('accessibility');
-        });
+      const accessibilityLinks = await this.matchLinks(['accessibility'], { matchHref: false });
+      const ariaLabels = await this.page.evaluate(
+        () => document.querySelectorAll('[aria-label], [aria-labelledby]').length
+      );
+      const images = await this.page.evaluate(extractImages);
+      const altTexts = images.filter((img) => img.hasAltAttribute).length;
 
-        const ariaLabels = document.querySelectorAll('[aria-label], [aria-labelledby]');
-        const altTexts = Array.from(document.querySelectorAll('img')).filter((img) => img.hasAttribute('alt'));
-
-        return {
-          hasAccessibilityStatement: accessibilityLinks.length > 0,
-          ariaLabels: ariaLabels.length,
-          altTexts: altTexts.length,
-        };
-      });
+      const accessibilityData = {
+        hasAccessibilityStatement: accessibilityLinks.found,
+        ariaLabels,
+        altTexts,
+      };
 
       if (!accessibilityData.hasAccessibilityStatement) {
         return this.pass('No accessibility statement (recommended for compliance)');
@@ -294,23 +274,21 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkContactInformation(): Promise<CheckOutcome> {
     try {
-      const contactData = await this.page.evaluate(() => {
-        const contactLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          const href = link.getAttribute('href')?.toLowerCase() || '';
-          return text.includes('contact') || href.includes('contact') || href.startsWith('mailto:');
-        });
-
-        const phoneNumbers = document.body.textContent?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/) || [];
-        const emailAddresses = document.body.textContent?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || [];
-
-        return {
-          hasContactLink: contactLinks.length > 0,
-          hasPhoneNumber: phoneNumbers.length > 0,
-          hasEmailAddress: emailAddresses.length > 0,
-          contactMethods: contactLinks.length + phoneNumbers.length + emailAddresses.length,
-        };
+      const contactLinks = await this.matchLinks(['contact'], {
+        extra: (link) => link.href.startsWith('mailto:'),
       });
+
+      const bodyMatches = await this.page.evaluate(() => ({
+        phoneNumbers: (document.body.textContent?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/) || []).length,
+        emailAddresses: (document.body.textContent?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || []).length,
+      }));
+
+      const contactData = {
+        hasContactLink: contactLinks.found,
+        hasPhoneNumber: bodyMatches.phoneNumbers > 0,
+        hasEmailAddress: bodyMatches.emailAddresses > 0,
+        contactMethods: contactLinks.count + bodyMatches.phoneNumbers + bodyMatches.emailAddresses,
+      };
 
       if (contactData.contactMethods === 0) {
         return this.fail('No contact information found (required for trust and legal compliance)', contactData);
@@ -324,20 +302,15 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkDisclaimers(): Promise<CheckOutcome> {
     try {
-      const disclaimerData = await this.page.evaluate(() => {
-        const disclaimerLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          return text.includes('disclaimer');
-        });
+      const disclaimerLinks = await this.matchLinks(['disclaimer'], { matchHref: false });
+      const hasDisclaimerText = await this.page.evaluate(
+        () => (document.body.textContent?.toLowerCase() || '').includes('disclaimer')
+      );
 
-        const bodyText = document.body.textContent?.toLowerCase() || '';
-        const hasDisclaimer = bodyText.includes('disclaimer');
-
-        return {
-          hasDisclaimerLink: disclaimerLinks.length > 0,
-          hasDisclaimerText: hasDisclaimer,
-        };
-      });
+      const disclaimerData = {
+        hasDisclaimerLink: disclaimerLinks.found,
+        hasDisclaimerText,
+      };
 
       if (!disclaimerData.hasDisclaimerLink && !disclaimerData.hasDisclaimerText) {
         return this.pass('No disclaimers (optional but recommended for certain industries)');
@@ -377,18 +350,8 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkRefundPolicy(): Promise<CheckOutcome> {
     try {
-      const refundData = await this.page.evaluate(() => {
-        const refundLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          const href = link.getAttribute('href')?.toLowerCase() || '';
-          return text.includes('refund') || text.includes('return') || href.includes('refund') || href.includes('return');
-        });
-
-        return {
-          found: refundLinks.length > 0,
-          count: refundLinks.length,
-        };
-      });
+      const match = await this.matchLinks(['refund', 'return']);
+      const refundData = { found: match.found, count: match.count };
 
       if (!refundData.found) {
         return this.pass('No refund policy (required for e-commerce sites)');
@@ -402,18 +365,10 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkShippingPolicy(): Promise<CheckOutcome> {
     try {
-      const shippingData = await this.page.evaluate(() => {
-        const shippingLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          const href = link.getAttribute('href')?.toLowerCase() || '';
-          return text.includes('shipping') || text.includes('delivery') || href.includes('shipping');
-        });
-
-        return {
-          found: shippingLinks.length > 0,
-          count: shippingLinks.length,
-        };
+      const match = await this.matchLinks(['shipping'], {
+        extra: (link) => link.text.includes('delivery'),
       });
+      const shippingData = { found: match.found, count: match.count };
 
       if (!shippingData.found) {
         return this.pass('No shipping policy (required for e-commerce sites)');
@@ -427,30 +382,27 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkLegalFooter(): Promise<CheckOutcome> {
     try {
-      const footerData = await this.page.evaluate(() => {
+      const footerInfo = await this.page.evaluate(() => {
         const footer = document.querySelector('footer');
-        if (!footer) return { hasFooter: false };
-
+        if (!footer) return null;
         const footerText = footer.textContent?.toLowerCase() || '';
-        const legalKeywords = ['privacy', 'terms', 'cookie', 'legal'];
-
-        const legalLinks = Array.from(footer.querySelectorAll('a')).filter((link) => {
-          const text = link.textContent?.toLowerCase() || '';
-          return legalKeywords.some((keyword) => text.includes(keyword));
-        });
-
         return {
-          hasFooter: true,
-          legalLinks: legalLinks.length,
           hasPrivacy: footerText.includes('privacy'),
           hasTerms: footerText.includes('terms'),
           hasCookie: footerText.includes('cookie'),
         };
       });
 
-      if (!footerData.hasFooter) {
-        return this.fail('No footer element found', footerData);
+      if (!footerInfo) {
+        return this.fail('No footer element found', { hasFooter: false });
       }
+
+      const legalLinks = await this.matchLinks(['privacy', 'terms', 'cookie', 'legal'], {
+        matchHref: false,
+        footerOnly: true,
+      });
+
+      const footerData = { hasFooter: true, legalLinks: legalLinks.count, ...footerInfo };
 
       if (footerData.legalLinks === 0) {
         return this.fail('Footer missing legal links (privacy, terms, etc.)', footerData);

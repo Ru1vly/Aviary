@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { formatBytes } from './shared/format';
 
 export class ResourceOptimizationChecker extends BaseChecker {
   protected checks() {
@@ -446,7 +447,7 @@ export class ResourceOptimizationChecker extends BaseChecker {
 
   private async checkInlineResources(): Promise<CheckOutcome> {
     try {
-      const inlineData = await this.page.evaluate(() => {
+      const rawInlineData = await this.page.evaluate(() => {
         const inlineScripts = Array.from(document.querySelectorAll('script:not([src])')).filter(
           (script) => script.textContent && script.textContent.trim().length > 100
         );
@@ -463,9 +464,13 @@ export class ResourceOptimizationChecker extends BaseChecker {
           inlineScripts: inlineScripts.length,
           inlineStyles: inlineStyles.length,
           totalInlineSize,
-          totalInlineSizeKB: (totalInlineSize / 1024).toFixed(2),
         };
       });
+
+      const inlineData = {
+        ...rawInlineData,
+        totalInlineSizeKB: formatBytes(rawInlineData.totalInlineSize).kb,
+      };
 
       if (inlineData.totalInlineSize > 50000) {
         return this.fail(`Large inline resources (${inlineData.totalInlineSizeKB}KB) - consider externalizing`, inlineData);

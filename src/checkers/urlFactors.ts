@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { tokenize } from './shared/text';
 
 export class URLFactorsChecker extends BaseChecker {
   protected checks() {
@@ -126,10 +127,7 @@ export class URLFactorsChecker extends BaseChecker {
         .filter((w: string) => w.length > 3);
 
       // Extract words from title
-      const titleWords = title
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((w: string) => w.length > 3);
+      const titleWords = tokenize(title);
 
       // Find matching keywords
       const matchingKeywords = urlWords.filter((word: string) =>

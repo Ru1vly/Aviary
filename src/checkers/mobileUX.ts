@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractImages } from './shared/dom';
 
 export class MobileUXChecker extends BaseChecker {
   protected checks() {
@@ -227,20 +228,18 @@ export class MobileUXChecker extends BaseChecker {
 
   private async checkMobileImageOptimization(): Promise<CheckOutcome> {
     try {
-      const imageData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        const withSrcset = images.filter((img) => img.hasAttribute('srcset'));
-        const withSizes = images.filter((img) => img.hasAttribute('sizes'));
-        const inPicture = images.filter((img) => img.closest('picture'));
+      const images = await this.page.evaluate(extractImages);
+      const withSrcset = images.filter((img) => img.hasSrcset);
+      const withSizes = images.filter((img) => img.hasSizes);
+      const inPicture = images.filter((img) => img.inPicture);
 
-        return {
-          total: images.length,
-          withSrcset: withSrcset.length,
-          withSizes: withSizes.length,
-          inPicture: inPicture.length,
-          responsive: withSrcset.length + inPicture.length,
-        };
-      });
+      const imageData = {
+        total: images.length,
+        withSrcset: withSrcset.length,
+        withSizes: withSizes.length,
+        inPicture: inPicture.length,
+        responsive: withSrcset.length + inPicture.length,
+      };
 
       if (imageData.total > 5 && imageData.responsive === 0) {
         return this.fail('Images not optimized for mobile (use srcset or picture)', imageData);

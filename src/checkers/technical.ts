@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { formatBytes } from './shared/format';
 
 export class TechnicalChecker extends BaseChecker {
   protected checks() {
@@ -61,13 +62,8 @@ export class TechnicalChecker extends BaseChecker {
 
   private async checkPageSize(): Promise<CheckOutcome> {
     try {
-      const pageSize = await this.page.evaluate(() => {
-        const html = document.documentElement.outerHTML;
-        return {
-          htmlSize: html.length,
-          htmlSizeKB: Math.round(html.length / 1024),
-        };
-      });
+      const htmlSize = await this.page.evaluate(() => document.documentElement.outerHTML.length);
+      const pageSize = { htmlSize, htmlSizeKB: formatBytes(htmlSize).kb };
 
       // Recommended: HTML size should be under 100KB for optimal performance
       if (pageSize.htmlSizeKB > 200) {

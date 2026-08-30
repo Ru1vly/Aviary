@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { tokenize } from './shared/text';
 
 export class SpamDetectionChecker extends BaseChecker {
   protected checks() {
@@ -128,10 +129,7 @@ export class SpamDetectionChecker extends BaseChecker {
         return document.body.innerText || '';
       });
 
-      const words = content
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((w: string) => w.length > 3);
+      const words = tokenize(content);
 
       const wordCounts: Record<string, number> = {};
       words.forEach((word: string) => {

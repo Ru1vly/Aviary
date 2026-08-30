@@ -1,5 +1,6 @@
 import { CheckerErrorHandler } from '../errors/index.js';
 import { BaseChecker, BaseCheckerDeps, CheckOutcome } from './base';
+import { robotsTxtUrl } from './shared/robotsTxt';
 
 export class RobotsTxtChecker extends BaseChecker {
   private errorHandler: CheckerErrorHandler;
@@ -18,8 +19,7 @@ export class RobotsTxtChecker extends BaseChecker {
 
   private async checkRobotsTxtExists(): Promise<CheckOutcome> {
     const result = await this.errorHandler.executeCheck(async () => {
-      const url = new URL(this.page.url());
-      const robotsUrl = `${url.protocol}//${url.host}/robots.txt`;
+      const robotsUrl = robotsTxtUrl(this.page);
 
       // Use retry mechanism for network requests
       const response = await this.errorHandler.fetchWithRetry(
@@ -69,8 +69,7 @@ export class RobotsTxtChecker extends BaseChecker {
 
   private async checkRobotsTxtAccessible(): Promise<CheckOutcome> {
     const result = await this.errorHandler.executeCheck(async () => {
-      const url = new URL(this.page.url());
-      const robotsUrl = `${url.protocol}//${url.host}/robots.txt`;
+      const robotsUrl = robotsTxtUrl(this.page);
 
       // Use retry mechanism for network requests
       const response = await this.errorHandler.fetchWithRetry(

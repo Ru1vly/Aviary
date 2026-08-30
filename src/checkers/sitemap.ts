@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { fetchRobotsTxtWithRetry } from './shared/robotsTxt';
 
 export class SitemapChecker extends BaseChecker {
   protected checks() {
@@ -56,10 +57,7 @@ export class SitemapChecker extends BaseChecker {
 
   private async checkSitemapInRobotsTxt(): Promise<CheckOutcome> {
     try {
-      const url = new URL(this.page.url());
-      const robotsUrl = `${url.protocol}//${url.host}/robots.txt`;
-
-      const response = await this.page.context().request.get(robotsUrl);
+      const response = await fetchRobotsTxtWithRetry(this.page);
 
       if (response.status() === 200) {
         const content = await response.text();

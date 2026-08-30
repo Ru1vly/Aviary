@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractJsonLdBlocks } from './shared/dom';
 
 export class EcommerceChecker extends BaseChecker {
   protected checks() {
@@ -23,23 +24,17 @@ export class EcommerceChecker extends BaseChecker {
 
   private async checkProductSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const productSchemas = scripts
-          .map((script) => {
-            try {
-              return JSON.parse(script.textContent || '{}');
-            } catch {
-              return null;
-            }
-          })
-          .filter((data) => data && data['@type'] === 'Product');
+      const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
+      const productSchemas = jsonLdScripts.filter(
+        (data: any) => data && data['@type'] === 'Product'
+      );
 
-        if (productSchemas.length === 0) return { found: false };
+      const schemaData = (() => {
+        if (productSchemas.length === 0) return { found: false as const };
 
-        const product = productSchemas[0];
+        const product = productSchemas[0] as any;
         return {
-          found: true,
+          found: true as const,
           hasName: !!product.name,
           hasImage: !!product.image,
           hasDescription: !!product.description,
@@ -51,7 +46,7 @@ export class EcommerceChecker extends BaseChecker {
           hasAvailability: !!product.offers?.availability,
           hasAggregateRating: !!product.aggregateRating,
         };
-      });
+      })();
 
       if (!schemaData.found) {
         return this.pass('No Product schema (not an e-commerce product page)');

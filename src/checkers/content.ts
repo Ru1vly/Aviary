@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { tokenize } from './shared/text';
 
 export class ContentChecker extends BaseChecker {
   protected checks() {
@@ -19,10 +20,7 @@ export class ContentChecker extends BaseChecker {
         return clone.innerText || '';
       });
 
-      const words = content
-        .trim()
-        .split(/\s+/)
-        .filter((word: string) => word.length > 0);
+      const words = tokenize(content);
       const wordCount = words.length;
 
       if (wordCount < 300) {

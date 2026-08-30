@@ -1,6 +1,17 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractImages, extractResourceTimings, ResourceTimingEntry } from './shared/dom';
+import { formatBytes } from './shared/format';
 
 export class CoreWebVitalsChecker extends BaseChecker {
+  private resourceTimingsPromise?: Promise<ResourceTimingEntry[]>;
+
+  private getResourceTimings(): Promise<ResourceTimingEntry[]> {
+    if (!this.resourceTimingsPromise) {
+      this.resourceTimingsPromise = this.page.evaluate(extractResourceTimings);
+    }
+    return this.resourceTimingsPromise;
+  }
+
   protected checks() {
     return [
       { id: 'page-load-time-acceptable', run: () => this.checkPageLoadTime() },
@@ -76,20 +87,18 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkResourceCount(): Promise<CheckOutcome> {
     try {
-      const resources = await this.page.evaluate(() => {
-        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-        const byType: Record<string, number> = {};
+      const entries = await this.getResourceTimings();
+      const byType: Record<string, number> = {};
 
-        entries.forEach((entry) => {
-          const type = entry.initiatorType || 'other';
-          byType[type] = (byType[type] || 0) + 1;
-        });
-
-        return {
-          total: entries.length,
-          byType,
-        };
+      entries.forEach((entry) => {
+        const type = entry.initiatorType || 'other';
+        byType[type] = (byType[type] || 0) + 1;
       });
+
+      const resources = {
+        total: entries.length,
+        byType,
+      };
 
       if (resources.total > 100) {
         return this.fail(`Too many HTTP requests (${resources.total}). Target: < 50`, resources);
@@ -105,18 +114,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkTotalPageSize(): Promise<CheckOutcome> {
     try {
-      const pageSize = await this.page.evaluate(() => {
-        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-        const totalSize = entries.reduce((sum, entry) => {
-          return sum + (entry.transferSize || 0);
-        }, 0);
-
-        return {
-          bytes: totalSize,
-          kb: Math.round(totalSize / 1024),
-          mb: (totalSize / 1024 / 1024).toFixed(2),
-        };
-      });
+      const entries = await this.getResourceTimings();
+      const totalSize = entries.reduce((sum, entry) => sum + entry.transferSize, 0);
+      const pageSize = { ...formatBytes(totalSize) };
 
       if (pageSize.bytes > 3 * 1024 * 1024) { // > 3MB
         return this.fail(`Page size is large (${pageSize.mb}MB). Target: < 1MB`, pageSize);
@@ -132,17 +132,10 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkJavaScriptSize(): Promise<CheckOutcome> {
     try {
-      const jsSize = await this.page.evaluate(() => {
-        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-        const jsEntries = entries.filter((e) => e.initiatorType === 'script');
-        const totalSize = jsEntries.reduce((sum, entry) => sum + (entry.transferSize || 0), 0);
-
-        return {
-          count: jsEntries.length,
-          bytes: totalSize,
-          kb: Math.round(totalSize / 1024),
-        };
-      });
+      const entries = await this.getResourceTimings();
+      const jsEntries = entries.filter((e) => e.initiatorType === 'script');
+      const totalSize = jsEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
+      const jsSize = { count: jsEntries.length, ...formatBytes(totalSize) };
 
       if (jsSize.bytes > 500 * 1024) { // > 500KB
         return this.fail(`JavaScript size is large (${jsSize.kb}KB, ${jsSize.count} files). Consider code splitting`, jsSize);
@@ -156,17 +149,10 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkCSSSize(): Promise<CheckOutcome> {
     try {
-      const cssSize = await this.page.evaluate(() => {
-        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-        const cssEntries = entries.filter((e) => e.initiatorType === 'link' && e.name.includes('.css'));
-        const totalSize = cssEntries.reduce((sum, entry) => sum + (entry.transferSize || 0), 0);
-
-        return {
-          count: cssEntries.length,
-          bytes: totalSize,
-          kb: Math.round(totalSize / 1024),
-        };
-      });
+      const entries = await this.getResourceTimings();
+      const cssEntries = entries.filter((e) => e.initiatorType === 'link' && e.name.includes('.css'));
+      const totalSize = cssEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
+      const cssSize = { count: cssEntries.length, ...formatBytes(totalSize) };
 
       if (cssSize.bytes > 100 * 1024) { // > 100KB
         return this.fail(`CSS size is large (${cssSize.kb}KB, ${cssSize.count} files). Consider minification`, cssSize);
@@ -180,21 +166,13 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkImageSize(): Promise<CheckOutcome> {
     try {
-      const imageSize = await this.page.evaluate(() => {
-        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-        const imageEntries = entries.filter((e) =>
-          e.initiatorType === 'img' ||
-          e.name.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)(\?|$)/i)
-        );
-        const totalSize = imageEntries.reduce((sum, entry) => sum + (entry.transferSize || 0), 0);
-
-        return {
-          count: imageEntries.length,
-          bytes: totalSize,
-          kb: Math.round(totalSize / 1024),
-          mb: (totalSize / 1024 / 1024).toFixed(2),
-        };
-      });
+      const entries = await this.getResourceTimings();
+      const imageEntries = entries.filter((e) =>
+        e.initiatorType === 'img' ||
+        e.name.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)(\?|$)/i)
+      );
+      const totalSize = imageEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
+      const imageSize = { count: imageEntries.length, ...formatBytes(totalSize) };
 
       if (imageSize.bytes > 2 * 1024 * 1024) { // > 2MB
         return this.fail(`Images size is large (${imageSize.mb}MB, ${imageSize.count} images). Optimize images`, imageSize);
@@ -208,20 +186,20 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkFontLoading(): Promise<CheckOutcome> {
     try {
-      const fontData = await this.page.evaluate(() => {
-        const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-        const fontEntries = entries.filter((e) =>
-          e.initiatorType === 'css' && e.name.match(/\.(woff|woff2|ttf|otf|eot)(\?|$)/i)
-        );
+      const entries = await this.getResourceTimings();
+      const fontEntries = entries.filter((e) =>
+        e.initiatorType === 'css' && e.name.match(/\.(woff|woff2|ttf|otf|eot)(\?|$)/i)
+      );
 
-        const links = Array.from(document.querySelectorAll('link[rel="preload"][as="font"]'));
+      const preloadedFonts = await this.page.evaluate(
+        () => document.querySelectorAll('link[rel="preload"][as="font"]').length
+      );
 
-        return {
-          fontCount: fontEntries.length,
-          preloadedFonts: links.length,
-          hasPreload: links.length > 0,
-        };
-      });
+      const fontData = {
+        fontCount: fontEntries.length,
+        preloadedFonts,
+        hasPreload: preloadedFonts > 0,
+      };
 
       if (fontData.fontCount > 5) {
         return this.fail(`Too many font files (${fontData.fontCount}). Consider limiting to 2-3`, fontData);
@@ -290,20 +268,20 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkLazyLoadImplementation(): Promise<CheckOutcome> {
     try {
-      const lazyData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
+      const images = await this.page.evaluate(extractImages);
+      const iframeData = await this.page.evaluate(() => {
         const iframes = Array.from(document.querySelectorAll('iframe'));
-
-        const lazyImages = images.filter((img) => img.loading === 'lazy');
-        const lazyIframes = iframes.filter((iframe) => iframe.loading === 'lazy');
-
-        return {
-          totalImages: images.length,
-          totalIframes: iframes.length,
-          lazyImages: lazyImages.length,
-          lazyIframes: lazyIframes.length,
-        };
+        return { total: iframes.length, lazy: iframes.filter((f) => f.loading === 'lazy').length };
       });
+
+      const lazyImages = images.filter((img) => img.loadingValue === 'lazy');
+
+      const lazyData = {
+        totalImages: images.length,
+        totalIframes: iframeData.total,
+        lazyImages: lazyImages.length,
+        lazyIframes: iframeData.lazy,
+      };
 
       const totalMedia = lazyData.totalImages + lazyData.totalIframes;
       const lazyMedia = lazyData.lazyImages + lazyData.lazyIframes;

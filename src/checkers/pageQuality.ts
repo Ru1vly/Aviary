@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractJsonLdBlocks } from './shared/dom';
 
 export class PageQualityChecker extends BaseChecker {
   protected checks() {
@@ -167,26 +168,21 @@ export class PageQualityChecker extends BaseChecker {
 
   private async checkAuthorInfo(): Promise<CheckOutcome> {
     try {
-      const authorData = await this.page.evaluate(() => {
+      const domAuthorData = await this.page.evaluate(() => {
         const authorMeta = document.querySelector('meta[name="author"]')?.getAttribute('content');
         const articleAuthor = document.querySelector('[rel="author"]');
-        const schemaAuthor = Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
-          .some((script) => {
-            try {
-              const data = JSON.parse(script.textContent || '{}');
-              return data.author || data.creator;
-            } catch {
-              return false;
-            }
-          });
-
-        return {
-          hasAuthorMeta: !!authorMeta,
-          hasAuthorLink: !!articleAuthor,
-          hasSchemaAuthor: schemaAuthor,
-          authorMeta,
-        };
+        return { authorMeta, hasAuthorLink: !!articleAuthor };
       });
+
+      const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
+      const hasSchemaAuthor = jsonLdScripts.some((data: any) => data.author || data.creator);
+
+      const authorData = {
+        hasAuthorMeta: !!domAuthorData.authorMeta,
+        hasAuthorLink: domAuthorData.hasAuthorLink,
+        hasSchemaAuthor,
+        authorMeta: domAuthorData.authorMeta,
+      };
 
       const hasAuthorInfo = authorData.hasAuthorMeta || authorData.hasAuthorLink || authorData.hasSchemaAuthor;
 

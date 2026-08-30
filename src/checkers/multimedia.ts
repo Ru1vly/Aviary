@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractJsonLdBlocks } from './shared/dom';
 
 export class MultimediaChecker extends BaseChecker {
   protected checks() {
@@ -206,24 +207,16 @@ export class MultimediaChecker extends BaseChecker {
 
   private async checkVideoSchema(): Promise<CheckOutcome> {
     try {
-      const schemaData = await this.page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-        const hasVideoSchema = scripts.some((script) => {
-          try {
-            const data = JSON.parse(script.textContent || '{}');
-            return data['@type'] === 'VideoObject' || data['@type']?.includes('Video');
-          } catch {
-            return false;
-          }
-        });
+      const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
+      const hasVideoSchema = jsonLdScripts.some(
+        (data: any) => data['@type'] === 'VideoObject' || data['@type']?.includes('Video')
+      );
 
-        const videos = document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]').length;
+      const videoCount = await this.page.evaluate(
+        () => document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]').length
+      );
 
-        return {
-          hasVideoSchema,
-          videoCount: videos,
-        };
-      });
+      const schemaData = { hasVideoSchema, videoCount };
 
       if (schemaData.videoCount > 0 && !schemaData.hasVideoSchema) {
         return this.fail('Videos found but no VideoObject schema (recommended for rich results)', schemaData);

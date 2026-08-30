@@ -1,6 +1,16 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractImages, ImageData } from './shared/dom';
 
 export class AdvancedImagesChecker extends BaseChecker {
+  private imagesPromise?: Promise<ImageData[]>;
+
+  private getImages(): Promise<ImageData[]> {
+    if (!this.imagesPromise) {
+      this.imagesPromise = this.page.evaluate(extractImages);
+    }
+    return this.imagesPromise;
+  }
+
   protected checks() {
     return [
       { id: 'image-formats-modern', run: () => this.checkImageFormats() },
@@ -18,60 +28,55 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkImageFormats(): Promise<CheckOutcome> {
     try {
-      const formatData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        const formats: Record<string, number> = {};
+      const images = await this.getImages();
+      const formats: Record<string, number> = {};
 
-        images.forEach((img) => {
-          const src = img.src || '';
-          let ext = 'unknown';
+      images.forEach((img) => {
+        const src = img.src || '';
+        let ext = 'unknown';
 
-          try {
-            const url = new URL(src);
-            const pathname = url.pathname;
+        try {
+          const url = new URL(src);
+          const pathname = url.pathname;
 
-            // Check for common CDN patterns (dynamic image generation services)
-            const cdnPatterns = [
-              'placehold.co',
-              'placeholder.com',
-              'via.placeholder.com',
-              'dummyimage.com',
-              'picsum.photos',
-              'loremflickr.com',
-            ];
+          // Check for common CDN patterns (dynamic image generation services)
+          const cdnPatterns = [
+            'placehold.co',
+            'placeholder.com',
+            'via.placeholder.com',
+            'dummyimage.com',
+            'picsum.photos',
+            'loremflickr.com',
+          ];
 
-            const isCDN = cdnPatterns.some(pattern => url.hostname.includes(pattern));
+          const isCDN = cdnPatterns.some((pattern) => url.hostname.includes(pattern));
 
-            if (isCDN) {
-              ext = 'dynamic';
-            } else {
-              // Extract file extension from pathname
-              const parts = pathname.split('.');
-              if (parts.length > 1) {
-                // Get the last part and remove any query parameters
-                const lastPart = parts[parts.length - 1].split('?')[0].split('#')[0];
-                // Only use if it looks like a valid extension (2-4 characters)
-                if (lastPart && lastPart.length >= 2 && lastPart.length <= 4 && /^[a-z0-9]+$/i.test(lastPart)) {
-                  ext = lastPart.toLowerCase();
-                }
+          if (isCDN) {
+            ext = 'dynamic';
+          } else {
+            // Extract file extension from pathname
+            const parts = pathname.split('.');
+            if (parts.length > 1) {
+              // Get the last part and remove any query parameters
+              const lastPart = parts[parts.length - 1].split('?')[0].split('#')[0];
+              // Only use if it looks like a valid extension (2-4 characters)
+              if (lastPart && lastPart.length >= 2 && lastPart.length <= 4 && /^[a-z0-9]+$/i.test(lastPart)) {
+                ext = lastPart.toLowerCase();
               }
             }
-          } catch (e) {
-            // If URL parsing fails, try simple extension extraction as fallback
-            const match = src.match(/\.([a-z0-9]{2,4})(?:[?#]|$)/i);
-            if (match) {
-              ext = match[1].toLowerCase();
-            }
           }
+        } catch (e) {
+          // If URL parsing fails, try simple extension extraction as fallback
+          const match = src.match(/\.([a-z0-9]{2,4})(?:[?#]|$)/i);
+          if (match) {
+            ext = match[1].toLowerCase();
+          }
+        }
 
-          formats[ext] = (formats[ext] || 0) + 1;
-        });
-
-        return {
-          totalImages: images.length,
-          formats,
-        };
+        formats[ext] = (formats[ext] || 0) + 1;
       });
+
+      const formatData = { totalImages: images.length, formats };
 
       const oldFormats = ['bmp', 'tiff', 'tif'];
       const hasOldFormats = Object.keys(formatData.formats).some((fmt: string) => oldFormats.includes(fmt));
@@ -81,7 +86,7 @@ export class AdvancedImagesChecker extends BaseChecker {
       }
 
       // Filter out 'unknown' and 'dynamic' for the display message
-      const knownFormats = Object.keys(formatData.formats).filter(f => f !== 'unknown' && f !== 'dynamic');
+      const knownFormats = Object.keys(formatData.formats).filter((f) => f !== 'unknown' && f !== 'dynamic');
       const displayFormats = knownFormats.length > 0 ? knownFormats.join(', ') : 'various formats';
 
       return this.pass(`Images use modern formats (${displayFormats})`, formatData);
@@ -92,18 +97,16 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkResponsiveImages(): Promise<CheckOutcome> {
     try {
-      const responsiveData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        const withSrcset = images.filter((img) => img.hasAttribute('srcset'));
-        const inPicture = images.filter((img) => img.closest('picture'));
+      const images = await this.getImages();
+      const withSrcset = images.filter((img) => img.hasSrcset);
+      const inPicture = images.filter((img) => img.inPicture);
 
-        return {
-          totalImages: images.length,
-          withSrcset: withSrcset.length,
-          inPicture: inPicture.length,
-          responsiveCount: withSrcset.length + inPicture.length,
-        };
-      });
+      const responsiveData = {
+        totalImages: images.length,
+        withSrcset: withSrcset.length,
+        inPicture: inPicture.length,
+        responsiveCount: withSrcset.length + inPicture.length,
+      };
 
       const responsivePercentage = responsiveData.totalImages > 0
         ? (responsiveData.responsiveCount / responsiveData.totalImages) * 100
@@ -129,17 +132,15 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkLazyLoading(): Promise<CheckOutcome> {
     try {
-      const lazyData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        const withLoading = images.filter((img) => img.hasAttribute('loading'));
-        const lazyLoaded = images.filter((img) => img.getAttribute('loading') === 'lazy');
+      const images = await this.getImages();
+      const withLoading = images.filter((img) => img.hasLoading);
+      const lazyLoaded = images.filter((img) => img.loadingValue === 'lazy');
 
-        return {
-          totalImages: images.length,
-          withLoading: withLoading.length,
-          lazyLoaded: lazyLoaded.length,
-        };
-      });
+      const lazyData = {
+        totalImages: images.length,
+        withLoading: withLoading.length,
+        lazyLoaded: lazyLoaded.length,
+      };
 
       if (lazyData.totalImages > 10 && lazyData.lazyLoaded === 0) {
         return this.fail('No lazy loading on images (consider adding loading="lazy" for performance)', lazyData);
@@ -158,15 +159,13 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkImageDimensions(): Promise<CheckOutcome> {
     try {
-      const dimensionData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        const withoutDimensions = images.filter((img) => !img.hasAttribute('width') || !img.hasAttribute('height'));
+      const images = await this.getImages();
+      const withoutDimensions = images.filter((img) => !img.hasWidth || !img.hasHeight);
 
-        return {
-          totalImages: images.length,
-          withoutDimensions: withoutDimensions.length,
-        };
-      });
+      const dimensionData = {
+        totalImages: images.length,
+        withoutDimensions: withoutDimensions.length,
+      };
 
       if (dimensionData.withoutDimensions > 3) {
         return this.fail(
@@ -183,15 +182,13 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkImageTitles(): Promise<CheckOutcome> {
     try {
-      const titleData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        const withTitles = images.filter((img) => img.hasAttribute('title') && img.getAttribute('title')?.trim());
+      const images = await this.getImages();
+      const withTitles = images.filter((img) => img.title && img.title.trim());
 
-        return {
-          totalImages: images.length,
-          withTitles: withTitles.length,
-        };
-      });
+      const titleData = {
+        totalImages: images.length,
+        withTitles: withTitles.length,
+      };
 
       return this.pass(
         titleData.withTitles > 0
@@ -206,19 +203,13 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkDecorativeImages(): Promise<CheckOutcome> {
     try {
-      const decorativeData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        const decorative = images.filter((img) => {
-          const alt = img.getAttribute('alt');
-          const role = img.getAttribute('role');
-          return alt === '' || role === 'presentation' || role === 'none';
-        });
+      const images = await this.getImages();
+      const decorative = images.filter((img) => img.alt === '' || img.role === 'presentation' || img.role === 'none');
 
-        return {
-          totalImages: images.length,
-          decorativeCount: decorative.length,
-        };
-      });
+      const decorativeData = {
+        totalImages: images.length,
+        decorativeCount: decorative.length,
+      };
 
       return this.pass(
         decorativeData.decorativeCount > 0
@@ -260,20 +251,16 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkImageSrcset(): Promise<CheckOutcome> {
     try {
-      const srcsetData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img[srcset]'));
-        const srcsetSizes = images.map((img) => {
-          const srcset = img.getAttribute('srcset') || '';
-          return srcset.split(',').length;
-        });
+      const images = await this.getImages();
+      const withSrcset = images.filter((img) => img.hasSrcset);
+      const srcsetSizes = withSrcset.map((img) => (img.srcsetValue || '').split(',').length);
 
-        return {
-          imagesWithSrcset: images.length,
-          avgSrcsetSizes: srcsetSizes.length > 0
-            ? srcsetSizes.reduce((a: number, b: number) => a + b, 0) / srcsetSizes.length
-            : 0,
-        };
-      });
+      const srcsetData = {
+        imagesWithSrcset: withSrcset.length,
+        avgSrcsetSizes: srcsetSizes.length > 0
+          ? srcsetSizes.reduce((a: number, b: number) => a + b, 0) / srcsetSizes.length
+          : 0,
+      };
 
       return this.pass(
         srcsetData.imagesWithSrcset > 0
@@ -288,6 +275,9 @@ export class AdvancedImagesChecker extends BaseChecker {
 
   private async checkWebPSupport(): Promise<CheckOutcome> {
     try {
+      const images = await this.getImages();
+      const imgWebP = images.filter((img) => img.src.toLowerCase().endsWith('.webp'));
+
       const webpData = await this.page.evaluate(() => {
         const pictures = Array.from(document.querySelectorAll('picture'));
         const withWebP = pictures.filter((pic) => {
@@ -295,22 +285,18 @@ export class AdvancedImagesChecker extends BaseChecker {
           return sources.some((source) => source.getAttribute('type') === 'image/webp');
         });
 
-        const imgWebP = Array.from(document.querySelectorAll('img')).filter((img) =>
-          img.src.toLowerCase().endsWith('.webp')
-        );
-
         return {
           totalPictures: pictures.length,
           withWebP: withWebP.length,
-          directWebP: imgWebP.length,
         };
       });
 
-      const hasWebP = webpData.withWebP > 0 || webpData.directWebP > 0;
+      const combined = { ...webpData, directWebP: imgWebP.length };
+      const hasWebP = combined.withWebP > 0 || combined.directWebP > 0;
 
       return this.pass(
         hasWebP ? 'WebP format in use (excellent for performance)' : 'No WebP images (consider for better compression)',
-        webpData
+        combined
       );
     } catch (error) {
       return this.pass('WebP support check skipped');
@@ -320,27 +306,25 @@ export class AdvancedImagesChecker extends BaseChecker {
   private async checkImageCompression(): Promise<CheckOutcome> {
     try {
       // This is a simplified check - we can't actually measure compression without downloading
-      const compressionData = await this.page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
+      const images = await this.getImages();
 
-        // Check for query parameters that might indicate optimization services
-        const optimized = images.filter((img) => {
-          const src = img.src || '';
-          return (
-            src.includes('?w=') ||
-            src.includes('?quality=') ||
-            src.includes('?q=') ||
-            src.includes('cloudinary') ||
-            src.includes('imgix') ||
-            src.includes('imagekit')
-          );
-        });
-
-        return {
-          totalImages: images.length,
-          possiblyOptimized: optimized.length,
-        };
+      // Check for query parameters that might indicate optimization services
+      const optimized = images.filter((img) => {
+        const src = img.src || '';
+        return (
+          src.includes('?w=') ||
+          src.includes('?quality=') ||
+          src.includes('?q=') ||
+          src.includes('cloudinary') ||
+          src.includes('imgix') ||
+          src.includes('imagekit')
+        );
       });
+
+      const compressionData = {
+        totalImages: images.length,
+        possiblyOptimized: optimized.length,
+      };
 
       return this.pass(
         compressionData.possiblyOptimized > 0
