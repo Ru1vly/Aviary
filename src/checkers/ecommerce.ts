@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class EcommerceChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkProductSchema());
-    results.push(await this.checkPriceDisplay());
-    results.push(await this.checkAvailability());
-    results.push(await this.checkReviewsRatings());
-    results.push(await this.checkAddToCartButton());
-    results.push(await this.checkProductImages());
-    results.push(await this.checkProductDescription());
-    results.push(await this.checkSKUIdentifier());
-    results.push(await this.checkBrandInformation());
-    results.push(await this.checkShippingInformation());
-    results.push(await this.checkReturnPolicy());
-    results.push(await this.checkPaymentMethods());
-    results.push(await this.checkSecureCheckout());
-    results.push(await this.checkWishlistFunctionality());
-    results.push(await this.checkRelatedProducts());
-
-    return results;
+export class EcommerceChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'product-schema-complete', run: () => this.checkProductSchema() },
+      { id: 'price-display-clear', run: () => this.checkPriceDisplay() },
+      { id: 'availability-info-present', run: () => this.checkAvailability() },
+      { id: 'reviews-ratings-schema-present', run: () => this.checkReviewsRatings() },
+      { id: 'add-to-cart-present', run: () => this.checkAddToCartButton() },
+      { id: 'product-images-adequate', run: () => this.checkProductImages() },
+      { id: 'product-description-present', run: () => this.checkProductDescription() },
+      { id: 'sku-identifier-present', run: () => this.checkSKUIdentifier() },
+      { id: 'brand-information-present', run: () => this.checkBrandInformation() },
+      { id: 'shipping-information-present', run: () => this.checkShippingInformation() },
+      { id: 'return-policy-present', run: () => this.checkReturnPolicy() },
+      { id: 'payment-methods-visible', run: () => this.checkPaymentMethods() },
+      { id: 'secure-checkout-indicators', run: () => this.checkSecureCheckout() },
+      { id: 'wishlist-functionality-present', run: () => this.checkWishlistFunctionality() },
+      { id: 'related-products-present', run: () => this.checkRelatedProducts() },
+    ];
   }
 
-  private async checkProductSchema(): Promise<SEOCheckResult> {
+  private async checkProductSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -59,10 +54,7 @@ export class EcommerceChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No Product schema (not an e-commerce product page)',
-        };
+        return this.pass('No Product schema (not an e-commerce product page)');
       }
 
       const issues: string[] = [];
@@ -74,27 +66,16 @@ export class EcommerceChecker {
       if (!schemaData.hasBrand) issues.push('missing brand');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Product schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`Product schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'Product schema fully configured with all required fields',
-        details: schemaData,
-      };
+      return this.pass('Product schema fully configured with all required fields', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Product schema check skipped',
-      };
+      return this.pass('Product schema check skipped');
     }
   }
 
-  private async checkPriceDisplay(): Promise<SEOCheckResult> {
+  private async checkPriceDisplay(): Promise<CheckOutcome> {
     try {
       const priceData = await this.page.evaluate(() => {
         const priceSelectors = [
@@ -126,10 +107,7 @@ export class EcommerceChecker {
       });
 
       if (priceData.priceElements === 0) {
-        return {
-          passed: true,
-          message: 'No price elements found (not an e-commerce page)',
-        };
+        return this.pass('No price elements found (not an e-commerce page)');
       }
 
       const issues: string[] = [];
@@ -137,27 +115,16 @@ export class EcommerceChecker {
       if (!priceData.hasDecimal) issues.push('decimal pricing unclear');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Price display issues: ${issues.join(', ')}`,
-          details: priceData,
-        };
+        return this.fail(`Price display issues: ${issues.join(', ')}`, priceData);
       }
 
-      return {
-        passed: true,
-        message: `Price displayed clearly with currency (${priceData.priceElements} price element(s))`,
-        details: priceData,
-      };
+      return this.pass(`Price displayed clearly with currency (${priceData.priceElements} price element(s))`, priceData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Price display check skipped',
-      };
+      return this.pass('Price display check skipped');
     }
   }
 
-  private async checkAvailability(): Promise<SEOCheckResult> {
+  private async checkAvailability(): Promise<CheckOutcome> {
     try {
       const availabilityData = await this.page.evaluate(() => {
         const availabilityKeywords = [
@@ -177,26 +144,16 @@ export class EcommerceChecker {
       });
 
       if (!availabilityData.hasAvailability && availabilityData.availabilityElements === 0) {
-        return {
-          passed: true,
-          message: 'No availability information (not an e-commerce product page)',
-        };
+        return this.pass('No availability information (not an e-commerce product page)');
       }
 
-      return {
-        passed: true,
-        message: 'Product availability information present',
-        details: availabilityData,
-      };
+      return this.pass('Product availability information present', availabilityData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Availability check skipped',
-      };
+      return this.pass('Availability check skipped');
     }
   }
 
-  private async checkReviewsRatings(): Promise<SEOCheckResult> {
+  private async checkReviewsRatings(): Promise<CheckOutcome> {
     try {
       const reviewData = await this.page.evaluate(() => {
         const reviewElements = Array.from(document.querySelectorAll('[class*="review"], [class*="rating"], [id*="review"]'));
@@ -216,34 +173,20 @@ export class EcommerceChecker {
       });
 
       if (reviewData.reviewElements === 0 && reviewData.starRatings === 0) {
-        return {
-          passed: true,
-          message: 'No reviews/ratings (not required but recommended for products)',
-        };
+        return this.pass('No reviews/ratings (not required but recommended for products)');
       }
 
       if (!reviewData.hasAggregateRating) {
-        return {
-          passed: false,
-          message: 'Reviews present but missing AggregateRating schema',
-          details: reviewData,
-        };
+        return this.fail('Reviews present but missing AggregateRating schema', reviewData);
       }
 
-      return {
-        passed: true,
-        message: 'Reviews and ratings with proper schema markup',
-        details: reviewData,
-      };
+      return this.pass('Reviews and ratings with proper schema markup', reviewData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Reviews/ratings check skipped',
-      };
+      return this.pass('Reviews/ratings check skipped');
     }
   }
 
-  private async checkAddToCartButton(): Promise<SEOCheckResult> {
+  private async checkAddToCartButton(): Promise<CheckOutcome> {
     try {
       const cartData = await this.page.evaluate(() => {
         const cartButtons = Array.from(document.querySelectorAll('button, a, input[type="submit"]')).filter((el) => {
@@ -261,26 +204,16 @@ export class EcommerceChecker {
       });
 
       if (cartData.cartButtons === 0) {
-        return {
-          passed: true,
-          message: 'No "Add to Cart" button (not an e-commerce product page)',
-        };
+        return this.pass('No "Add to Cart" button (not an e-commerce product page)');
       }
 
-      return {
-        passed: true,
-        message: `Add to cart functionality present (${cartData.cartButtons} button(s))`,
-        details: cartData,
-      };
+      return this.pass(`Add to cart functionality present (${cartData.cartButtons} button(s))`, cartData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Add to cart check skipped',
-      };
+      return this.pass('Add to cart check skipped');
     }
   }
 
-  private async checkProductImages(): Promise<SEOCheckResult> {
+  private async checkProductImages(): Promise<CheckOutcome> {
     try {
       const imageData = await this.page.evaluate(() => {
         const productImages = Array.from(document.querySelectorAll('[class*="product"] img, [id*="product"] img'));
@@ -300,10 +233,7 @@ export class EcommerceChecker {
       });
 
       if (imageData.productImages === 0) {
-        return {
-          passed: true,
-          message: 'No product images found',
-        };
+        return this.pass('No product images found');
       }
 
       const issues: string[] = [];
@@ -317,27 +247,16 @@ export class EcommerceChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Product image issues: ${issues.join(', ')}`,
-          details: imageData,
-        };
+        return this.fail(`Product image issues: ${issues.join(', ')}`, imageData);
       }
 
-      return {
-        passed: true,
-        message: `${imageData.productImages} product images with proper alt text`,
-        details: imageData,
-      };
+      return this.pass(`${imageData.productImages} product images with proper alt text`, imageData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Product images check skipped',
-      };
+      return this.pass('Product images check skipped');
     }
   }
 
-  private async checkProductDescription(): Promise<SEOCheckResult> {
+  private async checkProductDescription(): Promise<CheckOutcome> {
     try {
       const descriptionData = await this.page.evaluate(() => {
         const descriptionSelectors = [
@@ -365,34 +284,20 @@ export class EcommerceChecker {
       });
 
       if (descriptionData.descriptions === 0) {
-        return {
-          passed: false,
-          message: 'No product description found (required for SEO)',
-        };
+        return this.fail('No product description found (required for SEO)');
       }
 
       if (!descriptionData.hasLongDescription) {
-        return {
-          passed: false,
-          message: `Product description too short (${descriptionData.totalLength} chars, recommended: 200+)`,
-          details: descriptionData,
-        };
+        return this.fail(`Product description too short (${descriptionData.totalLength} chars, recommended: 200+)`, descriptionData);
       }
 
-      return {
-        passed: true,
-        message: `Product description present (${descriptionData.totalLength} chars)`,
-        details: descriptionData,
-      };
+      return this.pass(`Product description present (${descriptionData.totalLength} chars)`, descriptionData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Product description check skipped',
-      };
+      return this.pass('Product description check skipped');
     }
   }
 
-  private async checkSKUIdentifier(): Promise<SEOCheckResult> {
+  private async checkSKUIdentifier(): Promise<CheckOutcome> {
     try {
       const skuData = await this.page.evaluate(() => {
         const bodyText = document.body.textContent || '';
@@ -408,26 +313,16 @@ export class EcommerceChecker {
       });
 
       if (!skuData.hasSKU && skuData.skuElements === 0) {
-        return {
-          passed: true,
-          message: 'No SKU identifier (recommended for product tracking)',
-        };
+        return this.pass('No SKU identifier (recommended for product tracking)');
       }
 
-      return {
-        passed: true,
-        message: 'SKU/Product identifier present',
-        details: skuData,
-      };
+      return this.pass('SKU/Product identifier present', skuData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'SKU identifier check skipped',
-      };
+      return this.pass('SKU identifier check skipped');
     }
   }
 
-  private async checkBrandInformation(): Promise<SEOCheckResult> {
+  private async checkBrandInformation(): Promise<CheckOutcome> {
     try {
       const brandData = await this.page.evaluate(() => {
         const brandElements = Array.from(document.querySelectorAll('[class*="brand"], [id*="brand"], [itemprop="brand"]'));
@@ -442,27 +337,16 @@ export class EcommerceChecker {
       });
 
       if (brandData.brandElements === 0 && !brandData.hasBrandMention) {
-        return {
-          passed: false,
-          message: 'No brand information (recommended for product credibility)',
-          details: brandData,
-        };
+        return this.fail('No brand information (recommended for product credibility)', brandData);
       }
 
-      return {
-        passed: true,
-        message: 'Brand information present',
-        details: brandData,
-      };
+      return this.pass('Brand information present', brandData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Brand information check skipped',
-      };
+      return this.pass('Brand information check skipped');
     }
   }
 
-  private async checkShippingInformation(): Promise<SEOCheckResult> {
+  private async checkShippingInformation(): Promise<CheckOutcome> {
     try {
       const shippingData = await this.page.evaluate(() => {
         const shippingKeywords = ['shipping', 'delivery', 'free shipping', 'shipping cost'];
@@ -479,26 +363,16 @@ export class EcommerceChecker {
       });
 
       if (!shippingData.hasShipping && shippingData.shippingElements === 0) {
-        return {
-          passed: true,
-          message: 'No shipping information (recommended for e-commerce)',
-        };
+        return this.pass('No shipping information (recommended for e-commerce)');
       }
 
-      return {
-        passed: true,
-        message: 'Shipping information available',
-        details: shippingData,
-      };
+      return this.pass('Shipping information available', shippingData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Shipping information check skipped',
-      };
+      return this.pass('Shipping information check skipped');
     }
   }
 
-  private async checkReturnPolicy(): Promise<SEOCheckResult> {
+  private async checkReturnPolicy(): Promise<CheckOutcome> {
     try {
       const returnData = await this.page.evaluate(() => {
         const returnLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -516,28 +390,19 @@ export class EcommerceChecker {
       });
 
       if (returnData.returnLinks === 0 && !returnData.hasReturnMention) {
-        return {
-          passed: true,
-          message: 'No return policy information (required for e-commerce)',
-        };
+        return this.pass('No return policy information (required for e-commerce)');
       }
 
-      return {
-        passed: true,
-        message: returnData.returnLinks > 0
-          ? 'Return policy link present'
-          : 'Return policy mentioned',
-        details: returnData,
-      };
+      return this.pass(
+        returnData.returnLinks > 0 ? 'Return policy link present' : 'Return policy mentioned',
+        returnData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Return policy check skipped',
-      };
+      return this.pass('Return policy check skipped');
     }
   }
 
-  private async checkPaymentMethods(): Promise<SEOCheckResult> {
+  private async checkPaymentMethods(): Promise<CheckOutcome> {
     try {
       const paymentData = await this.page.evaluate(() => {
         const paymentKeywords = ['visa', 'mastercard', 'paypal', 'amex', 'discover', 'payment'];
@@ -554,28 +419,21 @@ export class EcommerceChecker {
       });
 
       if (!paymentData.hasPaymentMention && paymentData.paymentIcons === 0) {
-        return {
-          passed: true,
-          message: 'No payment method information visible',
-        };
+        return this.pass('No payment method information visible');
       }
 
-      return {
-        passed: true,
-        message: paymentData.paymentIcons > 0
+      return this.pass(
+        paymentData.paymentIcons > 0
           ? `${paymentData.paymentIcons} payment method icon(s) displayed`
           : 'Payment methods mentioned',
-        details: paymentData,
-      };
+        paymentData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Payment methods check skipped',
-      };
+      return this.pass('Payment methods check skipped');
     }
   }
 
-  private async checkSecureCheckout(): Promise<SEOCheckResult> {
+  private async checkSecureCheckout(): Promise<CheckOutcome> {
     try {
       const securityData = await this.page.evaluate(() => {
         const securityKeywords = ['secure checkout', 'ssl', 'encrypted', 'secure payment'];
@@ -595,35 +453,20 @@ export class EcommerceChecker {
       });
 
       if (!securityData.isHTTPS) {
-        return {
-          passed: false,
-          message: 'Not using HTTPS (critical for e-commerce)',
-          details: securityData,
-        };
+        return this.fail('Not using HTTPS (critical for e-commerce)', securityData);
       }
 
       if (!securityData.hasSecurityMention && securityData.securityBadges === 0) {
-        return {
-          passed: false,
-          message: 'No security indicators visible (recommended for trust)',
-          details: securityData,
-        };
+        return this.fail('No security indicators visible (recommended for trust)', securityData);
       }
 
-      return {
-        passed: true,
-        message: 'Secure checkout indicators present with HTTPS',
-        details: securityData,
-      };
+      return this.pass('Secure checkout indicators present with HTTPS', securityData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Secure checkout check skipped',
-      };
+      return this.pass('Secure checkout check skipped');
     }
   }
 
-  private async checkWishlistFunctionality(): Promise<SEOCheckResult> {
+  private async checkWishlistFunctionality(): Promise<CheckOutcome> {
     try {
       const wishlistData = await this.page.evaluate(() => {
         const wishlistButtons = Array.from(document.querySelectorAll('button, a')).filter((el) => {
@@ -642,26 +485,16 @@ export class EcommerceChecker {
       });
 
       if (!wishlistData.hasWishlist) {
-        return {
-          passed: true,
-          message: 'No wishlist functionality (optional but improves UX)',
-        };
+        return this.pass('No wishlist functionality (optional but improves UX)');
       }
 
-      return {
-        passed: true,
-        message: 'Wishlist/favorites functionality available',
-        details: wishlistData,
-      };
+      return this.pass('Wishlist/favorites functionality available', wishlistData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Wishlist functionality check skipped',
-      };
+      return this.pass('Wishlist functionality check skipped');
     }
   }
 
-  private async checkRelatedProducts(): Promise<SEOCheckResult> {
+  private async checkRelatedProducts(): Promise<CheckOutcome> {
     try {
       const relatedData = await this.page.evaluate(() => {
         const relatedSections = Array.from(document.querySelectorAll('[class*="related"], [class*="recommend"], [id*="related"]'));
@@ -676,22 +509,12 @@ export class EcommerceChecker {
       });
 
       if (!relatedData.hasRelated) {
-        return {
-          passed: true,
-          message: 'No related products section (recommended for cross-selling)',
-        };
+        return this.pass('No related products section (recommended for cross-selling)');
       }
 
-      return {
-        passed: true,
-        message: `Related products section with ${relatedData.relatedProducts} items`,
-        details: relatedData,
-      };
+      return this.pass(`Related products section with ${relatedData.relatedProducts} items`, relatedData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Related products check skipped',
-      };
+      return this.pass('Related products check skipped');
     }
   }
 }

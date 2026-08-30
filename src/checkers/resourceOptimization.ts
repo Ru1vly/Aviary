@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class ResourceOptimizationChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkMinification());
-    results.push(await this.checkResourceCombining());
-    results.push(await this.checkCDNUsage());
-    results.push(await this.checkImageFormats());
-    results.push(await this.checkFontOptimization());
-    results.push(await this.checkCSSOptimization());
-    results.push(await this.checkJavaScriptOptimization());
-    results.push(await this.checkResourceHints());
-    results.push(await this.checkCriticalResources());
-    results.push(await this.checkThirdPartyResources());
-    results.push(await this.checkResourceCaching());
-    results.push(await this.checkInlineResources());
-    results.push(await this.checkUnusedResources());
-    results.push(await this.checkResourcePriority());
-    results.push(await this.checkHTTP2Support());
-
-    return results;
+export class ResourceOptimizationChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'minification-adequate', run: () => this.checkMinification() },
+      { id: 'resource-combining-adequate', run: () => this.checkResourceCombining() },
+      { id: 'cdn-usage-present', run: () => this.checkCDNUsage() },
+      { id: 'modern-image-formats-used', run: () => this.checkImageFormats() },
+      { id: 'font-optimization-adequate', run: () => this.checkFontOptimization() },
+      { id: 'css-optimization-adequate', run: () => this.checkCSSOptimization() },
+      { id: 'javascript-optimization-adequate', run: () => this.checkJavaScriptOptimization() },
+      { id: 'resource-hints-present', run: () => this.checkResourceHints() },
+      { id: 'critical-resources-optimized', run: () => this.checkCriticalResources() },
+      { id: 'third-party-resources-limited', run: () => this.checkThirdPartyResources() },
+      { id: 'resource-caching-present', run: () => this.checkResourceCaching() },
+      { id: 'inline-resources-acceptable', run: () => this.checkInlineResources() },
+      { id: 'no-duplicate-resources', run: () => this.checkUnusedResources() },
+      { id: 'resource-priority-configured', run: () => this.checkResourcePriority() },
+      { id: 'http2-support-detected', run: () => this.checkHTTP2Support() },
+    ];
   }
 
-  private async checkMinification(): Promise<SEOCheckResult> {
+  private async checkMinification(): Promise<CheckOutcome> {
     try {
       const minificationData = await this.page.evaluate(() => {
         // Check for minified resources by looking for .min. in filenames
@@ -53,27 +48,22 @@ export class ResourceOptimizationChecker {
         : 100;
 
       if (scriptMinificationRate < 50 || styleMinificationRate < 50) {
-        return {
-          passed: false,
-          message: `Low minification rate (JS: ${scriptMinificationRate.toFixed(0)}%, CSS: ${styleMinificationRate.toFixed(0)}%)`,
-          details: minificationData,
-        };
+        return this.fail(
+          `Low minification rate (JS: ${scriptMinificationRate.toFixed(0)}%, CSS: ${styleMinificationRate.toFixed(0)}%)`,
+          minificationData
+        );
       }
 
-      return {
-        passed: true,
-        message: `Resources appear minified (JS: ${scriptMinificationRate.toFixed(0)}%, CSS: ${styleMinificationRate.toFixed(0)}%)`,
-        details: minificationData,
-      };
+      return this.pass(
+        `Resources appear minified (JS: ${scriptMinificationRate.toFixed(0)}%, CSS: ${styleMinificationRate.toFixed(0)}%)`,
+        minificationData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Minification check skipped',
-      };
+      return this.pass('Minification check skipped');
     }
   }
 
-  private async checkResourceCombining(): Promise<SEOCheckResult> {
+  private async checkResourceCombining(): Promise<CheckOutcome> {
     try {
       const combiningData = await this.page.evaluate(() => {
         const scripts = document.querySelectorAll('script[src]');
@@ -96,27 +86,19 @@ export class ResourceOptimizationChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Resource combining issues: ${issues.join(', ')}`,
-          details: combiningData,
-        };
+        return this.fail(`Resource combining issues: ${issues.join(', ')}`, combiningData);
       }
 
-      return {
-        passed: true,
-        message: `Resources well-bundled (${combiningData.scriptCount} JS, ${combiningData.stylesheetCount} CSS)`,
-        details: combiningData,
-      };
+      return this.pass(
+        `Resources well-bundled (${combiningData.scriptCount} JS, ${combiningData.stylesheetCount} CSS)`,
+        combiningData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Resource combining check skipped',
-      };
+      return this.pass('Resource combining check skipped');
     }
   }
 
-  private async checkCDNUsage(): Promise<SEOCheckResult> {
+  private async checkCDNUsage(): Promise<CheckOutcome> {
     try {
       const cdnData = await this.page.evaluate(() => {
         const cdnDomains = [
@@ -149,29 +131,18 @@ export class ResourceOptimizationChecker {
       });
 
       if (!cdnData.usingCDN) {
-        return {
-          passed: false,
-          message: 'No CDN usage detected (consider using CDN for better performance)',
-          details: cdnData,
-        };
+        return this.fail('No CDN usage detected (consider using CDN for better performance)', cdnData);
       }
 
       const cdnRate = (cdnData.cdnResources / cdnData.totalResources) * 100;
 
-      return {
-        passed: true,
-        message: `CDN in use (${cdnRate.toFixed(0)}% of resources)`,
-        details: cdnData,
-      };
+      return this.pass(`CDN in use (${cdnRate.toFixed(0)}% of resources)`, cdnData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'CDN usage check skipped',
-      };
+      return this.pass('CDN usage check skipped');
     }
   }
 
-  private async checkImageFormats(): Promise<SEOCheckResult> {
+  private async checkImageFormats(): Promise<CheckOutcome> {
     try {
       const formatData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img[src]')) as HTMLImageElement[];
@@ -196,38 +167,25 @@ export class ResourceOptimizationChecker {
       });
 
       if (formatData.totalImages === 0) {
-        return {
-          passed: true,
-          message: 'No images to check',
-        };
+        return this.pass('No images to check');
       }
 
       const modernRate = (formatData.modernCount / formatData.totalImages) * 100;
 
       if (modernRate < 50 && formatData.totalImages > 5) {
-        return {
-          passed: false,
-          message: `Only ${modernRate.toFixed(0)}% of images use modern formats (WebP/AVIF)`,
-          details: formatData,
-        };
+        return this.fail(`Only ${modernRate.toFixed(0)}% of images use modern formats (WebP/AVIF)`, formatData);
       }
 
-      return {
-        passed: true,
-        message: modernRate > 0
-          ? `${modernRate.toFixed(0)}% of images use modern formats`
-          : 'Image formats acceptable',
-        details: formatData,
-      };
+      return this.pass(
+        modernRate > 0 ? `${modernRate.toFixed(0)}% of images use modern formats` : 'Image formats acceptable',
+        formatData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Image format check skipped',
-      };
+      return this.pass('Image format check skipped');
     }
   }
 
-  private async checkFontOptimization(): Promise<SEOCheckResult> {
+  private async checkFontOptimization(): Promise<CheckOutcome> {
     try {
       const fontData = await this.page.evaluate(() => {
         const fontLinks = Array.from(document.querySelectorAll('link[rel*="font"], link[href*="fonts"]')) as HTMLLinkElement[];
@@ -254,10 +212,7 @@ export class ResourceOptimizationChecker {
       });
 
       if (fontData.fontLinks === 0) {
-        return {
-          passed: true,
-          message: 'No external fonts detected',
-        };
+        return this.pass('No external fonts detected');
       }
 
       const issues: string[] = [];
@@ -271,27 +226,16 @@ export class ResourceOptimizationChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Font optimization issues: ${issues.join(', ')}`,
-          details: fontData,
-        };
+        return this.fail(`Font optimization issues: ${issues.join(', ')}`, fontData);
       }
 
-      return {
-        passed: true,
-        message: `${fontData.fontLinks} fonts optimized with preload and font-display`,
-        details: fontData,
-      };
+      return this.pass(`${fontData.fontLinks} fonts optimized with preload and font-display`, fontData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Font optimization check skipped',
-      };
+      return this.pass('Font optimization check skipped');
     }
   }
 
-  private async checkCSSOptimization(): Promise<SEOCheckResult> {
+  private async checkCSSOptimization(): Promise<CheckOutcome> {
     try {
       const cssData = await this.page.evaluate(() => {
         const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
@@ -307,30 +251,23 @@ export class ResourceOptimizationChecker {
       });
 
       if (cssData.totalStylesheets === 0) {
-        return {
-          passed: true,
-          message: 'No external stylesheets',
-        };
+        return this.pass('No external stylesheets');
       }
 
       const hasCriticalCSS = cssData.inlineStyles > 0;
 
-      return {
-        passed: true,
-        message: hasCriticalCSS
+      return this.pass(
+        hasCriticalCSS
           ? `CSS optimized with ${cssData.inlineStyles} inline critical styles`
           : `${cssData.totalStylesheets} external stylesheets (consider critical CSS)`,
-        details: cssData,
-      };
+        cssData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'CSS optimization check skipped',
-      };
+      return this.pass('CSS optimization check skipped');
     }
   }
 
-  private async checkJavaScriptOptimization(): Promise<SEOCheckResult> {
+  private async checkJavaScriptOptimization(): Promise<CheckOutcome> {
     try {
       const jsData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
@@ -350,36 +287,22 @@ export class ResourceOptimizationChecker {
       });
 
       if (jsData.totalScripts === 0) {
-        return {
-          passed: true,
-          message: 'No external scripts',
-        };
+        return this.pass('No external scripts');
       }
 
       const optimizationRate = (jsData.optimizedScripts / jsData.totalScripts) * 100;
 
       if (optimizationRate < 50) {
-        return {
-          passed: false,
-          message: `Only ${optimizationRate.toFixed(0)}% of scripts use async/defer (blocks rendering)`,
-          details: jsData,
-        };
+        return this.fail(`Only ${optimizationRate.toFixed(0)}% of scripts use async/defer (blocks rendering)`, jsData);
       }
 
-      return {
-        passed: true,
-        message: `${optimizationRate.toFixed(0)}% of scripts optimized with async/defer`,
-        details: jsData,
-      };
+      return this.pass(`${optimizationRate.toFixed(0)}% of scripts optimized with async/defer`, jsData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'JavaScript optimization check skipped',
-      };
+      return this.pass('JavaScript optimization check skipped');
     }
   }
 
-  private async checkResourceHints(): Promise<SEOCheckResult> {
+  private async checkResourceHints(): Promise<CheckOutcome> {
     try {
       const hintsData = await this.page.evaluate(() => {
         const preconnect = document.querySelectorAll('link[rel="preconnect"]');
@@ -397,27 +320,16 @@ export class ResourceOptimizationChecker {
       });
 
       if (hintsData.total === 0) {
-        return {
-          passed: false,
-          message: 'No resource hints (preconnect, dns-prefetch, preload, prefetch)',
-          details: hintsData,
-        };
+        return this.fail('No resource hints (preconnect, dns-prefetch, preload, prefetch)', hintsData);
       }
 
-      return {
-        passed: true,
-        message: `Resource hints in use (${hintsData.preload} preload, ${hintsData.preconnect} preconnect)`,
-        details: hintsData,
-      };
+      return this.pass(`Resource hints in use (${hintsData.preload} preload, ${hintsData.preconnect} preconnect)`, hintsData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Resource hints check skipped',
-      };
+      return this.pass('Resource hints check skipped');
     }
   }
 
-  private async checkCriticalResources(): Promise<SEOCheckResult> {
+  private async checkCriticalResources(): Promise<CheckOutcome> {
     try {
       const criticalData = await this.page.evaluate(() => {
         const criticalCSS = Array.from(document.querySelectorAll('style')).some((style) =>
@@ -435,27 +347,16 @@ export class ResourceOptimizationChecker {
       });
 
       if (!criticalData.hasCriticalCSS && criticalData.preloadedResources === 0) {
-        return {
-          passed: false,
-          message: 'No critical resource optimization detected',
-          details: criticalData,
-        };
+        return this.fail('No critical resource optimization detected', criticalData);
       }
 
-      return {
-        passed: true,
-        message: 'Critical resources optimized',
-        details: criticalData,
-      };
+      return this.pass('Critical resources optimized', criticalData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Critical resources check skipped',
-      };
+      return this.pass('Critical resources check skipped');
     }
   }
 
-  private async checkThirdPartyResources(): Promise<SEOCheckResult> {
+  private async checkThirdPartyResources(): Promise<CheckOutcome> {
     try {
       const thirdPartyData = await this.page.evaluate(() => {
         const currentDomain = window.location.hostname;
@@ -493,27 +394,16 @@ export class ResourceOptimizationChecker {
         (thirdPartyData.totalScripts + thirdPartyData.totalStyles)) * 100;
 
       if (thirdPartyRate > 50) {
-        return {
-          passed: false,
-          message: `High third-party resource usage (${thirdPartyRate.toFixed(0)}%) may impact performance`,
-          details: thirdPartyData,
-        };
+        return this.fail(`High third-party resource usage (${thirdPartyRate.toFixed(0)}%) may impact performance`, thirdPartyData);
       }
 
-      return {
-        passed: true,
-        message: `Third-party resources: ${thirdPartyRate.toFixed(0)}% of total`,
-        details: thirdPartyData,
-      };
+      return this.pass(`Third-party resources: ${thirdPartyRate.toFixed(0)}% of total`, thirdPartyData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Third-party resources check skipped',
-      };
+      return this.pass('Third-party resources check skipped');
     }
   }
 
-  private async checkResourceCaching(): Promise<SEOCheckResult> {
+  private async checkResourceCaching(): Promise<CheckOutcome> {
     try {
       // This check is limited - we can only check for cache-busting patterns
       const cachingData = await this.page.evaluate(() => {
@@ -540,28 +430,21 @@ export class ResourceOptimizationChecker {
       });
 
       if (cachingData.totalResources === 0) {
-        return {
-          passed: true,
-          message: 'No resources to check for caching',
-        };
+        return this.pass('No resources to check for caching');
       }
 
-      return {
-        passed: true,
-        message: cachingData.cacheRate > 50
+      return this.pass(
+        cachingData.cacheRate > 50
           ? `${cachingData.cacheRate.toFixed(0)}% of resources use cache-busting`
           : 'Limited cache-busting detected (check server cache headers)',
-        details: cachingData,
-      };
+        cachingData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Resource caching check skipped',
-      };
+      return this.pass('Resource caching check skipped');
     }
   }
 
-  private async checkInlineResources(): Promise<SEOCheckResult> {
+  private async checkInlineResources(): Promise<CheckOutcome> {
     try {
       const inlineData = await this.page.evaluate(() => {
         const inlineScripts = Array.from(document.querySelectorAll('script:not([src])')).filter(
@@ -585,29 +468,21 @@ export class ResourceOptimizationChecker {
       });
 
       if (inlineData.totalInlineSize > 50000) {
-        return {
-          passed: false,
-          message: `Large inline resources (${inlineData.totalInlineSizeKB}KB) - consider externalizing`,
-          details: inlineData,
-        };
+        return this.fail(`Large inline resources (${inlineData.totalInlineSizeKB}KB) - consider externalizing`, inlineData);
       }
 
-      return {
-        passed: true,
-        message: inlineData.totalInlineSize > 0
+      return this.pass(
+        inlineData.totalInlineSize > 0
           ? `Inline resources: ${inlineData.totalInlineSizeKB}KB (acceptable)`
           : 'No inline resources',
-        details: inlineData,
-      };
+        inlineData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Inline resources check skipped',
-      };
+      return this.pass('Inline resources check skipped');
     }
   }
 
-  private async checkUnusedResources(): Promise<SEOCheckResult> {
+  private async checkUnusedResources(): Promise<CheckOutcome> {
     try {
       const unusedData = await this.page.evaluate(() => {
         // This is a simplified check - we look for resources that might be unused
@@ -630,27 +505,19 @@ export class ResourceOptimizationChecker {
       });
 
       if (unusedData.duplicateScripts > 0 || unusedData.duplicateStyles > 0) {
-        return {
-          passed: false,
-          message: `Duplicate resources detected (${unusedData.duplicateScripts} JS, ${unusedData.duplicateStyles} CSS)`,
-          details: unusedData,
-        };
+        return this.fail(
+          `Duplicate resources detected (${unusedData.duplicateScripts} JS, ${unusedData.duplicateStyles} CSS)`,
+          unusedData
+        );
       }
 
-      return {
-        passed: true,
-        message: 'No duplicate resources detected',
-        details: unusedData,
-      };
+      return this.pass('No duplicate resources detected', unusedData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Unused resources check skipped',
-      };
+      return this.pass('Unused resources check skipped');
     }
   }
 
-  private async checkResourcePriority(): Promise<SEOCheckResult> {
+  private async checkResourcePriority(): Promise<CheckOutcome> {
     try {
       const priorityData = await this.page.evaluate(() => {
         const highPriorityResources = document.querySelectorAll('link[rel="preload"], link[rel="preconnect"]');
@@ -667,27 +534,19 @@ export class ResourceOptimizationChecker {
       });
 
       if (!priorityData.hasPrioritization) {
-        return {
-          passed: false,
-          message: 'No resource prioritization (use preload, prefetch, async, defer)',
-          details: priorityData,
-        };
+        return this.fail('No resource prioritization (use preload, prefetch, async, defer)', priorityData);
       }
 
-      return {
-        passed: true,
-        message: `Resource prioritization in place (${priorityData.highPriority} high, ${priorityData.lowPriority} low priority)`,
-        details: priorityData,
-      };
+      return this.pass(
+        `Resource prioritization in place (${priorityData.highPriority} high, ${priorityData.lowPriority} low priority)`,
+        priorityData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Resource priority check skipped',
-      };
+      return this.pass('Resource priority check skipped');
     }
   }
 
-  private async checkHTTP2Support(): Promise<SEOCheckResult> {
+  private async checkHTTP2Support(): Promise<CheckOutcome> {
     try {
       const http2Data = await this.page.evaluate(() => {
         // Check if resources are loaded via HTTP/2 by examining performance entries
@@ -706,23 +565,12 @@ export class ResourceOptimizationChecker {
       });
 
       if (!http2Data.supportsHTTP2) {
-        return {
-          passed: false,
-          message: 'No HTTP/2 support detected (upgrade server for better performance)',
-          details: http2Data,
-        };
+        return this.fail('No HTTP/2 support detected (upgrade server for better performance)', http2Data);
       }
 
-      return {
-        passed: true,
-        message: `HTTP/2 in use (${http2Data.http2Rate.toFixed(0)}% of resources)`,
-        details: http2Data,
-      };
+      return this.pass(`HTTP/2 in use (${http2Data.http2Rate.toFixed(0)}% of resources)`, http2Data);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'HTTP/2 support check skipped',
-      };
+      return this.pass('HTTP/2 support check skipped');
     }
   }
 }

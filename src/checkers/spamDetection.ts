@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class SpamDetectionChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkHiddenText());
-    results.push(await this.checkKeywordStuffing());
-    results.push(await this.checkExcessiveLinks());
-    results.push(await this.checkSuspiciousScripts());
-    results.push(await this.checkIframes());
-    results.push(await this.checkInvisibleElements());
-    results.push(await this.checkTextToLinkRatio());
-    results.push(await this.checkRepetitiveContent());
-    results.push(await this.checkSuspiciousRedirects());
-    results.push(await this.checkCloaking());
-    results.push(await this.checkAdultContent());
-    results.push(await this.checkSpamKeywords());
-    results.push(await this.checkOutgoingLinkQuality());
-    results.push(await this.checkMetaRefresh());
-    results.push(await this.checkTinyText());
-
-    return results;
+export class SpamDetectionChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'hidden-text-absent', run: () => this.checkHiddenText() },
+      { id: 'keyword-stuffing-absent', run: () => this.checkKeywordStuffing() },
+      { id: 'excessive-links-absent', run: () => this.checkExcessiveLinks() },
+      { id: 'suspicious-scripts-absent', run: () => this.checkSuspiciousScripts() },
+      { id: 'iframes-acceptable', run: () => this.checkIframes() },
+      { id: 'invisible-elements-absent', run: () => this.checkInvisibleElements() },
+      { id: 'text-to-link-ratio-healthy', run: () => this.checkTextToLinkRatio() },
+      { id: 'repetitive-content-absent', run: () => this.checkRepetitiveContent() },
+      { id: 'suspicious-redirects-absent', run: () => this.checkSuspiciousRedirects() },
+      { id: 'cloaking-absent', run: () => this.checkCloaking() },
+      { id: 'adult-content-absent', run: () => this.checkAdultContent() },
+      { id: 'spam-keywords-absent', run: () => this.checkSpamKeywords() },
+      { id: 'outgoing-link-quality-good', run: () => this.checkOutgoingLinkQuality() },
+      { id: 'meta-refresh-safe', run: () => this.checkMetaRefresh() },
+      { id: 'tiny-text-absent', run: () => this.checkTinyText() },
+    ];
   }
 
-  private async checkHiddenText(): Promise<SEOCheckResult> {
+  private async checkHiddenText(): Promise<CheckOutcome> {
     try {
       const hiddenTextData = await this.page.evaluate(() => {
         const allElements = Array.from(document.body.querySelectorAll('*'));
@@ -118,29 +113,16 @@ export class SpamDetectionChecker {
       });
 
       if (hiddenTextData.count > 0) {
-        return {
-          passed: false,
-          message: `Found ${hiddenTextData.count} elements with hidden text (potential spam technique)`,
-          details: hiddenTextData,
-        };
+        return this.fail(`Found ${hiddenTextData.count} elements with hidden text (potential spam technique)`, hiddenTextData);
       }
 
-      return {
-        passed: true,
-        message: 'No hidden text detected',
-      };
+      return this.pass('No hidden text detected');
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Hidden text check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Hidden text check skipped due to error' };
     }
   }
 
-  private async checkKeywordStuffing(): Promise<SEOCheckResult> {
+  private async checkKeywordStuffing(): Promise<CheckOutcome> {
     try {
       const content = await this.page.evaluate(() => {
         return document.body.innerText || '';
@@ -162,29 +144,19 @@ export class SpamDetectionChecker {
         .map(([word, count]) => ({ word, count, percentage: ((count / totalWords) * 100).toFixed(2) }));
 
       if (stuffedWords.length > 0) {
-        return {
-          passed: false,
-          message: `Possible keyword stuffing detected (${stuffedWords.length} over-used words)`,
-          details: { stuffedWords: stuffedWords.slice(0, 5), totalWords },
-        };
+        return this.fail(`Possible keyword stuffing detected (${stuffedWords.length} over-used words)`, {
+          stuffedWords: stuffedWords.slice(0, 5),
+          totalWords,
+        });
       }
 
-      return {
-        passed: true,
-        message: 'No keyword stuffing detected',
-      };
+      return this.pass('No keyword stuffing detected');
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Keyword stuffing check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Keyword stuffing check skipped due to error' };
     }
   }
 
-  private async checkExcessiveLinks(): Promise<SEOCheckResult> {
+  private async checkExcessiveLinks(): Promise<CheckOutcome> {
     try {
       const linkData = await this.page.evaluate(() => {
         const links = document.querySelectorAll('a[href]');
@@ -200,39 +172,21 @@ export class SpamDetectionChecker {
 
       // Google recommends fewer than 100 links per page
       if (linkData.linkCount > 100) {
-        return {
-          passed: false,
-          message: `Excessive links detected (${linkData.linkCount}). Recommended: under 100`,
-          details: linkData,
-        };
+        return this.fail(`Excessive links detected (${linkData.linkCount}). Recommended: under 100`, linkData);
       }
 
       // Check if too many links relative to content
       if (linkData.ratio > 0.1) {
-        return {
-          passed: false,
-          message: `High link-to-content ratio (${(linkData.ratio * 100).toFixed(1)}%)`,
-          details: linkData,
-        };
+        return this.fail(`High link-to-content ratio (${(linkData.ratio * 100).toFixed(1)}%)`, linkData);
       }
 
-      return {
-        passed: true,
-        message: `Appropriate number of links (${linkData.linkCount})`,
-        details: linkData,
-      };
+      return this.pass(`Appropriate number of links (${linkData.linkCount})`, linkData);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Excessive links check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Excessive links check skipped due to error' };
     }
   }
 
-  private async checkSuspiciousScripts(): Promise<SEOCheckResult> {
+  private async checkSuspiciousScripts(): Promise<CheckOutcome> {
     try {
       const scriptData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script'));
@@ -257,30 +211,16 @@ export class SpamDetectionChecker {
       });
 
       if (scriptData.suspiciousCount > 0) {
-        return {
-          passed: false,
-          message: `Found ${scriptData.suspiciousCount} suspicious scripts (potential malware/spam)`,
-          details: scriptData,
-        };
+        return this.fail(`Found ${scriptData.suspiciousCount} suspicious scripts (potential malware/spam)`, scriptData);
       }
 
-      return {
-        passed: true,
-        message: 'No suspicious scripts detected',
-        details: scriptData,
-      };
+      return this.pass('No suspicious scripts detected', scriptData);
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Suspicious scripts check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Suspicious scripts check skipped due to error' };
     }
   }
 
-  private async checkIframes(): Promise<SEOCheckResult> {
+  private async checkIframes(): Promise<CheckOutcome> {
     try {
       const iframeData = await this.page.evaluate(() => {
         const iframes = Array.from(document.querySelectorAll('iframe'));
@@ -302,38 +242,23 @@ export class SpamDetectionChecker {
       });
 
       if (iframeData.hiddenIframes > 0) {
-        return {
-          passed: false,
-          message: `Found ${iframeData.hiddenIframes} hidden iframes (spam technique)`,
-          details: iframeData,
-        };
+        return this.fail(`Found ${iframeData.hiddenIframes} hidden iframes (spam technique)`, iframeData);
       }
 
       if (iframeData.totalIframes > 5) {
-        return {
-          passed: false,
-          message: `Many iframes detected (${iframeData.totalIframes}). Review for necessity`,
-          details: iframeData,
-        };
+        return this.fail(`Many iframes detected (${iframeData.totalIframes}). Review for necessity`, iframeData);
       }
 
-      return {
-        passed: true,
-        message: iframeData.totalIframes === 0 ? 'No iframes found' : `${iframeData.totalIframes} iframes (acceptable)`,
-        details: iframeData,
-      };
+      return this.pass(
+        iframeData.totalIframes === 0 ? 'No iframes found' : `${iframeData.totalIframes} iframes (acceptable)`,
+        iframeData
+      );
     } catch (error) {
-      return {
-        passed: false,
-
-        severity: 'info',
-
-        message: 'Iframes check skipped due to error',
-      };
+      return { passed: false, severity: 'info', message: 'Iframes check skipped due to error' };
     }
   }
 
-  private async checkInvisibleElements(): Promise<SEOCheckResult> {
+  private async checkInvisibleElements(): Promise<CheckOutcome> {
     try {
       const invisibleData = await this.page.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('div, span, p'));
@@ -353,26 +278,16 @@ export class SpamDetectionChecker {
       });
 
       if (invisibleData.count > 3) {
-        return {
-          passed: false,
-          message: `Found ${invisibleData.count} invisible elements with content`,
-          details: invisibleData,
-        };
+        return this.fail(`Found ${invisibleData.count} invisible elements with content`, invisibleData);
       }
 
-      return {
-        passed: true,
-        message: 'No suspicious invisible elements',
-      };
+      return this.pass('No suspicious invisible elements');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Invisible elements check skipped',
-      };
+      return this.pass('Invisible elements check skipped');
     }
   }
 
-  private async checkTextToLinkRatio(): Promise<SEOCheckResult> {
+  private async checkTextToLinkRatio(): Promise<CheckOutcome> {
     try {
       const ratio = await this.page.evaluate(() => {
         const textContent = document.body.innerText?.length || 0;
@@ -387,27 +302,16 @@ export class SpamDetectionChecker {
       });
 
       if (ratio.ratio > 0.6) {
-        return {
-          passed: false,
-          message: `Very high link text ratio (${(ratio.ratio * 100).toFixed(1)}%)`,
-          details: ratio,
-        };
+        return this.fail(`Very high link text ratio (${(ratio.ratio * 100).toFixed(1)}%)`, ratio);
       }
 
-      return {
-        passed: true,
-        message: `Healthy text-to-link ratio (${(ratio.ratio * 100).toFixed(1)}%)`,
-        details: ratio,
-      };
+      return this.pass(`Healthy text-to-link ratio (${(ratio.ratio * 100).toFixed(1)}%)`, ratio);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Text-to-link ratio check skipped',
-      };
+      return this.pass('Text-to-link ratio check skipped');
     }
   }
 
-  private async checkRepetitiveContent(): Promise<SEOCheckResult> {
+  private async checkRepetitiveContent(): Promise<CheckOutcome> {
     try {
       const repetition = await this.page.evaluate(() => {
         const paragraphs = Array.from(document.querySelectorAll('p'))
@@ -425,26 +329,16 @@ export class SpamDetectionChecker {
       });
 
       if (repetition.duplicates > 2) {
-        return {
-          passed: false,
-          message: `Found ${repetition.duplicates} duplicate paragraphs`,
-          details: repetition,
-        };
+        return this.fail(`Found ${repetition.duplicates} duplicate paragraphs`, repetition);
       }
 
-      return {
-        passed: true,
-        message: 'No significant content repetition detected',
-      };
+      return this.pass('No significant content repetition detected');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Repetitive content check skipped',
-      };
+      return this.pass('Repetitive content check skipped');
     }
   }
 
-  private async checkSuspiciousRedirects(): Promise<SEOCheckResult> {
+  private async checkSuspiciousRedirects(): Promise<CheckOutcome> {
     try {
       const redirectData = await this.page.evaluate(() => {
         const metaRefresh = document.querySelector('meta[http-equiv="refresh"]');
@@ -476,26 +370,16 @@ export class SpamDetectionChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Suspicious redirects: ${issues.join(', ')}`,
-          details: redirectData,
-        };
+        return this.fail(`Suspicious redirects: ${issues.join(', ')}`, redirectData);
       }
 
-      return {
-        passed: true,
-        message: 'No suspicious redirects detected',
-      };
+      return this.pass('No suspicious redirects detected');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Redirect check skipped',
-      };
+      return this.pass('Redirect check skipped');
     }
   }
 
-  private async checkCloaking(): Promise<SEOCheckResult> {
+  private async checkCloaking(): Promise<CheckOutcome> {
     try {
       const cloakingIndicators = await this.page.evaluate(() => {
         const userAgentChecks = Array.from(document.querySelectorAll('script'))
@@ -511,26 +395,16 @@ export class SpamDetectionChecker {
       });
 
       if (cloakingIndicators.hasUserAgentChecks) {
-        return {
-          passed: false,
-          message: 'Potential cloaking detected (user-agent checks in scripts)',
-          details: cloakingIndicators,
-        };
+        return this.fail('Potential cloaking detected (user-agent checks in scripts)', cloakingIndicators);
       }
 
-      return {
-        passed: true,
-        message: 'No cloaking indicators detected',
-      };
+      return this.pass('No cloaking indicators detected');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Cloaking check skipped',
-      };
+      return this.pass('Cloaking check skipped');
     }
   }
 
-  private async checkAdultContent(): Promise<SEOCheckResult> {
+  private async checkAdultContent(): Promise<CheckOutcome> {
     try {
       const content = await this.page.evaluate(() => {
         return (document.body.textContent || '').toLowerCase();
@@ -541,26 +415,18 @@ export class SpamDetectionChecker {
       const foundKeywords = adultKeywords.filter((keyword: string) => content.includes(keyword));
 
       if (foundKeywords.length > 2) {
-        return {
-          passed: false,
-          message: `Potential adult content keywords detected (${foundKeywords.length} keywords)`,
-          details: { foundKeywords },
-        };
+        return this.fail(`Potential adult content keywords detected (${foundKeywords.length} keywords)`, {
+          foundKeywords,
+        });
       }
 
-      return {
-        passed: true,
-        message: 'No adult content detected',
-      };
+      return this.pass('No adult content detected');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Adult content check skipped',
-      };
+      return this.pass('Adult content check skipped');
     }
   }
 
-  private async checkSpamKeywords(): Promise<SEOCheckResult> {
+  private async checkSpamKeywords(): Promise<CheckOutcome> {
     try {
       const content = await this.page.evaluate(() => {
         return (document.body.textContent || '').toLowerCase();
@@ -573,26 +439,16 @@ export class SpamDetectionChecker {
       });
 
       if (foundKeywords.length > 3) {
-        return {
-          passed: false,
-          message: `Multiple spam keywords detected (${foundKeywords.length} types)`,
-          details: { foundKeywords },
-        };
+        return this.fail(`Multiple spam keywords detected (${foundKeywords.length} types)`, { foundKeywords });
       }
 
-      return {
-        passed: true,
-        message: 'No excessive spam keywords detected',
-      };
+      return this.pass('No excessive spam keywords detected');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Spam keywords check skipped',
-      };
+      return this.pass('Spam keywords check skipped');
     }
   }
 
-  private async checkOutgoingLinkQuality(): Promise<SEOCheckResult> {
+  private async checkOutgoingLinkQuality(): Promise<CheckOutcome> {
     try {
       const linkQuality = await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a[href]'));
@@ -621,27 +477,16 @@ export class SpamDetectionChecker {
       });
 
       if (linkQuality.suspiciousLinks > 0) {
-        return {
-          passed: false,
-          message: `Found ${linkQuality.suspiciousLinks} links to suspicious domains`,
-          details: linkQuality,
-        };
+        return this.fail(`Found ${linkQuality.suspiciousLinks} links to suspicious domains`, linkQuality);
       }
 
-      return {
-        passed: true,
-        message: 'Outgoing links appear legitimate',
-        details: linkQuality,
-      };
+      return this.pass('Outgoing links appear legitimate', linkQuality);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Outgoing link quality check skipped',
-      };
+      return this.pass('Outgoing link quality check skipped');
     }
   }
 
-  private async checkMetaRefresh(): Promise<SEOCheckResult> {
+  private async checkMetaRefresh(): Promise<CheckOutcome> {
     try {
       const metaRefresh = await this.page.evaluate(() => {
         const meta = document.querySelector('meta[http-equiv="refresh"]');
@@ -656,26 +501,16 @@ export class SpamDetectionChecker {
       });
 
       if (metaRefresh.hasMetaRefresh && metaRefresh.delay < 3) {
-        return {
-          passed: false,
-          message: `Fast meta refresh detected (${metaRefresh.delay}s) - spam technique`,
-          details: metaRefresh,
-        };
+        return this.fail(`Fast meta refresh detected (${metaRefresh.delay}s) - spam technique`, metaRefresh);
       }
 
-      return {
-        passed: true,
-        message: 'No problematic meta refresh',
-      };
+      return this.pass('No problematic meta refresh');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Meta refresh check skipped',
-      };
+      return this.pass('Meta refresh check skipped');
     }
   }
 
-  private async checkTinyText(): Promise<SEOCheckResult> {
+  private async checkTinyText(): Promise<CheckOutcome> {
     try {
       const tinyText = await this.page.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('*'));
@@ -693,22 +528,12 @@ export class SpamDetectionChecker {
       });
 
       if (tinyText.count > 0) {
-        return {
-          passed: false,
-          message: `Found ${tinyText.count} elements with tiny text (potential spam)`,
-          details: tinyText,
-        };
+        return this.fail(`Found ${tinyText.count} elements with tiny text (potential spam)`, tinyText);
       }
 
-      return {
-        passed: true,
-        message: 'No tiny text detected',
-      };
+      return this.pass('No tiny text detected');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Tiny text check skipped',
-      };
+      return this.pass('Tiny text check skipped');
     }
   }
 }

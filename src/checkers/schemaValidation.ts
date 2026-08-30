@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class SchemaValidationChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkOrganizationSchema());
-    results.push(await this.checkPersonSchema());
-    results.push(await this.checkProductSchema());
-    results.push(await this.checkArticleSchema());
-    results.push(await this.checkBreadcrumbSchema());
-    results.push(await this.checkFAQSchema());
-    results.push(await this.checkHowToSchema());
-    results.push(await this.checkReviewSchema());
-    results.push(await this.checkEventSchema());
-    results.push(await this.checkLocalBusinessSchema());
-    results.push(await this.checkWebPageSchema());
-    results.push(await this.checkWebSiteSchema());
-    results.push(await this.checkImageObjectSchema());
-    results.push(await this.checkSchemaRequiredFields());
-    results.push(await this.checkSchemaContext());
-
-    return results;
+export class SchemaValidationChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'organization-schema-complete', run: () => this.checkOrganizationSchema() },
+      { id: 'person-schema-complete', run: () => this.checkPersonSchema() },
+      { id: 'product-schema-complete', run: () => this.checkProductSchema() },
+      { id: 'article-schema-complete', run: () => this.checkArticleSchema() },
+      { id: 'breadcrumb-schema-present', run: () => this.checkBreadcrumbSchema() },
+      { id: 'faq-schema-present', run: () => this.checkFAQSchema() },
+      { id: 'howto-schema-complete', run: () => this.checkHowToSchema() },
+      { id: 'review-schema-complete', run: () => this.checkReviewSchema() },
+      { id: 'event-schema-complete', run: () => this.checkEventSchema() },
+      { id: 'local-business-schema-complete', run: () => this.checkLocalBusinessSchema() },
+      { id: 'webpage-schema-present', run: () => this.checkWebPageSchema() },
+      { id: 'website-schema-present', run: () => this.checkWebSiteSchema() },
+      { id: 'image-object-schema-present', run: () => this.checkImageObjectSchema() },
+      { id: 'schema-required-fields-present', run: () => this.checkSchemaRequiredFields() },
+      { id: 'schema-context-valid', run: () => this.checkSchemaContext() },
+    ];
   }
 
-  private async checkOrganizationSchema(): Promise<SEOCheckResult> {
+  private async checkOrganizationSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -54,10 +49,7 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No Organization schema (optional but recommended for businesses)',
-        };
+        return this.pass('No Organization schema (optional but recommended for businesses)');
       }
 
       const issues: string[] = [];
@@ -66,27 +58,16 @@ export class SchemaValidationChecker {
       if (!schemaData.hasLogo) issues.push('missing logo');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Organization schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`Organization schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'Organization schema properly configured',
-        details: schemaData,
-      };
+      return this.pass('Organization schema properly configured', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Organization schema check skipped',
-      };
+      return this.pass('Organization schema check skipped');
     }
   }
 
-  private async checkPersonSchema(): Promise<SEOCheckResult> {
+  private async checkPersonSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -113,37 +94,23 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No Person schema (optional, useful for personal brands)',
-        };
+        return this.pass('No Person schema (optional, useful for personal brands)');
       }
 
       const issues: string[] = [];
       if (!schemaData.hasName) issues.push('missing name');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Person schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`Person schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'Person schema properly configured',
-        details: schemaData,
-      };
+      return this.pass('Person schema properly configured', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Person schema check skipped',
-      };
+      return this.pass('Person schema check skipped');
     }
   }
 
-  private async checkProductSchema(): Promise<SEOCheckResult> {
+  private async checkProductSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -173,10 +140,7 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No Product schema (required for e-commerce pages)',
-        };
+        return this.pass('No Product schema (required for e-commerce pages)');
       }
 
       const issues: string[] = [];
@@ -185,27 +149,16 @@ export class SchemaValidationChecker {
       if (!schemaData.hasOffers) issues.push('missing offers');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Product schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`Product schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'Product schema properly configured',
-        details: schemaData,
-      };
+      return this.pass('Product schema properly configured', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Product schema check skipped',
-      };
+      return this.pass('Product schema check skipped');
     }
   }
 
-  private async checkArticleSchema(): Promise<SEOCheckResult> {
+  private async checkArticleSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -233,10 +186,7 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No Article schema (recommended for blog posts and articles)',
-        };
+        return this.pass('No Article schema (recommended for blog posts and articles)');
       }
 
       const issues: string[] = [];
@@ -247,27 +197,16 @@ export class SchemaValidationChecker {
       if (!schemaData.hasPublisher) issues.push('missing publisher');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Article schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`Article schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'Article schema properly configured',
-        details: schemaData,
-      };
+      return this.pass('Article schema properly configured', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Article schema check skipped',
-      };
+      return this.pass('Article schema check skipped');
     }
   }
 
-  private async checkBreadcrumbSchema(): Promise<SEOCheckResult> {
+  private async checkBreadcrumbSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -292,34 +231,20 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No BreadcrumbList schema (recommended for better navigation)',
-        };
+        return this.pass('No BreadcrumbList schema (recommended for better navigation)');
       }
 
       if (!schemaData.hasItemListElement || schemaData.itemCount === 0) {
-        return {
-          passed: false,
-          message: 'BreadcrumbList schema missing itemListElement',
-          details: schemaData,
-        };
+        return this.fail('BreadcrumbList schema missing itemListElement', schemaData);
       }
 
-      return {
-        passed: true,
-        message: `BreadcrumbList schema with ${schemaData.itemCount} items`,
-        details: schemaData,
-      };
+      return this.pass(`BreadcrumbList schema with ${schemaData.itemCount} items`, schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'BreadcrumbList schema check skipped',
-      };
+      return this.pass('BreadcrumbList schema check skipped');
     }
   }
 
-  private async checkFAQSchema(): Promise<SEOCheckResult> {
+  private async checkFAQSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -344,34 +269,20 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No FAQPage schema (use for FAQ pages to get rich results)',
-        };
+        return this.pass('No FAQPage schema (use for FAQ pages to get rich results)');
       }
 
       if (!schemaData.hasMainEntity || schemaData.questionCount === 0) {
-        return {
-          passed: false,
-          message: 'FAQPage schema missing questions',
-          details: schemaData,
-        };
+        return this.fail('FAQPage schema missing questions', schemaData);
       }
 
-      return {
-        passed: true,
-        message: `FAQPage schema with ${schemaData.questionCount} questions`,
-        details: schemaData,
-      };
+      return this.pass(`FAQPage schema with ${schemaData.questionCount} questions`, schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'FAQPage schema check skipped',
-      };
+      return this.pass('FAQPage schema check skipped');
     }
   }
 
-  private async checkHowToSchema(): Promise<SEOCheckResult> {
+  private async checkHowToSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -397,10 +308,7 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No HowTo schema (use for tutorial/how-to content)',
-        };
+        return this.pass('No HowTo schema (use for tutorial/how-to content)');
       }
 
       const issues: string[] = [];
@@ -408,27 +316,16 @@ export class SchemaValidationChecker {
       if (!schemaData.hasStep) issues.push('missing step');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `HowTo schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`HowTo schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: `HowTo schema with ${schemaData.stepCount} steps`,
-        details: schemaData,
-      };
+      return this.pass(`HowTo schema with ${schemaData.stepCount} steps`, schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'HowTo schema check skipped',
-      };
+      return this.pass('HowTo schema check skipped');
     }
   }
 
-  private async checkReviewSchema(): Promise<SEOCheckResult> {
+  private async checkReviewSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -455,34 +352,20 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No Review schema (use for product/business reviews)',
-        };
+        return this.pass('No Review schema (use for product/business reviews)');
       }
 
       if (schemaData.type === 'Review' && !schemaData.hasAuthor) {
-        return {
-          passed: false,
-          message: 'Review schema missing author',
-          details: schemaData,
-        };
+        return this.fail('Review schema missing author', schemaData);
       }
 
-      return {
-        passed: true,
-        message: `${schemaData.type} schema properly configured`,
-        details: schemaData,
-      };
+      return this.pass(`${schemaData.type} schema properly configured`, schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Review schema check skipped',
-      };
+      return this.pass('Review schema check skipped');
     }
   }
 
-  private async checkEventSchema(): Promise<SEOCheckResult> {
+  private async checkEventSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -508,10 +391,7 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No Event schema (use for event pages)',
-        };
+        return this.pass('No Event schema (use for event pages)');
       }
 
       const issues: string[] = [];
@@ -520,27 +400,16 @@ export class SchemaValidationChecker {
       if (!schemaData.hasLocation) issues.push('missing location');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Event schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`Event schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'Event schema properly configured',
-        details: schemaData,
-      };
+      return this.pass('Event schema properly configured', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Event schema check skipped',
-      };
+      return this.pass('Event schema check skipped');
     }
   }
 
-  private async checkLocalBusinessSchema(): Promise<SEOCheckResult> {
+  private async checkLocalBusinessSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -567,10 +436,7 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No LocalBusiness schema (use for local business pages)',
-        };
+        return this.pass('No LocalBusiness schema (use for local business pages)');
       }
 
       const issues: string[] = [];
@@ -579,27 +445,16 @@ export class SchemaValidationChecker {
       if (!schemaData.hasTelephone) issues.push('missing telephone');
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `LocalBusiness schema incomplete: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`LocalBusiness schema incomplete: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'LocalBusiness schema properly configured',
-        details: schemaData,
-      };
+      return this.pass('LocalBusiness schema properly configured', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'LocalBusiness schema check skipped',
-      };
+      return this.pass('LocalBusiness schema check skipped');
     }
   }
 
-  private async checkWebPageSchema(): Promise<SEOCheckResult> {
+  private async checkWebPageSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -625,26 +480,16 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No WebPage schema (optional)',
-        };
+        return this.pass('No WebPage schema (optional)');
       }
 
-      return {
-        passed: true,
-        message: 'WebPage schema present',
-        details: schemaData,
-      };
+      return this.pass('WebPage schema present', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'WebPage schema check skipped',
-      };
+      return this.pass('WebPage schema check skipped');
     }
   }
 
-  private async checkWebSiteSchema(): Promise<SEOCheckResult> {
+  private async checkWebSiteSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -670,28 +515,19 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No WebSite schema (recommended for homepage)',
-        };
+        return this.pass('No WebSite schema (recommended for homepage)');
       }
 
-      return {
-        passed: true,
-        message: schemaData.hasPotentialAction
-          ? 'WebSite schema with search action'
-          : 'WebSite schema present',
-        details: schemaData,
-      };
+      return this.pass(
+        schemaData.hasPotentialAction ? 'WebSite schema with search action' : 'WebSite schema present',
+        schemaData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'WebSite schema check skipped',
-      };
+      return this.pass('WebSite schema check skipped');
     }
   }
 
-  private async checkImageObjectSchema(): Promise<SEOCheckResult> {
+  private async checkImageObjectSchema(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -712,26 +548,16 @@ export class SchemaValidationChecker {
       });
 
       if (!schemaData.found) {
-        return {
-          passed: true,
-          message: 'No ImageObject schema (optional)',
-        };
+        return this.pass('No ImageObject schema (optional)');
       }
 
-      return {
-        passed: true,
-        message: `${schemaData.count} ImageObject schema(s) present`,
-        details: schemaData,
-      };
+      return this.pass(`${schemaData.count} ImageObject schema(s) present`, schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'ImageObject schema check skipped',
-      };
+      return this.pass('ImageObject schema check skipped');
     }
   }
 
-  private async checkSchemaRequiredFields(): Promise<SEOCheckResult> {
+  private async checkSchemaRequiredFields(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -756,10 +582,7 @@ export class SchemaValidationChecker {
       });
 
       if (schemaData.totalSchemas === 0) {
-        return {
-          passed: true,
-          message: 'No schema markup to validate',
-        };
+        return this.pass('No schema markup to validate');
       }
 
       const issues: string[] = [];
@@ -771,27 +594,16 @@ export class SchemaValidationChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Schema validation issues: ${issues.join(', ')}`,
-          details: schemaData,
-        };
+        return this.fail(`Schema validation issues: ${issues.join(', ')}`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: `All ${schemaData.totalSchemas} schemas have required fields`,
-        details: schemaData,
-      };
+      return this.pass(`All ${schemaData.totalSchemas} schemas have required fields`, schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Schema required fields check skipped',
-      };
+      return this.pass('Schema required fields check skipped');
     }
   }
 
-  private async checkSchemaContext(): Promise<SEOCheckResult> {
+  private async checkSchemaContext(): Promise<CheckOutcome> {
     try {
       const schemaData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -821,30 +633,16 @@ export class SchemaValidationChecker {
       });
 
       if (schemaData.totalSchemas === 0) {
-        return {
-          passed: true,
-          message: 'No schema markup to validate',
-        };
+        return this.pass('No schema markup to validate');
       }
 
       if (schemaData.validContexts < schemaData.totalContexts) {
-        return {
-          passed: false,
-          message: `${schemaData.totalContexts - schemaData.validContexts} schemas with invalid @context`,
-          details: schemaData,
-        };
+        return this.fail(`${schemaData.totalContexts - schemaData.validContexts} schemas with invalid @context`, schemaData);
       }
 
-      return {
-        passed: true,
-        message: 'All schemas use valid schema.org context',
-        details: schemaData,
-      };
+      return this.pass('All schemas use valid schema.org context', schemaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Schema context check skipped',
-      };
+      return this.pass('Schema context check skipped');
     }
   }
 }

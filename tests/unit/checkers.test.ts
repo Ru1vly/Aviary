@@ -407,7 +407,7 @@ describe('SpamDetectionChecker', () => {
     const p = await withContent(`
       <!DOCTYPE html><html><body><p>Normal clean content here.</p></body></html>
     `);
-    const checker = new SpamDetectionChecker(p as Page);
+    const checker = new SpamDetectionChecker({ page: p as Page, checkerKey: 'spamDetection' });
     const results = await checker.checkAll();
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r && 'message' in r)).toBe(true);
@@ -420,7 +420,7 @@ describe('SpamDetectionChecker', () => {
         <p>This is a clean, well-written page about web development best practices.</p>
       </body></html>
     `);
-    const checker = new SpamDetectionChecker(p as Page);
+    const checker = new SpamDetectionChecker({ page: p as Page, checkerKey: 'spamDetection' });
     const results = await checker.checkAll();
     const hiddenTextResult = results[0];
     expect(hiddenTextResult.passed).toBe(true);
@@ -433,7 +433,7 @@ describe('SpamDetectionChecker', () => {
         <p>${(keyword + ' ').repeat(60)}</p>
       </body></html>
     `);
-    const checker = new SpamDetectionChecker(p as Page);
+    const checker = new SpamDetectionChecker({ page: p as Page, checkerKey: 'spamDetection' });
     const results = await checker.checkAll();
     const stuffingResult = results[1]; // checkKeywordStuffing
     expect(stuffingResult.passed).toBe(false);

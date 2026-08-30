@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class InternationalizationChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkHreflangTags());
-    results.push(await this.checkLanguageDeclaration());
-    results.push(await this.checkContentLanguage());
-    results.push(await this.checkAlternateLanguages());
-    results.push(await this.checkRTLSupport());
-    results.push(await this.checkCharsetDeclaration());
-    results.push(await this.checkLanguageSwitcher());
-    results.push(await this.checkLocalizedURLs());
-    results.push(await this.checkCurrencyDisplay());
-    results.push(await this.checkDateTimeFormat());
-    results.push(await this.checkTranslationQuality());
-    results.push(await this.checkMultilingualContent());
-    results.push(await this.checkGeoTargeting());
-    results.push(await this.checkLocalizedMetadata());
-    results.push(await this.checkUnicodeSupport());
-
-    return results;
+export class InternationalizationChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'hreflang-tags-valid', run: () => this.checkHreflangTags() },
+      { id: 'language-declaration-valid', run: () => this.checkLanguageDeclaration() },
+      { id: 'content-language-consistent', run: () => this.checkContentLanguage() },
+      { id: 'alternate-languages-declared', run: () => this.checkAlternateLanguages() },
+      { id: 'rtl-support-configured', run: () => this.checkRTLSupport() },
+      { id: 'charset-utf8', run: () => this.checkCharsetDeclaration() },
+      { id: 'language-switcher-present', run: () => this.checkLanguageSwitcher() },
+      { id: 'localized-urls', run: () => this.checkLocalizedURLs() },
+      { id: 'currency-display-appropriate', run: () => this.checkCurrencyDisplay() },
+      { id: 'datetime-format-valid', run: () => this.checkDateTimeFormat() },
+      { id: 'translation-quality-acceptable', run: () => this.checkTranslationQuality() },
+      { id: 'multilingual-content-detected', run: () => this.checkMultilingualContent() },
+      { id: 'geo-targeting-present', run: () => this.checkGeoTargeting() },
+      { id: 'localized-metadata-present', run: () => this.checkLocalizedMetadata() },
+      { id: 'unicode-support-utf8', run: () => this.checkUnicodeSupport() },
+    ];
   }
 
-  private async checkHreflangTags(): Promise<SEOCheckResult> {
+  private async checkHreflangTags(): Promise<CheckOutcome> {
     try {
       const hreflangData = await this.page.evaluate(() => {
         const hreflangTags = Array.from(document.querySelectorAll('link[rel="alternate"][hreflang]')) as HTMLLinkElement[];
@@ -47,10 +42,7 @@ export class InternationalizationChecker {
       });
 
       if (hreflangData.count === 0) {
-        return {
-          passed: true,
-          message: 'No hreflang tags (not needed for single-language sites)',
-        };
+        return this.pass('No hreflang tags (not needed for single-language sites)');
       }
 
       const issues: string[] = [];
@@ -64,27 +56,16 @@ export class InternationalizationChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Hreflang issues: ${issues.join(', ')}`,
-          details: hreflangData,
-        };
+        return this.fail(`Hreflang issues: ${issues.join(', ')}`, hreflangData);
       }
 
-      return {
-        passed: true,
-        message: `Hreflang properly configured for ${hreflangData.uniqueLanguages} language(s)`,
-        details: hreflangData,
-      };
+      return this.pass(`Hreflang properly configured for ${hreflangData.uniqueLanguages} language(s)`, hreflangData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Hreflang tags check skipped',
-      };
+      return this.pass('Hreflang tags check skipped');
     }
   }
 
-  private async checkLanguageDeclaration(): Promise<SEOCheckResult> {
+  private async checkLanguageDeclaration(): Promise<CheckOutcome> {
     try {
       const langData = await this.page.evaluate(() => {
         const htmlLang = document.documentElement.getAttribute('lang');
@@ -101,35 +82,23 @@ export class InternationalizationChecker {
       });
 
       if (!langData.htmlLang) {
-        return {
-          passed: false,
-          message: 'Missing lang attribute on <html> tag (required for accessibility)',
-          details: langData,
-        };
+        return this.fail('Missing lang attribute on <html> tag (required for accessibility)', langData);
       }
 
       if (!langData.isValid) {
-        return {
-          passed: false,
-          message: `Invalid lang attribute format: "${langData.htmlLang}" (use ISO 639-1 codes like "en" or "en-US")`,
-          details: langData,
-        };
+        return this.fail(
+          `Invalid lang attribute format: "${langData.htmlLang}" (use ISO 639-1 codes like "en" or "en-US")`,
+          langData
+        );
       }
 
-      return {
-        passed: true,
-        message: `Language declared as "${langData.htmlLang}"`,
-        details: langData,
-      };
+      return this.pass(`Language declared as "${langData.htmlLang}"`, langData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Language declaration check skipped',
-      };
+      return this.pass('Language declaration check skipped');
     }
   }
 
-  private async checkContentLanguage(): Promise<SEOCheckResult> {
+  private async checkContentLanguage(): Promise<CheckOutcome> {
     try {
       const contentData = await this.page.evaluate(() => {
         const htmlLang = document.documentElement.getAttribute('lang') || '';
@@ -155,10 +124,7 @@ export class InternationalizationChecker {
       });
 
       if (contentData.textLength === 0) {
-        return {
-          passed: true,
-          message: 'No text content to check',
-        };
+        return this.pass('No text content to check');
       }
 
       const warnings: string[] = [];
@@ -176,27 +142,16 @@ export class InternationalizationChecker {
       }
 
       if (warnings.length > 0) {
-        return {
-          passed: false,
-          message: `Language mismatch: ${warnings.join(', ')}`,
-          details: contentData,
-        };
+        return this.fail(`Language mismatch: ${warnings.join(', ')}`, contentData);
       }
 
-      return {
-        passed: true,
-        message: 'Content language appears consistent with declaration',
-        details: contentData,
-      };
+      return this.pass('Content language appears consistent with declaration', contentData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Content language check skipped',
-      };
+      return this.pass('Content language check skipped');
     }
   }
 
-  private async checkAlternateLanguages(): Promise<SEOCheckResult> {
+  private async checkAlternateLanguages(): Promise<CheckOutcome> {
     try {
       const alternateData = await this.page.evaluate(() => {
         const alternateLangs = Array.from(document.querySelectorAll('link[rel="alternate"][hreflang]')) as HTMLLinkElement[];
@@ -217,26 +172,16 @@ export class InternationalizationChecker {
       });
 
       if (alternateData.count === 0) {
-        return {
-          passed: true,
-          message: 'No alternate language versions declared',
-        };
+        return this.pass('No alternate language versions declared');
       }
 
-      return {
-        passed: true,
-        message: `${alternateData.count} alternate language version(s) declared`,
-        details: alternateData,
-      };
+      return this.pass(`${alternateData.count} alternate language version(s) declared`, alternateData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Alternate languages check skipped',
-      };
+      return this.pass('Alternate languages check skipped');
     }
   }
 
-  private async checkRTLSupport(): Promise<SEOCheckResult> {
+  private async checkRTLSupport(): Promise<CheckOutcome> {
     try {
       const rtlData = await this.page.evaluate(() => {
         const htmlDir = document.documentElement.getAttribute('dir');
@@ -256,34 +201,20 @@ export class InternationalizationChecker {
       });
 
       if (!rtlData.needsRTL) {
-        return {
-          passed: true,
-          message: 'No RTL (right-to-left) language content detected',
-        };
+        return this.pass('No RTL (right-to-left) language content detected');
       }
 
       if (rtlData.htmlDir !== 'rtl' && rtlData.rtlElements === 0) {
-        return {
-          passed: false,
-          message: 'RTL language detected but dir="rtl" attribute not set',
-          details: rtlData,
-        };
+        return this.fail('RTL language detected but dir="rtl" attribute not set', rtlData);
       }
 
-      return {
-        passed: true,
-        message: 'RTL support properly configured',
-        details: rtlData,
-      };
+      return this.pass('RTL support properly configured', rtlData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'RTL support check skipped',
-      };
+      return this.pass('RTL support check skipped');
     }
   }
 
-  private async checkCharsetDeclaration(): Promise<SEOCheckResult> {
+  private async checkCharsetDeclaration(): Promise<CheckOutcome> {
     try {
       const charsetData = await this.page.evaluate(() => {
         const metaCharset = document.querySelector('meta[charset]');
@@ -300,35 +231,20 @@ export class InternationalizationChecker {
       });
 
       if (!charsetData.hasCharset) {
-        return {
-          passed: false,
-          message: 'Missing charset declaration (should be UTF-8)',
-          details: charsetData,
-        };
+        return this.fail('Missing charset declaration (should be UTF-8)', charsetData);
       }
 
       if (!charsetData.isUTF8) {
-        return {
-          passed: false,
-          message: `Charset is "${charsetData.charset}" (UTF-8 recommended for international sites)`,
-          details: charsetData,
-        };
+        return this.fail(`Charset is "${charsetData.charset}" (UTF-8 recommended for international sites)`, charsetData);
       }
 
-      return {
-        passed: true,
-        message: 'Charset properly set to UTF-8',
-        details: charsetData,
-      };
+      return this.pass('Charset properly set to UTF-8', charsetData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Charset declaration check skipped',
-      };
+      return this.pass('Charset declaration check skipped');
     }
   }
 
-  private async checkLanguageSwitcher(): Promise<SEOCheckResult> {
+  private async checkLanguageSwitcher(): Promise<CheckOutcome> {
     try {
       const switcherData = await this.page.evaluate(() => {
         const langSwitchers = Array.from(document.querySelectorAll('[class*="lang"], [class*="language"], [id*="lang"]')).filter((el) => {
@@ -353,34 +269,20 @@ export class InternationalizationChecker {
       });
 
       if (hreflangCount > 1 && !switcherData.hasLanguageSwitcher) {
-        return {
-          passed: false,
-          message: 'Multiple languages available but no visible language switcher',
-          details: switcherData,
-        };
+        return this.fail('Multiple languages available but no visible language switcher', switcherData);
       }
 
       if (!switcherData.hasLanguageSwitcher) {
-        return {
-          passed: true,
-          message: 'No language switcher (not needed for single-language sites)',
-        };
+        return this.pass('No language switcher (not needed for single-language sites)');
       }
 
-      return {
-        passed: true,
-        message: 'Language switcher available',
-        details: switcherData,
-      };
+      return this.pass('Language switcher available', switcherData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Language switcher check skipped',
-      };
+      return this.pass('Language switcher check skipped');
     }
   }
 
-  private async checkLocalizedURLs(): Promise<SEOCheckResult> {
+  private async checkLocalizedURLs(): Promise<CheckOutcome> {
     try {
       const urlData = await this.page.evaluate(() => {
         const currentUrl = window.location.href;
@@ -405,37 +307,23 @@ export class InternationalizationChecker {
       });
 
       if (hreflangCount > 1 && !urlData.hasLocalization) {
-        return {
-          passed: false,
-          message: 'Multiple languages but URLs not localized (use subdomain, path, or parameter)',
-          details: urlData,
-        };
+        return this.fail('Multiple languages but URLs not localized (use subdomain, path, or parameter)', urlData);
       }
 
       if (!urlData.hasLocalization) {
-        return {
-          passed: true,
-          message: 'Single language site, no URL localization needed',
-        };
+        return this.pass('Single language site, no URL localization needed');
       }
 
       const method = urlData.hasLangSubdomain ? 'subdomain' :
         urlData.hasLangPath ? 'path' : 'parameter';
 
-      return {
-        passed: true,
-        message: `URLs localized using ${method} strategy`,
-        details: urlData,
-      };
+      return this.pass(`URLs localized using ${method} strategy`, urlData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Localized URLs check skipped',
-      };
+      return this.pass('Localized URLs check skipped');
     }
   }
 
-  private async checkCurrencyDisplay(): Promise<SEOCheckResult> {
+  private async checkCurrencyDisplay(): Promise<CheckOutcome> {
     try {
       const currencyData = await this.page.evaluate(() => {
         const bodyText = document.body.textContent || '';
@@ -462,36 +350,28 @@ export class InternationalizationChecker {
       });
 
       if (currencyData.foundCurrencies.length === 0) {
-        return {
-          passed: true,
-          message: 'No currency information detected',
-        };
+        return this.pass('No currency information detected');
       }
 
       if (currencyData.multipleCurrencies && !currencyData.currencySwitcher) {
-        return {
-          passed: false,
-          message: `Multiple currencies detected (${currencyData.foundCurrencies.join(', ')}) but no currency switcher`,
-          details: currencyData,
-        };
+        return this.fail(
+          `Multiple currencies detected (${currencyData.foundCurrencies.join(', ')}) but no currency switcher`,
+          currencyData
+        );
       }
 
-      return {
-        passed: true,
-        message: currencyData.multipleCurrencies
+      return this.pass(
+        currencyData.multipleCurrencies
           ? `Multiple currencies with switcher (${currencyData.foundCurrencies.join(', ')})`
           : `Currency: ${currencyData.foundCurrencies[0]}`,
-        details: currencyData,
-      };
+        currencyData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Currency display check skipped',
-      };
+      return this.pass('Currency display check skipped');
     }
   }
 
-  private async checkDateTimeFormat(): Promise<SEOCheckResult> {
+  private async checkDateTimeFormat(): Promise<CheckOutcome> {
     try {
       const dateData = await this.page.evaluate(() => {
         const timeElements = Array.from(document.querySelectorAll('time'));
@@ -515,34 +395,20 @@ export class InternationalizationChecker {
       });
 
       if (dateData.timeElements > 0 && !dateData.hasDatetime) {
-        return {
-          passed: false,
-          message: '<time> elements missing datetime attribute',
-          details: dateData,
-        };
+        return this.fail('<time> elements missing datetime attribute', dateData);
       }
 
       if (dateData.timeElements === 0) {
-        return {
-          passed: true,
-          message: 'No date/time information to check',
-        };
+        return this.pass('No date/time information to check');
       }
 
-      return {
-        passed: true,
-        message: `${dateData.timeElements} date/time element(s) with proper datetime attribute`,
-        details: dateData,
-      };
+      return this.pass(`${dateData.timeElements} date/time element(s) with proper datetime attribute`, dateData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Date/time format check skipped',
-      };
+      return this.pass('Date/time format check skipped');
     }
   }
 
-  private async checkTranslationQuality(): Promise<SEOCheckResult> {
+  private async checkTranslationQuality(): Promise<CheckOutcome> {
     try {
       const translationData = await this.page.evaluate(() => {
         const bodyText = document.body.textContent || '';
@@ -577,27 +443,16 @@ export class InternationalizationChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Translation quality issues: ${issues.join(', ')}`,
-          details: translationData,
-        };
+        return this.fail(`Translation quality issues: ${issues.join(', ')}`, translationData);
       }
 
-      return {
-        passed: true,
-        message: 'No obvious translation quality issues detected',
-        details: translationData,
-      };
+      return this.pass('No obvious translation quality issues detected', translationData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Translation quality check skipped',
-      };
+      return this.pass('Translation quality check skipped');
     }
   }
 
-  private async checkMultilingualContent(): Promise<SEOCheckResult> {
+  private async checkMultilingualContent(): Promise<CheckOutcome> {
     try {
       const multilingualData = await this.page.evaluate(() => {
         const hreflangTags = document.querySelectorAll('link[rel="alternate"][hreflang]');
@@ -616,26 +471,16 @@ export class InternationalizationChecker {
       });
 
       if (!multilingualData.isMultilingual) {
-        return {
-          passed: true,
-          message: 'Single language site',
-        };
+        return this.pass('Single language site');
       }
 
-      return {
-        passed: true,
-        message: `Multilingual site with ${multilingualData.uniqueLangs.length} language(s)`,
-        details: multilingualData,
-      };
+      return this.pass(`Multilingual site with ${multilingualData.uniqueLangs.length} language(s)`, multilingualData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Multilingual content check skipped',
-      };
+      return this.pass('Multilingual content check skipped');
     }
   }
 
-  private async checkGeoTargeting(): Promise<SEOCheckResult> {
+  private async checkGeoTargeting(): Promise<CheckOutcome> {
     try {
       const geoData = await this.page.evaluate(() => {
         const metaGeo = document.querySelectorAll('meta[name*="geo"], meta[name*="location"]');
@@ -650,28 +495,19 @@ export class InternationalizationChecker {
       });
 
       if (geoData.metaGeoTags === 0 && !geoData.hasGeoKeywords) {
-        return {
-          passed: true,
-          message: 'No geo-targeting detected (optional)',
-        };
+        return this.pass('No geo-targeting detected (optional)');
       }
 
-      return {
-        passed: true,
-        message: geoData.metaGeoTags > 0
-          ? 'Geo-targeting meta tags present'
-          : 'Location-based content detected',
-        details: geoData,
-      };
+      return this.pass(
+        geoData.metaGeoTags > 0 ? 'Geo-targeting meta tags present' : 'Location-based content detected',
+        geoData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Geo-targeting check skipped',
-      };
+      return this.pass('Geo-targeting check skipped');
     }
   }
 
-  private async checkLocalizedMetadata(): Promise<SEOCheckResult> {
+  private async checkLocalizedMetadata(): Promise<CheckOutcome> {
     try {
       const metadataData = await this.page.evaluate(() => {
         const title = document.title;
@@ -694,34 +530,20 @@ export class InternationalizationChecker {
       });
 
       if (!metadataData.isMultilingual) {
-        return {
-          passed: true,
-          message: 'Single language site, basic metadata sufficient',
-        };
+        return this.pass('Single language site, basic metadata sufficient');
       }
 
       if (!metadataData.ogLocale) {
-        return {
-          passed: false,
-          message: 'Multilingual site missing og:locale meta tag',
-          details: metadataData,
-        };
+        return this.fail('Multilingual site missing og:locale meta tag', metadataData);
       }
 
-      return {
-        passed: true,
-        message: 'Localized metadata present (og:locale)',
-        details: metadataData,
-      };
+      return this.pass('Localized metadata present (og:locale)', metadataData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Localized metadata check skipped',
-      };
+      return this.pass('Localized metadata check skipped');
     }
   }
 
-  private async checkUnicodeSupport(): Promise<SEOCheckResult> {
+  private async checkUnicodeSupport(): Promise<CheckOutcome> {
     try {
       const unicodeData = await this.page.evaluate(() => {
         const bodyText = document.body.textContent || '';
@@ -743,32 +565,22 @@ export class InternationalizationChecker {
       });
 
       if (unicodeData.hasSpecialChars && !unicodeData.isUTF8) {
-        return {
-          passed: false,
-          message: `Unicode characters detected but charset is ${unicodeData.charset || 'not set'} (should be UTF-8)`,
-          details: unicodeData,
-        };
+        return this.fail(
+          `Unicode characters detected but charset is ${unicodeData.charset || 'not set'} (should be UTF-8)`,
+          unicodeData
+        );
       }
 
       if (!unicodeData.hasSpecialChars) {
-        return {
-          passed: true,
-          message: 'Basic Latin characters only',
-        };
+        return this.pass('Basic Latin characters only');
       }
 
-      return {
-        passed: true,
-        message: unicodeData.hasEmoji
-          ? 'Unicode support with UTF-8 (including emoji)'
-          : 'Unicode support with UTF-8',
-        details: unicodeData,
-      };
+      return this.pass(
+        unicodeData.hasEmoji ? 'Unicode support with UTF-8 (including emoji)' : 'Unicode support with UTF-8',
+        unicodeData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Unicode support check skipped',
-      };
+      return this.pass('Unicode support check skipped');
     }
   }
 }
