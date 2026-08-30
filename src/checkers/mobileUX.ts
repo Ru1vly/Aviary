@@ -1,5 +1,6 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractImages } from './shared/dom';
+import { PAGE_LOAD_TIME_MS } from '../config/thresholds';
 
 export class MobileUXChecker extends BaseChecker {
   protected checks() {
@@ -433,7 +434,7 @@ export class MobileUXChecker extends BaseChecker {
         };
       });
 
-      if (perfData.loadTime > 5000) {
+      if (perfData.loadTime > PAGE_LOAD_TIME_MS) {
         return this.fail(`Mobile load time is slow (${perfData.loadTimeSeconds}s). Target: < 3s`, perfData);
       }
 

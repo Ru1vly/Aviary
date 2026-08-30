@@ -1,5 +1,6 @@
 import { PerformanceMetrics } from '../types';
 import { BaseChecker, CheckOutcome } from './base';
+import { PAGE_LOAD_TIME_MS } from '../config/thresholds';
 
 export class PerformanceChecker extends BaseChecker {
   protected checks() {
@@ -33,7 +34,7 @@ export class PerformanceChecker extends BaseChecker {
     const metrics = await this.getMetrics();
     const loadTimeSec = metrics.loadTime / 1000;
 
-    if (loadTimeSec > 3) {
+    if (metrics.loadTime > PAGE_LOAD_TIME_MS) {
       return this.fail(`Page load time is slow (${loadTimeSec.toFixed(2)}s). Recommended: < 3s`, {
         loadTime: loadTimeSec,
       });

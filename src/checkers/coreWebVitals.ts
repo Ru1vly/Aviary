@@ -1,6 +1,7 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractImages, extractResourceTimings, ResourceTimingEntry } from './shared/dom';
 import { formatBytes } from './shared/format';
+import { PAGE_LOAD_TIME_MS } from '../config/thresholds';
 
 export class CoreWebVitalsChecker extends BaseChecker {
   private resourceTimingsPromise?: Promise<ResourceTimingEntry[]>;
@@ -48,7 +49,7 @@ export class CoreWebVitalsChecker extends BaseChecker {
         return this.pass('Page load time check skipped (navigation timing unavailable)');
       }
 
-      if (timing.loadTime > 3000) {
+      if (timing.loadTime > PAGE_LOAD_TIME_MS) {
         return this.fail(`Page load time is slow (${timing.loadTimeSeconds}s). Target: < 3s`, timing);
       } else if (timing.loadTime > 2000) {
         return this.pass(`Page load time is acceptable (${timing.loadTimeSeconds}s)`, timing);
