@@ -4,7 +4,7 @@ export interface SEOCheckResult {
   passed: boolean;
   message: string;
   severity?: RuleSeverity;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   /**
    * Stable rule identifier (e.g. 'title-exists', 'https-enabled'), matching
    * the rule names used in preset/config files (see src/config/presets.ts).

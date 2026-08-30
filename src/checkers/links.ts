@@ -118,7 +118,7 @@ export class LinksChecker extends BaseChecker {
             }
             return null;
           })
-          .filter((link) => link !== null);
+          .filter((link): link is NonNullable<typeof link> => link !== null);
       });
 
       if (externalLinks.length === 0) {
@@ -126,7 +126,7 @@ export class LinksChecker extends BaseChecker {
       }
 
       const issues: string[] = [];
-      const linksWithoutNoopener = externalLinks.filter((link: any) => !link.hasNoopener);
+      const linksWithoutNoopener = externalLinks.filter((link) => !link.hasNoopener);
 
       if (linksWithoutNoopener.length > 0) {
         issues.push(
@@ -143,7 +143,7 @@ export class LinksChecker extends BaseChecker {
 
       return this.pass(`${externalLinks.length} external links properly configured`, {
         total: externalLinks.length,
-        withNofollow: externalLinks.filter((link: any) => link.hasNofollow).length,
+        withNofollow: externalLinks.filter((link) => link.hasNofollow).length,
       });
     } catch (error) {
       return { passed: false, severity: 'info', message: 'External links check skipped due to error' };
@@ -176,14 +176,14 @@ export class LinksChecker extends BaseChecker {
             }
             return null;
           })
-          .filter((link) => link !== null);
+          .filter((link): link is NonNullable<typeof link> => link !== null);
       });
 
       if (internalLinks.length === 0) {
         return this.fail('No internal links found - important for SEO and site navigation');
       }
 
-      const linksWithoutText = internalLinks.filter((link: any) => !link.hasText);
+      const linksWithoutText = internalLinks.filter((link) => !link.hasText);
 
       if (linksWithoutText.length > 0) {
         return this.fail(`${linksWithoutText.length} internal links missing descriptive text`, {

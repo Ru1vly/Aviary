@@ -7,10 +7,23 @@ export interface HeatmapPoint {
   element?: string;
 }
 
+/**
+ * A `getBoundingClientRect()` result as it actually survives serialization
+ * across the `page.evaluate()` boundary — only the plain-object own
+ * properties assigned below, not a real `DOMRect` (which doesn't survive
+ * structured cloning with its prototype/methods intact).
+ */
+export interface ElementBounds {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
 export interface HeatmapData {
   clickPrediction: HeatmapPoint[];
   scrollDepth: { depth: number; percentage: number }[];
-  attentionZones: { selector: string; score: number; bounds: DOMRect }[];
+  attentionZones: { selector: string; score: number; bounds: ElementBounds }[];
 }
 
 export interface HeatmapOptions {
@@ -220,15 +233,8 @@ export class HeatmapChecker extends BaseChecker {
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
-      // F-pattern zones (typical reading pattern)
-      const fPatternZones = [
-        { name: 'top-bar', x: 0, y: 0, width: viewportWidth, height: 100 },
-        { name: 'left-column', x: 0, y: 0, width: viewportWidth * 0.3, height: viewportHeight },
-        { name: 'hero-area', x: 0, y: 0, width: viewportWidth, height: viewportHeight * 0.6 },
-      ];
-
       // Find high-attention elements
-      const attentionElements: { selector: string; score: number; zone: string; bounds: any }[] = [];
+      const attentionElements: { selector: string; score: number; zone: string; bounds: ElementBounds }[] = [];
 
       // Headings
       document.querySelectorAll('h1, h2, h3').forEach((el, i) => {
@@ -518,7 +524,7 @@ export class HeatmapChecker extends BaseChecker {
       }
 
       // Attention zones
-      const attentionZones: { selector: string; score: number; bounds: any }[] = [];
+      const attentionZones: { selector: string; score: number; bounds: ElementBounds }[] = [];
       document.querySelectorAll('h1, h2, h3, img, button, .cta').forEach((el, i) => {
         const rect = el.getBoundingClientRect();
         if (rect.width > 0) {

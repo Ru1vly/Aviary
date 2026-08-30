@@ -111,7 +111,7 @@ export class UIElementsChecker extends BaseChecker {
         issues.push('Missing lang attribute on <html> tag');
       }
 
-      if (languageData.hasHreflang && !languageData.hreflangLinks.some((link: any) => link.hreflang === 'x-default')) {
+      if (languageData.hasHreflang && !languageData.hreflangLinks.some((link) => link.hreflang === 'x-default')) {
         issues.push('Consider adding hreflang="x-default" for international targeting');
       }
 

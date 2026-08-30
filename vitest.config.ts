@@ -15,21 +15,24 @@ export default defineConfig({
         '**/types/**',
         'examples/',
         'vitest.config.ts',
-        'tests/setup.ts',
         'tests/mocks/**',
       ],
-      // TODO(coverage-ratchet): actual coverage after Phase 2 (mock hardening
-      // + registry/BaseChecker tests) is ~55% statements / 40% branches / 47%
-      // functions / 57% lines. reporter.ts (still ~1.5%) and the 27 checkers
-      // other than robotsTxt (not yet migrated onto BaseChecker) are the
-      // biggest remaining gaps. Thresholds stay just below the real baseline
-      // so CI is an honest gate against regression — raise again as coverage
-      // is added, target 80%.
+      // TODO(coverage-ratchet): actual coverage after Phase 6's named test
+      // additions (reporter.ts, presets.ts, MCP/cli.ts/worker.ts protocol
+      // tests — run as subprocesses via tsx, so not reflected in these
+      // numbers despite being real coverage) is ~63% statements / 47%
+      // branches / 65% functions / 64% lines. The remaining gap to 80% is
+      // almost entirely the ~20 checker files still in the 40-70% range
+      // (accessibility.ts, links.ts, spamDetection.ts, heatmap.ts, ...) —
+      // an open-ended per-checker test-writing effort well beyond what
+      // Phase 6 named explicitly, so it's left for deliberate follow-up
+      // rather than done partially here. Thresholds stay just below the
+      // real baseline so CI is an honest gate against regression.
       thresholds: {
-        lines: 56,
-        functions: 46,
-        branches: 39,
-        statements: 54,
+        lines: 64,
+        functions: 64,
+        branches: 46,
+        statements: 62,
       },
     },
     include: ['tests/**/*.test.ts', 'tests/**/*.spec.ts'],

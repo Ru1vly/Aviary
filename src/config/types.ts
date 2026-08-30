@@ -4,7 +4,7 @@ export type PresetName = 'basic' | 'advanced' | 'strict';
 export interface RuleConfig {
   enabled: boolean;
   severity?: RuleSeverity;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 export interface CheckerRules {
@@ -74,5 +74,5 @@ export interface SEOConfig {
 export interface ResolvedRuleConfig {
   enabled: boolean;
   severity: RuleSeverity;
-  options: Record<string, any>;
+  options: Record<string, unknown>;
 }

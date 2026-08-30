@@ -4,7 +4,6 @@ import * as yaml from 'js-yaml';
 import {
   SEOConfig,
   ResolvedRuleConfig,
-  RuleSeverity,
   CheckerRules,
   CheckerLevelConfig,
   CheckerConfig,

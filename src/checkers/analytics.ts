@@ -1,5 +1,26 @@
 import { BaseChecker, CheckOutcome } from './base';
 
+/**
+ * The subset of third-party analytics/tracking globals this checker looks
+ * for on `window`. None of these are declared on the standard `Window`
+ * type; typed `unknown` here (existence-checked via `!!`, never read
+ * further) rather than `any`, since nothing beyond presence is inspected.
+ */
+interface AnalyticsWindow extends Window {
+  gtag?: unknown;
+  dataLayer?: unknown;
+  ga?: unknown;
+  google_tag_manager?: unknown;
+  fbq?: unknown;
+  hj?: unknown;
+  mixpanel?: unknown;
+  analytics?: unknown;
+  clarity?: unknown;
+  optimizely?: unknown;
+  _vwo_code?: unknown;
+  ABTasty?: unknown;
+}
+
 export class AnalyticsChecker extends BaseChecker {
   protected checks() {
     return [
@@ -24,8 +45,8 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkGoogleAnalytics(): Promise<CheckOutcome> {
     try {
       const gaData = await this.page.evaluate(() => {
-        const hasGA4 = !!(window as any).gtag || !!(window as any).dataLayer;
-        const hasUA = !!(window as any).ga;
+        const hasGA4 = !!(window as AnalyticsWindow).gtag || !!(window as AnalyticsWindow).dataLayer;
+        const hasUA = !!(window as AnalyticsWindow).ga;
         const hasGtag = document.querySelector('script[src*="googletagmanager.com/gtag"]');
         const hasAnalytics = document.querySelector('script[src*="google-analytics.com/analytics"]');
 
@@ -53,7 +74,7 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkGoogleTagManager(): Promise<CheckOutcome> {
     try {
       const gtmData = await this.page.evaluate(() => {
-        const hasGTM = !!(window as any).google_tag_manager;
+        const hasGTM = !!(window as AnalyticsWindow).google_tag_manager;
         const gtmScript = document.querySelector('script[src*="googletagmanager.com/gtm.js"]');
         const gtmNoscript = document.querySelector('noscript iframe[src*="googletagmanager.com/ns.html"]');
 
@@ -80,7 +101,7 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkFacebookPixel(): Promise<CheckOutcome> {
     try {
       const fbData = await this.page.evaluate(() => {
-        const hasFBQ = !!(window as any).fbq;
+        const hasFBQ = !!(window as AnalyticsWindow).fbq;
         const fbScript = document.querySelector('script[src*="connect.facebook.net"]');
 
         return {
@@ -118,7 +139,7 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkHotjar(): Promise<CheckOutcome> {
     try {
       const hotjarData = await this.page.evaluate(() => {
-        const hasHotjar = !!(window as any).hj;
+        const hasHotjar = !!(window as AnalyticsWindow).hj;
         const hotjarScript = document.querySelector('script[src*="static.hotjar.com"]');
 
         return {
@@ -136,7 +157,7 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkMixpanel(): Promise<CheckOutcome> {
     try {
       const mixpanelData = await this.page.evaluate(() => {
-        const hasMixpanel = !!(window as any).mixpanel;
+        const hasMixpanel = !!(window as AnalyticsWindow).mixpanel;
         const mixpanelScript = document.querySelector('script[src*="cdn.mxpnl.com"]');
 
         return {
@@ -154,7 +175,7 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkSegment(): Promise<CheckOutcome> {
     try {
       const segmentData = await this.page.evaluate(() => {
-        const hasSegment = !!(window as any).analytics;
+        const hasSegment = !!(window as AnalyticsWindow).analytics;
         const segmentScript = document.querySelector('script[src*="cdn.segment.com"]');
 
         return {
@@ -172,7 +193,7 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkClarityOrSimilar(): Promise<CheckOutcome> {
     try {
       const clarityData = await this.page.evaluate(() => {
-        const hasClarity = !!(window as any).clarity;
+        const hasClarity = !!(window as AnalyticsWindow).clarity;
         const clarityScript = document.querySelector('script[src*="clarity.ms"]');
         const hasMouseflow = document.querySelector('script[src*="mouseflow.com"]');
         const hasCrazyEgg = document.querySelector('script[src*="crazyegg.com"]');
@@ -296,7 +317,7 @@ export class AnalyticsChecker extends BaseChecker {
     try {
       const conversionData = await this.page.evaluate(() => {
         const hasGoogleConversion = document.querySelector('script[src*="googleadservices.com/pagead/conversion"]');
-        const hasFBConversion = !!(window as any).fbq;
+        const hasFBConversion = !!(window as AnalyticsWindow).fbq;
         const hasLinkedInConversion = document.querySelector('script[src*="snap.licdn.com"]');
 
         return {
@@ -324,8 +345,8 @@ export class AnalyticsChecker extends BaseChecker {
     try {
       const heatmapData = await this.page.evaluate(() => {
         const tools = {
-          hotjar: !!(window as any).hj,
-          clarity: !!(window as any).clarity,
+          hotjar: !!(window as AnalyticsWindow).hj,
+          clarity: !!(window as AnalyticsWindow).clarity,
           mouseflow: !!document.querySelector('script[src*="mouseflow.com"]'),
           crazyegg: !!document.querySelector('script[src*="crazyegg.com"]'),
           luckyorange: !!document.querySelector('script[src*="luckyorange.com"]'),
@@ -357,10 +378,10 @@ export class AnalyticsChecker extends BaseChecker {
     try {
       const abTestData = await this.page.evaluate(() => {
         const tools = {
-          optimizely: !!(window as any).optimizely,
-          vwo: !!(window as any)._vwo_code,
+          optimizely: !!(window as AnalyticsWindow).optimizely,
+          vwo: !!(window as AnalyticsWindow)._vwo_code,
           googleOptimize: !!document.querySelector('script[src*="optimize.google.com"]'),
-          abtasty: !!(window as any).ABTasty,
+          abtasty: !!(window as AnalyticsWindow).ABTasty,
         };
 
         const detected = Object.entries(tools)

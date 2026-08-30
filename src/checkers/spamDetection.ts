@@ -261,7 +261,6 @@ export class SpamDetectionChecker extends BaseChecker {
       const invisibleData = await this.page.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('div, span, p'));
         const invisible = elements.filter((el) => {
-          const style = window.getComputedStyle(el);
           const rect = el.getBoundingClientRect();
 
           return (
