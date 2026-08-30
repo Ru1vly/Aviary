@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateWeightedScore } from '../../src/scoring';
 import type { SEOCheckResult } from '../../src/types';
+import scoringParityFixture from '../fixtures/scoring-parity.json';
 
 function check(passed: boolean, severity?: SEOCheckResult['severity']): SEOCheckResult {
   return { passed, message: 'x', severity };
@@ -35,5 +36,19 @@ describe('calculateWeightedScore', () => {
 
   it('treats an unset severity as warning weight (1)', () => {
     expect(calculateWeightedScore([check(true), check(false, 'warning')])).toBe(50);
+  });
+
+  // Shared with engine/src/lib.rs's own parity test (`cargo test scoring_parity`),
+  // which loads this exact file — a change to either engine's weights that isn't
+  // mirrored in the other fails whichever test runs against the stale value.
+  describe('parity fixture (tests/fixtures/scoring-parity.json, shared with the Rust engine)', () => {
+    for (const testCase of scoringParityFixture.cases) {
+      it(testCase.name, () => {
+        const checks = testCase.checks.map((c) =>
+          check(c.passed, c.severity as SEOCheckResult['severity'])
+        );
+        expect(calculateWeightedScore(checks)).toBe(testCase.expectedScore);
+      });
+    }
   });
 });

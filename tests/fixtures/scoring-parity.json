@@ -1,0 +1,39 @@
+{
+  "description": "Shared fixture for TS/Rust scoring parity — src/scoring.ts's calculateWeightedScore and engine/src/lib.rs's compute_score must both weight error/warning/info at 3/1/0.5 and produce the same rounded percentage for the same (passed, severity) pairs. Consumed by tests/unit/scoring.test.ts and engine/src/lib.rs's parity test.",
+  "cases": [
+    {
+      "name": "mixed severities, some passing",
+      "checks": [
+        { "passed": true, "severity": "error" },
+        { "passed": false, "severity": "warning" },
+        { "passed": true, "severity": "info" },
+        { "passed": false, "severity": "error" },
+        { "passed": true, "severity": "warning" }
+      ],
+      "expectedScore": 53
+    },
+    {
+      "name": "everything passed",
+      "checks": [
+        { "passed": true, "severity": "error" },
+        { "passed": true, "severity": "warning" },
+        { "passed": true, "severity": "info" }
+      ],
+      "expectedScore": 100
+    },
+    {
+      "name": "everything failed",
+      "checks": [
+        { "passed": false, "severity": "error" },
+        { "passed": false, "severity": "warning" },
+        { "passed": false, "severity": "info" }
+      ],
+      "expectedScore": 0
+    },
+    {
+      "name": "nothing to weigh",
+      "checks": [],
+      "expectedScore": null
+    }
+  ]
+}

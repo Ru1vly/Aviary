@@ -221,3 +221,66 @@ fn compute_score(results: &[CheckResult]) -> Option<u32> {
 
     Some((passed_weight / total_weight * 100.0).round() as u32)
 }
+
+#[cfg(test)]
+mod scoring_tests {
+    use super::*;
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    struct ParityCase {
+        name: String,
+        checks: Vec<ParityCheck>,
+        #[serde(rename = "expectedScore")]
+        expected_score: Option<u32>,
+    }
+
+    #[derive(Deserialize)]
+    struct ParityCheck {
+        passed: bool,
+        severity: String,
+    }
+
+    #[derive(Deserialize)]
+    struct ParityFixture {
+        cases: Vec<ParityCase>,
+    }
+
+    /// Both engines must agree on the same severity-weighted score for the
+    /// same (passed, severity) pairs — see src/scoring.ts's
+    /// calculateWeightedScore, and tests/unit/scoring.test.ts, which loads
+    /// this exact fixture file on the TS side. A weight or the
+    /// zero-checks-returns-None change made to only one engine fails
+    /// whichever test runs against the now-stale expected value.
+    #[test]
+    fn scoring_parity_with_ts() {
+        let raw = include_str!("../../tests/fixtures/scoring-parity.json");
+        let fixture: ParityFixture = serde_json::from_str(raw).expect("valid fixture JSON");
+
+        for case in fixture.cases {
+            let results: Vec<CheckResult> = case
+                .checks
+                .iter()
+                .map(|c| CheckResult {
+                    name: "x".into(),
+                    passed: c.passed,
+                    message: "x".into(),
+                    severity: match c.severity.as_str() {
+                        "error" => Severity::Error,
+                        "warning" => Severity::Warning,
+                        "info" => Severity::Info,
+                        other => panic!("unknown severity in fixture: {other}"),
+                    },
+                    details: None,
+                })
+                .collect();
+
+            assert_eq!(
+                compute_score(&results),
+                case.expected_score,
+                "case {:?} disagreed with TS's calculateWeightedScore",
+                case.name
+            );
+        }
+    }
+}
