@@ -1,5 +1,4 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, BaseCheckerDeps, CheckOutcome } from './base';
 
 export interface HeatmapPoint {
   x: number;
@@ -22,126 +21,123 @@ export interface HeatmapOptions {
   simulateUserBehavior?: boolean;
 }
 
+export interface HeatmapCheckerDeps extends BaseCheckerDeps {
+  options?: HeatmapOptions;
+}
+
 // heatmap.js library CDN URL
 const HEATMAP_JS_CDN = 'https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js';
 
-export class HeatmapChecker {
-  constructor(
-    private page: Page,
-    private options: HeatmapOptions = {}
-  ) {
+export class HeatmapChecker extends BaseChecker {
+  private options: HeatmapOptions;
+
+  constructor(deps: HeatmapCheckerDeps) {
+    super(deps);
     this.options = {
       includeScrollMap: true,
       includeClickMap: true,
       includeAttentionMap: true,
       simulateUserBehavior: false,
-      ...options,
+      ...deps.options,
     };
   }
 
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
+  protected checks() {
+    const list: Array<{ id: string; run: () => Promise<CheckOutcome> }> = [];
 
-    try {
-      // Inject heatmap.js library
-      await this.injectHeatmapLibrary();
-
-      // Generate predictive click heatmap
-      if (this.options.includeClickMap) {
-        results.push(await this.generateClickHeatmap());
-      }
-
-      // Generate scroll depth analysis
-      if (this.options.includeScrollMap) {
-        results.push(await this.analyzeScrollDepth());
-      }
-
-      // Generate attention zone analysis
-      if (this.options.includeAttentionMap) {
-        results.push(await this.analyzeAttentionZones());
-      }
-
-      // Analyze CTA placement
-      results.push(await this.analyzeCTAPlacement());
-
-      // Check fold content
-      results.push(await this.checkAboveFoldContent());
-
-    } catch (error) {
-      results.push({
-        passed: false,
-        message: `Heatmap analysis failed: ${(error as Error).message}`,
-      });
+    // injectHeatmapLibrary() is shared "setup" for the checks below (mirrors
+    // the pre-migration checkAll(), which ran it once before everything
+    // else). Each check awaits the memoized promise itself rather than the
+    // base class running it once, since BaseChecker has no shared-setup hook.
+    if (this.options.includeClickMap) {
+      list.push({ id: 'click-heatmap-generated', run: () => this.generateClickHeatmap() });
     }
+    if (this.options.includeScrollMap) {
+      list.push({ id: 'scroll-depth-reasonable', run: () => this.analyzeScrollDepth() });
+    }
+    if (this.options.includeAttentionMap) {
+      list.push({ id: 'attention-zones-strong', run: () => this.analyzeAttentionZones() });
+    }
+    list.push({ id: 'cta-above-fold', run: () => this.analyzeCTAPlacement() });
+    list.push({ id: 'above-fold-content-strong', run: () => this.checkAboveFoldContent() });
 
-    return results;
+    return list;
   }
+
+  private libraryInjectedPromise?: Promise<void>;
 
   /**
    * Inject heatmap.js library into the page (optional - analysis works without it)
    */
-  private async injectHeatmapLibrary(): Promise<void> {
-    try {
-      await this.page.addScriptTag({ url: HEATMAP_JS_CDN });
-      
-      // Wait for library to load
-      await this.page.waitForFunction(() => {
-        return typeof (window as any).h337 !== 'undefined';
-      }, { timeout: 5000 });
-    } catch {
-      // Library injection is optional - analysis can proceed without visual heatmap rendering
+  private ensureLibraryInjected(): Promise<void> {
+    if (!this.libraryInjectedPromise) {
+      this.libraryInjectedPromise = (async () => {
+        try {
+          await this.page.addScriptTag({ url: HEATMAP_JS_CDN });
+
+          // Wait for library to load
+          await this.page.waitForFunction(() => {
+            return typeof (window as any).h337 !== 'undefined';
+          }, { timeout: 5000 });
+        } catch {
+          // Library injection is optional - analysis can proceed without visual heatmap rendering
+        }
+      })();
     }
+    return this.libraryInjectedPromise;
   }
 
   /**
    * Generate predictive click heatmap based on interactive elements
    */
-  private async generateClickHeatmap(): Promise<SEOCheckResult> {
+  private async generateClickHeatmap(): Promise<CheckOutcome> {
+    await this.ensureLibraryInjected();
+
     const heatmapData = await this.page.evaluate(() => {
       const h337 = (window as any).h337;
-      
+
       // Get all interactive elements
       const interactiveSelectors = [
         'a', 'button', 'input', 'select', 'textarea',
         '[onclick]', '[role="button"]', '[role="link"]',
         '[tabindex]', '.btn', '.button', '.cta'
       ];
-      
+
       const elements = document.querySelectorAll(interactiveSelectors.join(','));
       const points: { x: number; y: number; value: number; element: string }[] = [];
-      
+
       elements.forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) {
           // Calculate center point
           const x = Math.round(rect.left + rect.width / 2);
           const y = Math.round(rect.top + rect.height / 2 + window.scrollY);
-          
+
           // Calculate importance value based on element properties
           let value = 50;
-          
+
           // Boost for buttons and CTAs
           if (el.tagName === 'BUTTON' || el.classList.contains('cta') || el.classList.contains('btn')) {
             value += 30;
           }
-          
+
           // Boost for larger elements
           if (rect.width > 100 && rect.height > 40) {
             value += 15;
           }
-          
+
           // Boost for elements above the fold
           if (rect.top < window.innerHeight) {
             value += 20;
           }
-          
+
           // Boost for prominent colors (approximation)
           const style = getComputedStyle(el);
           const bgColor = style.backgroundColor;
           if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
             value += 10;
           }
-          
+
           points.push({
             x,
             y,
@@ -150,7 +146,7 @@ export class HeatmapChecker {
           });
         }
       });
-      
+
       return {
         points,
         totalInteractive: elements.length,
@@ -184,24 +180,26 @@ export class HeatmapChecker {
   /**
    * Analyze scroll depth and content distribution
    */
-  private async analyzeScrollDepth(): Promise<SEOCheckResult> {
+  private async analyzeScrollDepth(): Promise<CheckOutcome> {
+    await this.ensureLibraryInjected();
+
     const scrollData = await this.page.evaluate(() => {
       const pageHeight = document.documentElement.scrollHeight;
       const viewportHeight = window.innerHeight;
       const folds = Math.ceil(pageHeight / viewportHeight);
-      
+
       // Analyze content at different scroll depths
       const depthAnalysis: { depth: number; percentage: number; contentScore: number }[] = [];
-      
+
       for (let i = 0; i <= 100; i += 25) {
         const yPosition = (pageHeight * i) / 100;
-        
+
         // Count visible elements at this depth
         const elementsAtDepth = document.elementsFromPoint(
           viewportHeight / 2,
           Math.min(yPosition, pageHeight - 1)
         );
-        
+
         // Calculate content score based on element types
         let contentScore = 0;
         elementsAtDepth.forEach((el) => {
@@ -212,14 +210,14 @@ export class HeatmapChecker {
             contentScore += 5;
           }
         });
-        
+
         depthAnalysis.push({
           depth: i,
           percentage: i,
           contentScore: Math.min(contentScore, 100),
         });
       }
-      
+
       return {
         pageHeight,
         viewportHeight,
@@ -253,31 +251,33 @@ export class HeatmapChecker {
   /**
    * Analyze attention zones using F-pattern and visual hierarchy
    */
-  private async analyzeAttentionZones(): Promise<SEOCheckResult> {
+  private async analyzeAttentionZones(): Promise<CheckOutcome> {
+    await this.ensureLibraryInjected();
+
     const attentionData = await this.page.evaluate(() => {
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      
+
       // F-pattern zones (typical reading pattern)
       const fPatternZones = [
         { name: 'top-bar', x: 0, y: 0, width: viewportWidth, height: 100 },
         { name: 'left-column', x: 0, y: 0, width: viewportWidth * 0.3, height: viewportHeight },
         { name: 'hero-area', x: 0, y: 0, width: viewportWidth, height: viewportHeight * 0.6 },
       ];
-      
+
       // Find high-attention elements
       const attentionElements: { selector: string; score: number; zone: string; bounds: any }[] = [];
-      
+
       // Headings
       document.querySelectorAll('h1, h2, h3').forEach((el, i) => {
         const rect = el.getBoundingClientRect();
         let score = el.tagName === 'H1' ? 100 : el.tagName === 'H2' ? 80 : 60;
-        
+
         // Boost if above fold
         if (rect.top < viewportHeight) {
           score += 20;
         }
-        
+
         attentionElements.push({
           selector: `${el.tagName.toLowerCase()}:nth-of-type(${i + 1})`,
           score: Math.min(score, 100),
@@ -285,24 +285,24 @@ export class HeatmapChecker {
           bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
         });
       });
-      
+
       // Images
       document.querySelectorAll('img').forEach((el, i) => {
         const rect = el.getBoundingClientRect();
         if (rect.width < 50 || rect.height < 50) return;
-        
+
         let score = 50;
-        
+
         // Large images get more attention
         if (rect.width > 300 && rect.height > 200) {
           score += 30;
         }
-        
+
         // Above fold boost
         if (rect.top < viewportHeight) {
           score += 20;
         }
-        
+
         attentionElements.push({
           selector: `img:nth-of-type(${i + 1})`,
           score: Math.min(score, 100),
@@ -310,25 +310,25 @@ export class HeatmapChecker {
           bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
         });
       });
-      
+
       // CTAs and buttons
       document.querySelectorAll('button, .cta, .btn, a.button, [role="button"]').forEach((el, i) => {
         const rect = el.getBoundingClientRect();
         if (rect.width === 0) return;
-        
+
         let score = 70;
-        
+
         // Primary CTAs (usually larger, colored)
         const style = getComputedStyle(el);
         if (style.backgroundColor && style.backgroundColor !== 'transparent') {
           score += 15;
         }
-        
+
         // Above fold boost
         if (rect.top < viewportHeight) {
           score += 15;
         }
-        
+
         attentionElements.push({
           selector: `cta:nth-of-type(${i + 1})`,
           score: Math.min(score, 100),
@@ -336,7 +336,7 @@ export class HeatmapChecker {
           bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
         });
       });
-      
+
       return {
         viewportWidth,
         viewportHeight,
@@ -368,11 +368,13 @@ export class HeatmapChecker {
   /**
    * Analyze CTA placement and visibility
    */
-  private async analyzeCTAPlacement(): Promise<SEOCheckResult> {
+  private async analyzeCTAPlacement(): Promise<CheckOutcome> {
+    await this.ensureLibraryInjected();
+
     const ctaData = await this.page.evaluate(() => {
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
-      
+
       const ctaSelectors = [
         'button[type="submit"]',
         '.cta', '.btn-primary', '.btn-cta',
@@ -380,30 +382,30 @@ export class HeatmapChecker {
         '[data-cta]', '[role="button"]',
         'button:not([type="button"])',
       ];
-      
+
       const ctas = document.querySelectorAll(ctaSelectors.join(','));
       const ctaAnalysis: { text: string; position: string; visible: boolean; score: number }[] = [];
-      
+
       let primaryCTAAboveFold = false;
-      
+
       ctas.forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
-        
+
         const text = el.textContent?.trim().substring(0, 50) || '';
         const isAboveFold = rect.top < viewportHeight;
         const isVisible = rect.top >= 0 && rect.left >= 0 && rect.right <= viewportWidth;
-        
+
         if (isAboveFold && isVisible) {
           primaryCTAAboveFold = true;
         }
-        
+
         // Score based on placement
         let score = 50;
         if (isAboveFold) score += 30;
         if (isVisible) score += 10;
         if (text.length > 0 && text.length < 20) score += 10; // Good CTA text length
-        
+
         ctaAnalysis.push({
           text,
           position: isAboveFold ? 'above-fold' : 'below-fold',
@@ -411,7 +413,7 @@ export class HeatmapChecker {
           score: Math.min(score, 100),
         });
       });
-      
+
       return {
         totalCTAs: ctas.length,
         primaryCTAAboveFold,
@@ -440,10 +442,12 @@ export class HeatmapChecker {
   /**
    * Check above-the-fold content quality
    */
-  private async checkAboveFoldContent(): Promise<SEOCheckResult> {
+  private async checkAboveFoldContent(): Promise<CheckOutcome> {
+    await this.ensureLibraryInjected();
+
     const foldData = await this.page.evaluate(() => {
       const viewportHeight = window.innerHeight;
-      
+
       const checks = {
         hasH1: false,
         hasHeroImage: false,
@@ -451,14 +455,14 @@ export class HeatmapChecker {
         hasValueProposition: false,
         contentDensity: 0,
       };
-      
+
       // Check for H1 above fold
       const h1 = document.querySelector('h1');
       if (h1) {
         const rect = h1.getBoundingClientRect();
         checks.hasH1 = rect.top < viewportHeight && rect.bottom > 0;
       }
-      
+
       // Check for hero image
       const images = document.querySelectorAll('img');
       images.forEach((img) => {
@@ -467,7 +471,7 @@ export class HeatmapChecker {
           checks.hasHeroImage = true;
         }
       });
-      
+
       // Check for CTA
       const ctaElements = document.querySelectorAll('button, .cta, .btn, a.button');
       ctaElements.forEach((el) => {
@@ -476,7 +480,7 @@ export class HeatmapChecker {
           checks.hasCTA = true;
         }
       });
-      
+
       // Check for value proposition (subheading or prominent text)
       const subheadings = document.querySelectorAll('h2, .subtitle, .tagline, [class*="hero"] p');
       subheadings.forEach((el) => {
@@ -485,7 +489,7 @@ export class HeatmapChecker {
           checks.hasValueProposition = true;
         }
       });
-      
+
       // Calculate content density
       const elementsAboveFold = document.querySelectorAll('h1, h2, h3, p, img, button, a');
       let aboveFoldCount = 0;
@@ -496,7 +500,7 @@ export class HeatmapChecker {
         }
       });
       checks.contentDensity = aboveFoldCount;
-      
+
       return checks;
     });
 
@@ -532,7 +536,7 @@ export class HeatmapChecker {
     // Generate visual heatmap overlay
     await this.page.evaluate(() => {
       const h337 = (window as any).h337;
-      
+
       // Create heatmap container
       const container = document.createElement('div');
       container.id = 'heatmap-overlay';
@@ -546,7 +550,7 @@ export class HeatmapChecker {
         z-index: 999999;
       `;
       document.body.appendChild(container);
-      
+
       // Initialize heatmap
       const heatmapInstance = h337.create({
         container,
@@ -555,32 +559,32 @@ export class HeatmapChecker {
         minOpacity: 0.1,
         blur: 0.75,
       });
-      
+
       // Collect data points from interactive elements
       const interactiveSelectors = [
         'a', 'button', 'input', 'select', 'textarea',
         '[onclick]', '[role="button"]', '[role="link"]',
         '.btn', '.button', '.cta'
       ];
-      
+
       const elements = document.querySelectorAll(interactiveSelectors.join(','));
       const points: { x: number; y: number; value: number }[] = [];
-      
+
       elements.forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) {
           const x = Math.round(rect.left + rect.width / 2);
           const y = Math.round(rect.top + rect.height / 2 + window.scrollY);
-          
+
           let value = 50;
           if (el.tagName === 'BUTTON' || el.classList.contains('cta')) value = 90;
           if (el.tagName === 'A') value = 70;
           if (rect.top < window.innerHeight) value += 20;
-          
+
           points.push({ x, y, value: Math.min(value, 100) });
         }
       });
-      
+
       heatmapInstance.setData({
         max: 100,
         data: points,
@@ -609,11 +613,11 @@ export class HeatmapChecker {
     return await this.page.evaluate(() => {
       const viewportHeight = window.innerHeight;
       const pageHeight = document.documentElement.scrollHeight;
-      
+
       // Click prediction points
       const clickPrediction: { x: number; y: number; value: number; element: string }[] = [];
       const interactiveSelectors = ['a', 'button', 'input', '[onclick]', '[role="button"]', '.btn', '.cta'];
-      
+
       document.querySelectorAll(interactiveSelectors.join(',')).forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) {
@@ -625,13 +629,13 @@ export class HeatmapChecker {
           });
         }
       });
-      
+
       // Scroll depth data
       const scrollDepth: { depth: number; percentage: number }[] = [];
       for (let i = 0; i <= 100; i += 10) {
         scrollDepth.push({ depth: (pageHeight * i) / 100, percentage: i });
       }
-      
+
       // Attention zones
       const attentionZones: { selector: string; score: number; bounds: any }[] = [];
       document.querySelectorAll('h1, h2, h3, img, button, .cta').forEach((el, i) => {
@@ -644,7 +648,7 @@ export class HeatmapChecker {
           });
         }
       });
-      
+
       return { clickPrediction, scrollDepth, attentionZones };
     });
   }

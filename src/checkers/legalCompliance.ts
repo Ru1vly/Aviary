@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class LegalComplianceChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkPrivacyPolicy());
-    results.push(await this.checkTermsOfService());
-    results.push(await this.checkCookieConsent());
-    results.push(await this.checkGDPRCompliance());
-    results.push(await this.checkCCPACompliance());
-    results.push(await this.checkCookiePolicy());
-    results.push(await this.checkDataProtection());
-    results.push(await this.checkAccessibility());
-    results.push(await this.checkCopyrightNotice());
-    results.push(await this.checkContactInformation());
-    results.push(await this.checkDisclaimers());
-    results.push(await this.checkAgeVerification());
-    results.push(await this.checkRefundPolicy());
-    results.push(await this.checkShippingPolicy());
-    results.push(await this.checkLegalFooter());
-
-    return results;
+export class LegalComplianceChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'privacy-policy-linked', run: () => this.checkPrivacyPolicy() },
+      { id: 'terms-of-service-linked', run: () => this.checkTermsOfService() },
+      { id: 'cookie-consent-present', run: () => this.checkCookieConsent() },
+      { id: 'gdpr-compliance-indicated', run: () => this.checkGDPRCompliance() },
+      { id: 'ccpa-compliance-indicated', run: () => this.checkCCPACompliance() },
+      { id: 'cookie-policy-linked', run: () => this.checkCookiePolicy() },
+      { id: 'data-protection-https', run: () => this.checkDataProtection() },
+      { id: 'accessibility-statement-present', run: () => this.checkAccessibility() },
+      { id: 'copyright-notice-current', run: () => this.checkCopyrightNotice() },
+      { id: 'contact-information-present', run: () => this.checkContactInformation() },
+      { id: 'disclaimers-present', run: () => this.checkDisclaimers() },
+      { id: 'age-verification-present', run: () => this.checkAgeVerification() },
+      { id: 'refund-policy-linked', run: () => this.checkRefundPolicy() },
+      { id: 'shipping-policy-linked', run: () => this.checkShippingPolicy() },
+      { id: 'legal-footer-links-present', run: () => this.checkLegalFooter() },
+    ];
   }
 
-  private async checkPrivacyPolicy(): Promise<SEOCheckResult> {
+  private async checkPrivacyPolicy(): Promise<CheckOutcome> {
     try {
       const privacyData = await this.page.evaluate(() => {
         const privacyLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -46,29 +41,19 @@ export class LegalComplianceChecker {
       });
 
       if (!privacyData.found) {
-        return {
-          passed: false,
-          message: 'No privacy policy link found (required for most websites)',
-          details: privacyData,
-        };
+        return this.fail('No privacy policy link found (required for most websites)', privacyData);
       }
 
-      return {
-        passed: true,
-        message: privacyData.inFooter
-          ? 'Privacy policy link found in footer'
-          : 'Privacy policy link found',
-        details: privacyData,
-      };
+      return this.pass(
+        privacyData.inFooter ? 'Privacy policy link found in footer' : 'Privacy policy link found',
+        privacyData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Privacy policy check skipped',
-      };
+      return this.pass('Privacy policy check skipped');
     }
   }
 
-  private async checkTermsOfService(): Promise<SEOCheckResult> {
+  private async checkTermsOfService(): Promise<CheckOutcome> {
     try {
       const termsData = await this.page.evaluate(() => {
         const termsLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -88,29 +73,19 @@ export class LegalComplianceChecker {
       });
 
       if (!termsData.found) {
-        return {
-          passed: false,
-          message: 'No terms of service link found (recommended for all websites)',
-          details: termsData,
-        };
+        return this.fail('No terms of service link found (recommended for all websites)', termsData);
       }
 
-      return {
-        passed: true,
-        message: termsData.inFooter
-          ? 'Terms of service link found in footer'
-          : 'Terms of service link found',
-        details: termsData,
-      };
+      return this.pass(
+        termsData.inFooter ? 'Terms of service link found in footer' : 'Terms of service link found',
+        termsData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Terms of service check skipped',
-      };
+      return this.pass('Terms of service check skipped');
     }
   }
 
-  private async checkCookieConsent(): Promise<SEOCheckResult> {
+  private async checkCookieConsent(): Promise<CheckOutcome> {
     try {
       const cookieData = await this.page.evaluate(() => {
         const cookieBanners = Array.from(document.querySelectorAll('[class*="cookie"], [id*="cookie"], [class*="consent"], [id*="consent"]'));
@@ -127,27 +102,16 @@ export class LegalComplianceChecker {
       });
 
       if (!cookieData.hasCookieBanner && !cookieData.hasCookieButtons) {
-        return {
-          passed: false,
-          message: 'No cookie consent mechanism found (required by GDPR/CCPA)',
-          details: cookieData,
-        };
+        return this.fail('No cookie consent mechanism found (required by GDPR/CCPA)', cookieData);
       }
 
-      return {
-        passed: true,
-        message: 'Cookie consent mechanism detected',
-        details: cookieData,
-      };
+      return this.pass('Cookie consent mechanism detected', cookieData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Cookie consent check skipped',
-      };
+      return this.pass('Cookie consent check skipped');
     }
   }
 
-  private async checkGDPRCompliance(): Promise<SEOCheckResult> {
+  private async checkGDPRCompliance(): Promise<CheckOutcome> {
     try {
       const gdprData = await this.page.evaluate(() => {
         const gdprKeywords = ['gdpr', 'data protection', 'right to access', 'right to erasure', 'data controller'];
@@ -168,26 +132,16 @@ export class LegalComplianceChecker {
       });
 
       if (!gdprData.hasGDPRMentions) {
-        return {
-          passed: true,
-          message: 'No GDPR mentions (ensure compliance if serving EU users)',
-        };
+        return this.pass('No GDPR mentions (ensure compliance if serving EU users)');
       }
 
-      return {
-        passed: true,
-        message: 'GDPR compliance indicators found',
-        details: gdprData,
-      };
+      return this.pass('GDPR compliance indicators found', gdprData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'GDPR compliance check skipped',
-      };
+      return this.pass('GDPR compliance check skipped');
     }
   }
 
-  private async checkCCPACompliance(): Promise<SEOCheckResult> {
+  private async checkCCPACompliance(): Promise<CheckOutcome> {
     try {
       const ccpaData = await this.page.evaluate(() => {
         const ccpaKeywords = ['ccpa', 'california privacy', 'do not sell', 'opt-out'];
@@ -208,28 +162,19 @@ export class LegalComplianceChecker {
       });
 
       if (!ccpaData.hasCCPAMentions) {
-        return {
-          passed: true,
-          message: 'No CCPA mentions (ensure compliance if serving California users)',
-        };
+        return this.pass('No CCPA mentions (ensure compliance if serving California users)');
       }
 
-      return {
-        passed: true,
-        message: ccpaData.hasDoNotSell
-          ? 'CCPA compliance with "Do Not Sell" option'
-          : 'CCPA compliance indicators found',
-        details: ccpaData,
-      };
+      return this.pass(
+        ccpaData.hasDoNotSell ? 'CCPA compliance with "Do Not Sell" option' : 'CCPA compliance indicators found',
+        ccpaData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'CCPA compliance check skipped',
-      };
+      return this.pass('CCPA compliance check skipped');
     }
   }
 
-  private async checkCookiePolicy(): Promise<SEOCheckResult> {
+  private async checkCookiePolicy(): Promise<CheckOutcome> {
     try {
       const policyData = await this.page.evaluate(() => {
         const policyLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -245,27 +190,16 @@ export class LegalComplianceChecker {
       });
 
       if (!policyData.found) {
-        return {
-          passed: false,
-          message: 'No cookie policy link found (required if using cookies)',
-          details: policyData,
-        };
+        return this.fail('No cookie policy link found (required if using cookies)', policyData);
       }
 
-      return {
-        passed: true,
-        message: 'Cookie policy link found',
-        details: policyData,
-      };
+      return this.pass('Cookie policy link found', policyData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Cookie policy check skipped',
-      };
+      return this.pass('Cookie policy check skipped');
     }
   }
 
-  private async checkDataProtection(): Promise<SEOCheckResult> {
+  private async checkDataProtection(): Promise<CheckOutcome> {
     try {
       const dataProtectionData = await this.page.evaluate(() => {
         const protectionKeywords = ['data protection', 'secure', 'encryption', 'ssl', 'https'];
@@ -283,27 +217,16 @@ export class LegalComplianceChecker {
       });
 
       if (!dataProtectionData.isHTTPS) {
-        return {
-          passed: false,
-          message: 'Site not using HTTPS (security risk)',
-          details: dataProtectionData,
-        };
+        return this.fail('Site not using HTTPS (security risk)', dataProtectionData);
       }
 
-      return {
-        passed: true,
-        message: 'Data protection indicators present',
-        details: dataProtectionData,
-      };
+      return this.pass('Data protection indicators present', dataProtectionData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Data protection check skipped',
-      };
+      return this.pass('Data protection check skipped');
     }
   }
 
-  private async checkAccessibility(): Promise<SEOCheckResult> {
+  private async checkAccessibility(): Promise<CheckOutcome> {
     try {
       const accessibilityData = await this.page.evaluate(() => {
         const accessibilityLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -322,26 +245,16 @@ export class LegalComplianceChecker {
       });
 
       if (!accessibilityData.hasAccessibilityStatement) {
-        return {
-          passed: true,
-          message: 'No accessibility statement (recommended for compliance)',
-        };
+        return this.pass('No accessibility statement (recommended for compliance)');
       }
 
-      return {
-        passed: true,
-        message: 'Accessibility statement found',
-        details: accessibilityData,
-      };
+      return this.pass('Accessibility statement found', accessibilityData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Accessibility check skipped',
-      };
+      return this.pass('Accessibility check skipped');
     }
   }
 
-  private async checkCopyrightNotice(): Promise<SEOCheckResult> {
+  private async checkCopyrightNotice(): Promise<CheckOutcome> {
     try {
       const copyrightData = await this.page.evaluate(() => {
         const bodyText = document.body.textContent || '';
@@ -361,37 +274,25 @@ export class LegalComplianceChecker {
       });
 
       if (!copyrightData.hasCopyright) {
-        return {
-          passed: false,
-          message: 'No copyright notice found',
-          details: copyrightData,
-        };
+        return this.fail('No copyright notice found', copyrightData);
       }
 
       if (!copyrightData.hasCurrentYear) {
-        return {
-          passed: false,
-          message: 'Copyright notice present but year may be outdated',
-          details: copyrightData,
-        };
+        return this.fail('Copyright notice present but year may be outdated', copyrightData);
       }
 
-      return {
-        passed: true,
-        message: copyrightData.inFooter
+      return this.pass(
+        copyrightData.inFooter
           ? 'Copyright notice with current year in footer'
           : 'Copyright notice with current year found',
-        details: copyrightData,
-      };
+        copyrightData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Copyright notice check skipped',
-      };
+      return this.pass('Copyright notice check skipped');
     }
   }
 
-  private async checkContactInformation(): Promise<SEOCheckResult> {
+  private async checkContactInformation(): Promise<CheckOutcome> {
     try {
       const contactData = await this.page.evaluate(() => {
         const contactLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -412,27 +313,16 @@ export class LegalComplianceChecker {
       });
 
       if (contactData.contactMethods === 0) {
-        return {
-          passed: false,
-          message: 'No contact information found (required for trust and legal compliance)',
-          details: contactData,
-        };
+        return this.fail('No contact information found (required for trust and legal compliance)', contactData);
       }
 
-      return {
-        passed: true,
-        message: `${contactData.contactMethods} contact method(s) found`,
-        details: contactData,
-      };
+      return this.pass(`${contactData.contactMethods} contact method(s) found`, contactData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Contact information check skipped',
-      };
+      return this.pass('Contact information check skipped');
     }
   }
 
-  private async checkDisclaimers(): Promise<SEOCheckResult> {
+  private async checkDisclaimers(): Promise<CheckOutcome> {
     try {
       const disclaimerData = await this.page.evaluate(() => {
         const disclaimerLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -450,26 +340,16 @@ export class LegalComplianceChecker {
       });
 
       if (!disclaimerData.hasDisclaimerLink && !disclaimerData.hasDisclaimerText) {
-        return {
-          passed: true,
-          message: 'No disclaimers (optional but recommended for certain industries)',
-        };
+        return this.pass('No disclaimers (optional but recommended for certain industries)');
       }
 
-      return {
-        passed: true,
-        message: 'Disclaimer present',
-        details: disclaimerData,
-      };
+      return this.pass('Disclaimer present', disclaimerData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Disclaimer check skipped',
-      };
+      return this.pass('Disclaimer check skipped');
     }
   }
 
-  private async checkAgeVerification(): Promise<SEOCheckResult> {
+  private async checkAgeVerification(): Promise<CheckOutcome> {
     try {
       const ageData = await this.page.evaluate(() => {
         const ageKeywords = ['age verification', '18+', '21+', 'adult content', 'age gate'];
@@ -486,26 +366,16 @@ export class LegalComplianceChecker {
       });
 
       if (!ageData.hasAgeVerification) {
-        return {
-          passed: true,
-          message: 'No age verification (only required for age-restricted content)',
-        };
+        return this.pass('No age verification (only required for age-restricted content)');
       }
 
-      return {
-        passed: true,
-        message: 'Age verification mechanism present',
-        details: ageData,
-      };
+      return this.pass('Age verification mechanism present', ageData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Age verification check skipped',
-      };
+      return this.pass('Age verification check skipped');
     }
   }
 
-  private async checkRefundPolicy(): Promise<SEOCheckResult> {
+  private async checkRefundPolicy(): Promise<CheckOutcome> {
     try {
       const refundData = await this.page.evaluate(() => {
         const refundLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -521,26 +391,16 @@ export class LegalComplianceChecker {
       });
 
       if (!refundData.found) {
-        return {
-          passed: true,
-          message: 'No refund policy (required for e-commerce sites)',
-        };
+        return this.pass('No refund policy (required for e-commerce sites)');
       }
 
-      return {
-        passed: true,
-        message: 'Refund/return policy link found',
-        details: refundData,
-      };
+      return this.pass('Refund/return policy link found', refundData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Refund policy check skipped',
-      };
+      return this.pass('Refund policy check skipped');
     }
   }
 
-  private async checkShippingPolicy(): Promise<SEOCheckResult> {
+  private async checkShippingPolicy(): Promise<CheckOutcome> {
     try {
       const shippingData = await this.page.evaluate(() => {
         const shippingLinks = Array.from(document.querySelectorAll('a')).filter((link) => {
@@ -556,26 +416,16 @@ export class LegalComplianceChecker {
       });
 
       if (!shippingData.found) {
-        return {
-          passed: true,
-          message: 'No shipping policy (required for e-commerce sites)',
-        };
+        return this.pass('No shipping policy (required for e-commerce sites)');
       }
 
-      return {
-        passed: true,
-        message: 'Shipping/delivery policy link found',
-        details: shippingData,
-      };
+      return this.pass('Shipping/delivery policy link found', shippingData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Shipping policy check skipped',
-      };
+      return this.pass('Shipping policy check skipped');
     }
   }
 
-  private async checkLegalFooter(): Promise<SEOCheckResult> {
+  private async checkLegalFooter(): Promise<CheckOutcome> {
     try {
       const footerData = await this.page.evaluate(() => {
         const footer = document.querySelector('footer');
@@ -599,31 +449,16 @@ export class LegalComplianceChecker {
       });
 
       if (!footerData.hasFooter) {
-        return {
-          passed: false,
-          message: 'No footer element found',
-          details: footerData,
-        };
+        return this.fail('No footer element found', footerData);
       }
 
       if (footerData.legalLinks === 0) {
-        return {
-          passed: false,
-          message: 'Footer missing legal links (privacy, terms, etc.)',
-          details: footerData,
-        };
+        return this.fail('Footer missing legal links (privacy, terms, etc.)', footerData);
       }
 
-      return {
-        passed: true,
-        message: `Footer contains ${footerData.legalLinks} legal link(s)`,
-        details: footerData,
-      };
+      return this.pass(`Footer contains ${footerData.legalLinks} legal link(s)`, footerData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Legal footer check skipped',
-      };
+      return this.pass('Legal footer check skipped');
     }
   }
 }

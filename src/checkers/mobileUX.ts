@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class MobileUXChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkTapTargetSize());
-    results.push(await this.checkMobileViewportConfig());
-    results.push(await this.checkTouchFriendlySpacing());
-    results.push(await this.checkMobileFormInputs());
-    results.push(await this.checkMobileNavigation());
-    results.push(await this.checkMobileReadability());
-    results.push(await this.checkMobileImageOptimization());
-    results.push(await this.checkMobilePopups());
-    results.push(await this.checkOrientationSupport());
-    results.push(await this.checkTouchIcons());
-    results.push(await this.checkAMPImplementation());
-    results.push(await this.checkPWAFeatures());
-    results.push(await this.checkMobileScrolling());
-    results.push(await this.checkMobilePerformance());
-    results.push(await this.checkGestureSupport());
-
-    return results;
+export class MobileUXChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'tap-target-size-adequate', run: () => this.checkTapTargetSize() },
+      { id: 'mobile-viewport-config-valid', run: () => this.checkMobileViewportConfig() },
+      { id: 'touch-friendly-spacing', run: () => this.checkTouchFriendlySpacing() },
+      { id: 'mobile-form-inputs-optimized', run: () => this.checkMobileFormInputs() },
+      { id: 'mobile-navigation-present', run: () => this.checkMobileNavigation() },
+      { id: 'mobile-readability-acceptable', run: () => this.checkMobileReadability() },
+      { id: 'mobile-image-optimization', run: () => this.checkMobileImageOptimization() },
+      { id: 'mobile-popups-absent', run: () => this.checkMobilePopups() },
+      { id: 'orientation-support', run: () => this.checkOrientationSupport() },
+      { id: 'touch-icons-present', run: () => this.checkTouchIcons() },
+      { id: 'amp-implementation', run: () => this.checkAMPImplementation() },
+      { id: 'pwa-features-present', run: () => this.checkPWAFeatures() },
+      { id: 'mobile-scrolling-clean', run: () => this.checkMobileScrolling() },
+      { id: 'mobile-performance-acceptable', run: () => this.checkMobilePerformance() },
+      { id: 'gesture-support-detected', run: () => this.checkGestureSupport() },
+    ];
   }
 
-  private async checkTapTargetSize(): Promise<SEOCheckResult> {
+  private async checkTapTargetSize(): Promise<CheckOutcome> {
     try {
       const tapData = await this.page.evaluate(() => {
         const interactive = Array.from(document.querySelectorAll('a, button, input[type="button"], input[type="submit"]'));
@@ -43,27 +38,16 @@ export class MobileUXChecker {
       });
 
       if (tapData.tooSmall > 5) {
-        return {
-          passed: false,
-          message: `${tapData.tooSmall} tap targets smaller than 44x44px (mobile usability issue)`,
-          details: tapData,
-        };
+        return this.fail(`${tapData.tooSmall} tap targets smaller than 44x44px (mobile usability issue)`, tapData);
       }
 
-      return {
-        passed: true,
-        message: 'Tap targets meet minimum size requirements',
-        details: tapData,
-      };
+      return this.pass('Tap targets meet minimum size requirements', tapData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Tap target size check skipped',
-      };
+      return this.pass('Tap target size check skipped');
     }
   }
 
-  private async checkMobileViewportConfig(): Promise<SEOCheckResult> {
+  private async checkMobileViewportConfig(): Promise<CheckOutcome> {
     try {
       const viewportData = await this.page.evaluate(() => {
         const viewport = document.querySelector('meta[name="viewport"]');
@@ -99,27 +83,16 @@ export class MobileUXChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Mobile viewport issues: ${issues.join(', ')}`,
-          details: viewportData,
-        };
+        return this.fail(`Mobile viewport issues: ${issues.join(', ')}`, viewportData);
       }
 
-      return {
-        passed: true,
-        message: 'Mobile viewport properly configured',
-        details: viewportData,
-      };
+      return this.pass('Mobile viewport properly configured', viewportData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Viewport config check skipped',
-      };
+      return this.pass('Viewport config check skipped');
     }
   }
 
-  private async checkTouchFriendlySpacing(): Promise<SEOCheckResult> {
+  private async checkTouchFriendlySpacing(): Promise<CheckOutcome> {
     try {
       const spacingData = await this.page.evaluate(() => {
         const links = Array.from(document.querySelectorAll('a'));
@@ -143,27 +116,16 @@ export class MobileUXChecker {
       });
 
       if (spacingData.closeTogether > 10) {
-        return {
-          passed: false,
-          message: `${spacingData.closeTogether} elements too close together for touch`,
-          details: spacingData,
-        };
+        return this.fail(`${spacingData.closeTogether} elements too close together for touch`, spacingData);
       }
 
-      return {
-        passed: true,
-        message: 'Touch-friendly spacing detected',
-        details: spacingData,
-      };
+      return this.pass('Touch-friendly spacing detected', spacingData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Touch spacing check skipped',
-      };
+      return this.pass('Touch spacing check skipped');
     }
   }
 
-  private async checkMobileFormInputs(): Promise<SEOCheckResult> {
+  private async checkMobileFormInputs(): Promise<CheckOutcome> {
     try {
       const formData = await this.page.evaluate(() => {
         const inputs = Array.from(document.querySelectorAll('input, select, textarea'));
@@ -183,10 +145,7 @@ export class MobileUXChecker {
       });
 
       if (formData.total === 0) {
-        return {
-          passed: true,
-          message: 'No form inputs found',
-        };
+        return this.pass('No form inputs found');
       }
 
       const issues: string[] = [];
@@ -196,27 +155,16 @@ export class MobileUXChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Mobile form issues: ${issues.join(', ')}`,
-          details: formData,
-        };
+        return this.fail(`Mobile form issues: ${issues.join(', ')}`, formData);
       }
 
-      return {
-        passed: true,
-        message: 'Form inputs optimized for mobile',
-        details: formData,
-      };
+      return this.pass('Form inputs optimized for mobile', formData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile form inputs check skipped',
-      };
+      return this.pass('Mobile form inputs check skipped');
     }
   }
 
-  private async checkMobileNavigation(): Promise<SEOCheckResult> {
+  private async checkMobileNavigation(): Promise<CheckOutcome> {
     try {
       const navData = await this.page.evaluate(() => {
         const hamburger = document.querySelector('[class*="hamburger"], [class*="menu-toggle"], [class*="mobile-menu"]');
@@ -233,22 +181,18 @@ export class MobileUXChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: navData.hasHamburgerMenu
+      return this.pass(
+        navData.hasHamburgerMenu
           ? 'Mobile navigation menu detected'
           : 'No obvious mobile menu (consider hamburger menu for mobile)',
-        details: navData,
-      };
+        navData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile navigation check skipped',
-      };
+      return this.pass('Mobile navigation check skipped');
     }
   }
 
-  private async checkMobileReadability(): Promise<SEOCheckResult> {
+  private async checkMobileReadability(): Promise<CheckOutcome> {
     try {
       const readabilityData = await this.page.evaluate(() => {
         const bodyStyle = window.getComputedStyle(document.body);
@@ -268,35 +212,20 @@ export class MobileUXChecker {
       });
 
       if (readabilityData.bodyFontSize < 16) {
-        return {
-          passed: false,
-          message: `Base font size too small (${readabilityData.bodyFontSize}px). Recommended: 16px+`,
-          details: readabilityData,
-        };
+        return this.fail(`Base font size too small (${readabilityData.bodyFontSize}px). Recommended: 16px+`, readabilityData);
       }
 
       if (readabilityData.smallTextElements > 10) {
-        return {
-          passed: false,
-          message: `${readabilityData.smallTextElements} elements with small text (< 14px)`,
-          details: readabilityData,
-        };
+        return this.fail(`${readabilityData.smallTextElements} elements with small text (< 14px)`, readabilityData);
       }
 
-      return {
-        passed: true,
-        message: 'Mobile readability is good',
-        details: readabilityData,
-      };
+      return this.pass('Mobile readability is good', readabilityData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile readability check skipped',
-      };
+      return this.pass('Mobile readability check skipped');
     }
   }
 
-  private async checkMobileImageOptimization(): Promise<SEOCheckResult> {
+  private async checkMobileImageOptimization(): Promise<CheckOutcome> {
     try {
       const imageData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -314,29 +243,21 @@ export class MobileUXChecker {
       });
 
       if (imageData.total > 5 && imageData.responsive === 0) {
-        return {
-          passed: false,
-          message: 'Images not optimized for mobile (use srcset or picture)',
-          details: imageData,
-        };
+        return this.fail('Images not optimized for mobile (use srcset or picture)', imageData);
       }
 
-      return {
-        passed: true,
-        message: imageData.responsive > 0
+      return this.pass(
+        imageData.responsive > 0
           ? `${imageData.responsive}/${imageData.total} images are mobile-optimized`
           : 'No images or optimization not needed',
-        details: imageData,
-      };
+        imageData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile image optimization check skipped',
-      };
+      return this.pass('Mobile image optimization check skipped');
     }
   }
 
-  private async checkMobilePopups(): Promise<SEOCheckResult> {
+  private async checkMobilePopups(): Promise<CheckOutcome> {
     try {
       const popupData = await this.page.evaluate(() => {
         const modals = Array.from(document.querySelectorAll('[class*="modal"], [class*="popup"], [class*="overlay"]'));
@@ -352,27 +273,19 @@ export class MobileUXChecker {
       });
 
       if (popupData.visibleModals > 0) {
-        return {
-          passed: false,
-          message: `${popupData.visibleModals} visible popup(s) detected (Google penalizes intrusive mobile interstitials)`,
-          details: popupData,
-        };
+        return this.fail(
+          `${popupData.visibleModals} visible popup(s) detected (Google penalizes intrusive mobile interstitials)`,
+          popupData
+        );
       }
 
-      return {
-        passed: true,
-        message: 'No intrusive popups detected',
-        details: popupData,
-      };
+      return this.pass('No intrusive popups detected', popupData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile popups check skipped',
-      };
+      return this.pass('Mobile popups check skipped');
     }
   }
 
-  private async checkOrientationSupport(): Promise<SEOCheckResult> {
+  private async checkOrientationSupport(): Promise<CheckOutcome> {
     try {
       const orientationData = await this.page.evaluate(() => {
         const hasOrientationCSS = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).some((el) => {
@@ -386,22 +299,18 @@ export class MobileUXChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: orientationData.hasOrientationSupport
+      return this.pass(
+        orientationData.hasOrientationSupport
           ? 'Orientation-specific CSS detected'
           : 'No orientation-specific CSS (optional)',
-        details: orientationData,
-      };
+        orientationData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Orientation support check skipped',
-      };
+      return this.pass('Orientation support check skipped');
     }
   }
 
-  private async checkTouchIcons(): Promise<SEOCheckResult> {
+  private async checkTouchIcons(): Promise<CheckOutcome> {
     try {
       const iconData = await this.page.evaluate(() => {
         const appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]');
@@ -416,31 +325,23 @@ export class MobileUXChecker {
       });
 
       if (!iconData.hasAppleTouchIcon && !iconData.hasManifest) {
-        return {
-          passed: false,
-          message: 'Missing touch icons and web manifest',
-          details: iconData,
-        };
+        return this.fail('Missing touch icons and web manifest', iconData);
       }
 
-      return {
-        passed: true,
-        message: iconData.hasAppleTouchIcon && iconData.hasManifest
+      return this.pass(
+        iconData.hasAppleTouchIcon && iconData.hasManifest
           ? 'Touch icons and manifest present'
           : iconData.hasAppleTouchIcon
           ? 'Touch icons present (consider adding web manifest)'
           : 'Web manifest present (consider adding apple-touch-icon)',
-        details: iconData,
-      };
+        iconData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Touch icons check skipped',
-      };
+      return this.pass('Touch icons check skipped');
     }
   }
 
-  private async checkAMPImplementation(): Promise<SEOCheckResult> {
+  private async checkAMPImplementation(): Promise<CheckOutcome> {
     try {
       const ampData = await this.page.evaluate(() => {
         const isAMP = document.documentElement.hasAttribute('amp') ||
@@ -454,24 +355,20 @@ export class MobileUXChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: ampData.isAMPPage
+      return this.pass(
+        ampData.isAMPPage
           ? 'This is an AMP page'
           : ampData.hasAMPVersion
           ? 'AMP version available'
           : 'No AMP (optional for mobile speed)',
-        details: ampData,
-      };
+        ampData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'AMP implementation check skipped',
-      };
+      return this.pass('AMP implementation check skipped');
     }
   }
 
-  private async checkPWAFeatures(): Promise<SEOCheckResult> {
+  private async checkPWAFeatures(): Promise<CheckOutcome> {
     try {
       const pwaData = await this.page.evaluate(() => {
         const manifest = document.querySelector('link[rel="manifest"]');
@@ -492,22 +389,16 @@ export class MobileUXChecker {
       if (pwaData.serviceWorkerSupported) features.push('service worker');
       if (pwaData.hasThemeColor) features.push('theme color');
 
-      return {
-        passed: true,
-        message: features.length > 0
-          ? `PWA features detected: ${features.join(', ')}`
-          : 'No PWA features (optional)',
-        details: pwaData,
-      };
+      return this.pass(
+        features.length > 0 ? `PWA features detected: ${features.join(', ')}` : 'No PWA features (optional)',
+        pwaData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'PWA features check skipped',
-      };
+      return this.pass('PWA features check skipped');
     }
   }
 
-  private async checkMobileScrolling(): Promise<SEOCheckResult> {
+  private async checkMobileScrolling(): Promise<CheckOutcome> {
     try {
       const scrollData = await this.page.evaluate(() => {
         const hasHorizontalScroll = document.documentElement.scrollWidth > window.innerWidth;
@@ -521,27 +412,16 @@ export class MobileUXChecker {
       });
 
       if (scrollData.hasHorizontalScroll && scrollData.overflowX !== 'hidden') {
-        return {
-          passed: false,
-          message: 'Horizontal scrolling detected (mobile UX issue)',
-          details: scrollData,
-        };
+        return this.fail('Horizontal scrolling detected (mobile UX issue)', scrollData);
       }
 
-      return {
-        passed: true,
-        message: 'No unwanted horizontal scrolling',
-        details: scrollData,
-      };
+      return this.pass('No unwanted horizontal scrolling', scrollData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile scrolling check skipped',
-      };
+      return this.pass('Mobile scrolling check skipped');
     }
   }
 
-  private async checkMobilePerformance(): Promise<SEOCheckResult> {
+  private async checkMobilePerformance(): Promise<CheckOutcome> {
     try {
       const perfData = await this.page.evaluate(() => {
         const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
@@ -555,27 +435,16 @@ export class MobileUXChecker {
       });
 
       if (perfData.loadTime > 5000) {
-        return {
-          passed: false,
-          message: `Mobile load time is slow (${perfData.loadTimeSeconds}s). Target: < 3s`,
-          details: perfData,
-        };
+        return this.fail(`Mobile load time is slow (${perfData.loadTimeSeconds}s). Target: < 3s`, perfData);
       }
 
-      return {
-        passed: true,
-        message: `Mobile performance acceptable (${perfData.loadTimeSeconds}s load)`,
-        details: perfData,
-      };
+      return this.pass(`Mobile performance acceptable (${perfData.loadTimeSeconds}s load)`, perfData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile performance check skipped',
-      };
+      return this.pass('Mobile performance check skipped');
     }
   }
 
-  private async checkGestureSupport(): Promise<SEOCheckResult> {
+  private async checkGestureSupport(): Promise<CheckOutcome> {
     try {
       const gestureData = await this.page.evaluate(() => {
         const hasTouchEvents = 'ontouchstart' in window;
@@ -591,18 +460,14 @@ export class MobileUXChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: gestureData.hasTouchEvents || gestureData.hasPointerEvents
+      return this.pass(
+        gestureData.hasTouchEvents || gestureData.hasPointerEvents
           ? 'Touch/pointer events supported'
           : 'Touch support unclear',
-        details: gestureData,
-      };
+        gestureData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Gesture support check skipped',
-      };
+      return this.pass('Gesture support check skipped');
     }
   }
 }

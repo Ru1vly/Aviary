@@ -1,32 +1,27 @@
-import { Page } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class PageQualityChecker {
-  constructor(private page: Page) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkDuplicateTitles());
-    results.push(await this.checkDuplicateDescriptions());
-    results.push(await this.checkDuplicateH1());
-    results.push(await this.checkContentFreshness());
-    results.push(await this.checkMediaPresence());
-    results.push(await this.checkTableOfContents());
-    results.push(await this.checkAuthorInfo());
-    results.push(await this.checkPublishDate());
-    results.push(await this.checkContactInfo());
-    results.push(await this.checkSocialProof());
-    results.push(await this.checkCallToAction());
-    results.push(await this.checkMobileOptimization());
-    results.push(await this.checkPrintStylesheet());
-    results.push(await this.checkCanonicalConsistency());
-    results.push(await this.checkNoIndex());
-
-    return results;
+export class PageQualityChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'title-tags-consistent', run: () => this.checkDuplicateTitles() },
+      { id: 'description-tags-consistent', run: () => this.checkDuplicateDescriptions() },
+      { id: 'h1-not-duplicated', run: () => this.checkDuplicateH1() },
+      { id: 'content-freshness-indicated', run: () => this.checkContentFreshness() },
+      { id: 'media-elements-present', run: () => this.checkMediaPresence() },
+      { id: 'table-of-contents-present', run: () => this.checkTableOfContents() },
+      { id: 'author-info-present', run: () => this.checkAuthorInfo() },
+      { id: 'publish-date-present', run: () => this.checkPublishDate() },
+      { id: 'contact-info-present', run: () => this.checkContactInfo() },
+      { id: 'social-proof-present', run: () => this.checkSocialProof() },
+      { id: 'call-to-action-present', run: () => this.checkCallToAction() },
+      { id: 'mobile-optimization-present', run: () => this.checkMobileOptimization() },
+      { id: 'print-stylesheet-present', run: () => this.checkPrintStylesheet() },
+      { id: 'canonical-og-url-consistent', run: () => this.checkCanonicalConsistency() },
+      { id: 'no-noindex-directive', run: () => this.checkNoIndex() },
+    ];
   }
 
-  private async checkDuplicateTitles(): Promise<SEOCheckResult> {
+  private async checkDuplicateTitles(): Promise<CheckOutcome> {
     try {
       const titles = await this.page.evaluate(() => {
         const pageTitle = document.title;
@@ -42,22 +37,16 @@ export class PageQualityChecker {
       });
 
       // It's actually good if all titles are the same for consistency
-      return {
-        passed: true,
-        message: titles.allSame
-          ? 'All title tags are consistent'
-          : 'Title tags vary (ensure intentional variation)',
-        details: titles,
-      };
+      return this.pass(
+        titles.allSame ? 'All title tags are consistent' : 'Title tags vary (ensure intentional variation)',
+        titles
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Title consistency check skipped',
-      };
+      return this.pass('Title consistency check skipped');
     }
   }
 
-  private async checkDuplicateDescriptions(): Promise<SEOCheckResult> {
+  private async checkDuplicateDescriptions(): Promise<CheckOutcome> {
     try {
       const descriptions = await this.page.evaluate(() => {
         const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content');
@@ -72,22 +61,16 @@ export class PageQualityChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: descriptions.allSame
-          ? 'All description tags are consistent'
-          : 'Description tags vary',
-        details: descriptions,
-      };
+      return this.pass(
+        descriptions.allSame ? 'All description tags are consistent' : 'Description tags vary',
+        descriptions
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Description consistency check skipped',
-      };
+      return this.pass('Description consistency check skipped');
     }
   }
 
-  private async checkDuplicateH1(): Promise<SEOCheckResult> {
+  private async checkDuplicateH1(): Promise<CheckOutcome> {
     try {
       const h1Data = await this.page.evaluate(() => {
         const h1s = Array.from(document.querySelectorAll('h1'));
@@ -103,35 +86,20 @@ export class PageQualityChecker {
       });
 
       if (h1Data.hasDuplicates) {
-        return {
-          passed: false,
-          message: `Duplicate H1 content found (${h1Data.totalH1s} H1s, ${h1Data.uniqueH1s} unique)`,
-          details: h1Data,
-        };
+        return this.fail(`Duplicate H1 content found (${h1Data.totalH1s} H1s, ${h1Data.uniqueH1s} unique)`, h1Data);
       }
 
       if (h1Data.totalH1s > 1) {
-        return {
-          passed: false,
-          message: `Multiple H1 tags found (${h1Data.totalH1s}). Best practice: 1 per page`,
-          details: h1Data,
-        };
+        return this.fail(`Multiple H1 tags found (${h1Data.totalH1s}). Best practice: 1 per page`, h1Data);
       }
 
-      return {
-        passed: true,
-        message: 'Single unique H1 found',
-        details: h1Data,
-      };
+      return this.pass('Single unique H1 found', h1Data);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'H1 duplication check skipped',
-      };
+      return this.pass('H1 duplication check skipped');
     }
   }
 
-  private async checkContentFreshness(): Promise<SEOCheckResult> {
+  private async checkContentFreshness(): Promise<CheckOutcome> {
     try {
       const dateData = await this.page.evaluate(() => {
         const modifiedMeta = document.querySelector('meta[property="article:modified_time"]')?.getAttribute('content');
@@ -151,27 +119,16 @@ export class PageQualityChecker {
       const hasDateIndicators = dateData.hasModifiedDate || dateData.hasPublishedDate || dateData.hasTimeElements;
 
       if (!hasDateIndicators) {
-        return {
-          passed: false,
-          message: 'No date indicators found (consider adding publication/modified dates)',
-          details: dateData,
-        };
+        return this.fail('No date indicators found (consider adding publication/modified dates)', dateData);
       }
 
-      return {
-        passed: true,
-        message: 'Date metadata present',
-        details: dateData,
-      };
+      return this.pass('Date metadata present', dateData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Content freshness check skipped',
-      };
+      return this.pass('Content freshness check skipped');
     }
   }
 
-  private async checkMediaPresence(): Promise<SEOCheckResult> {
+  private async checkMediaPresence(): Promise<CheckOutcome> {
     try {
       const mediaData = await this.page.evaluate(() => {
         return {
@@ -184,27 +141,16 @@ export class PageQualityChecker {
       const totalMedia = mediaData.images + mediaData.videos + mediaData.audio;
 
       if (totalMedia === 0) {
-        return {
-          passed: false,
-          message: 'No media elements found (images/videos improve engagement)',
-          details: mediaData,
-        };
+        return this.fail('No media elements found (images/videos improve engagement)', mediaData);
       }
 
-      return {
-        passed: true,
-        message: `Media elements present (${totalMedia} total)`,
-        details: mediaData,
-      };
+      return this.pass(`Media elements present (${totalMedia} total)`, mediaData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Media presence check skipped',
-      };
+      return this.pass('Media presence check skipped');
     }
   }
 
-  private async checkTableOfContents(): Promise<SEOCheckResult> {
+  private async checkTableOfContents(): Promise<CheckOutcome> {
     try {
       const hasTOC = await this.page.evaluate(() => {
         const tocElements = document.querySelectorAll(
@@ -213,21 +159,13 @@ export class PageQualityChecker {
         return tocElements.length > 0;
       });
 
-      return {
-        passed: true,
-        message: hasTOC
-          ? 'Table of contents found'
-          : 'No table of contents (consider adding for long content)',
-      };
+      return this.pass(hasTOC ? 'Table of contents found' : 'No table of contents (consider adding for long content)');
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Table of contents check skipped',
-      };
+      return this.pass('Table of contents check skipped');
     }
   }
 
-  private async checkAuthorInfo(): Promise<SEOCheckResult> {
+  private async checkAuthorInfo(): Promise<CheckOutcome> {
     try {
       const authorData = await this.page.evaluate(() => {
         const authorMeta = document.querySelector('meta[name="author"]')?.getAttribute('content');
@@ -252,22 +190,16 @@ export class PageQualityChecker {
 
       const hasAuthorInfo = authorData.hasAuthorMeta || authorData.hasAuthorLink || authorData.hasSchemaAuthor;
 
-      return {
-        passed: true,
-        message: hasAuthorInfo
-          ? 'Author information present'
-          : 'No author information (recommended for E-A-T)',
-        details: authorData,
-      };
+      return this.pass(
+        hasAuthorInfo ? 'Author information present' : 'No author information (recommended for E-A-T)',
+        authorData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Author info check skipped',
-      };
+      return this.pass('Author info check skipped');
     }
   }
 
-  private async checkPublishDate(): Promise<SEOCheckResult> {
+  private async checkPublishDate(): Promise<CheckOutcome> {
     try {
       const dateInfo = await this.page.evaluate(() => {
         const publishedTime = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content');
@@ -282,22 +214,16 @@ export class PageQualityChecker {
 
       const hasDate = dateInfo.hasPublishedMeta || dateInfo.hasTimeElements;
 
-      return {
-        passed: true,
-        message: hasDate
-          ? 'Publication date found'
-          : 'No publication date (recommended for content freshness)',
-        details: dateInfo,
-      };
+      return this.pass(
+        hasDate ? 'Publication date found' : 'No publication date (recommended for content freshness)',
+        dateInfo
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Publish date check skipped',
-      };
+      return this.pass('Publish date check skipped');
     }
   }
 
-  private async checkContactInfo(): Promise<SEOCheckResult> {
+  private async checkContactInfo(): Promise<CheckOutcome> {
     try {
       const contactData = await this.page.evaluate(() => {
         const content = document.body.textContent || '';
@@ -315,22 +241,18 @@ export class PageQualityChecker {
 
       const contactMethods = [contactData.hasEmail, contactData.hasPhone, contactData.hasAddress].filter(Boolean).length;
 
-      return {
-        passed: true,
-        message: contactMethods > 0
+      return this.pass(
+        contactMethods > 0
           ? `Contact information present (${contactMethods} methods)`
           : 'No contact information found (consider adding for trust)',
-        details: contactData,
-      };
+        contactData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Contact info check skipped',
-      };
+      return this.pass('Contact info check skipped');
     }
   }
 
-  private async checkSocialProof(): Promise<SEOCheckResult> {
+  private async checkSocialProof(): Promise<CheckOutcome> {
     try {
       const socialData = await this.page.evaluate(() => {
         const testimonials = document.querySelectorAll('[class*="testimonial"], [class*="review"]');
@@ -348,22 +270,16 @@ export class PageQualityChecker {
 
       const hasSocialProof = socialData.hasTestimonials || socialData.hasRatings || socialData.hasSocialLinks;
 
-      return {
-        passed: true,
-        message: hasSocialProof
-          ? 'Social proof elements present'
-          : 'No social proof (consider adding reviews/testimonials)',
-        details: socialData,
-      };
+      return this.pass(
+        hasSocialProof ? 'Social proof elements present' : 'No social proof (consider adding reviews/testimonials)',
+        socialData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Social proof check skipped',
-      };
+      return this.pass('Social proof check skipped');
     }
   }
 
-  private async checkCallToAction(): Promise<SEOCheckResult> {
+  private async checkCallToAction(): Promise<CheckOutcome> {
     try {
       const ctaData = await this.page.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button, [role="button"], a[class*="btn"], a[class*="button"]'));
@@ -378,22 +294,18 @@ export class PageQualityChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: ctaData.hasCTA
+      return this.pass(
+        ctaData.hasCTA
           ? `Call-to-action buttons present (${ctaData.buttonCount} buttons)`
           : 'No clear call-to-action (consider adding for conversion)',
-        details: ctaData,
-      };
+        ctaData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'CTA check skipped',
-      };
+      return this.pass('CTA check skipped');
     }
   }
 
-  private async checkMobileOptimization(): Promise<SEOCheckResult> {
+  private async checkMobileOptimization(): Promise<CheckOutcome> {
     try {
       const mobileData = await this.page.evaluate(() => {
         const viewport = document.querySelector('meta[name="viewport"]');
@@ -424,27 +336,16 @@ export class PageQualityChecker {
       }
 
       if (issues.length > 1) {
-        return {
-          passed: false,
-          message: `Mobile optimization issues: ${issues.join(', ')}`,
-          details: mobileData,
-        };
+        return this.fail(`Mobile optimization issues: ${issues.join(', ')}`, mobileData);
       }
 
-      return {
-        passed: true,
-        message: 'Mobile optimization present',
-        details: mobileData,
-      };
+      return this.pass('Mobile optimization present', mobileData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Mobile optimization check skipped',
-      };
+      return this.pass('Mobile optimization check skipped');
     }
   }
 
-  private async checkPrintStylesheet(): Promise<SEOCheckResult> {
+  private async checkPrintStylesheet(): Promise<CheckOutcome> {
     try {
       const hasPrintCSS = await this.page.evaluate(() => {
         const printLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
@@ -459,22 +360,18 @@ export class PageQualityChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: (hasPrintCSS.hasPrintLinks || hasPrintCSS.hasMediaQueries)
+      return this.pass(
+        hasPrintCSS.hasPrintLinks || hasPrintCSS.hasMediaQueries
           ? 'Print stylesheet present'
           : 'No print stylesheet (optional but good for UX)',
-        details: hasPrintCSS,
-      };
+        hasPrintCSS
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Print stylesheet check skipped',
-      };
+      return this.pass('Print stylesheet check skipped');
     }
   }
 
-  private async checkCanonicalConsistency(): Promise<SEOCheckResult> {
+  private async checkCanonicalConsistency(): Promise<CheckOutcome> {
     try {
       const canonicalData = await this.page.evaluate(() => {
         const canonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href');
@@ -488,27 +385,16 @@ export class PageQualityChecker {
       });
 
       if (canonicalData.canonical && canonicalData.ogUrl && !canonicalData.match) {
-        return {
-          passed: false,
-          message: 'Canonical URL and og:url do not match',
-          details: canonicalData,
-        };
+        return this.fail('Canonical URL and og:url do not match', canonicalData);
       }
 
-      return {
-        passed: true,
-        message: 'Canonical tags are consistent',
-        details: canonicalData,
-      };
+      return this.pass('Canonical tags are consistent', canonicalData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Canonical consistency check skipped',
-      };
+      return this.pass('Canonical consistency check skipped');
     }
   }
 
-  private async checkNoIndex(): Promise<SEOCheckResult> {
+  private async checkNoIndex(): Promise<CheckOutcome> {
     try {
       const robotsData = await this.page.evaluate(() => {
         const robotsMeta = document.querySelector('meta[name="robots"]')?.getAttribute('content') || '';
@@ -528,31 +414,16 @@ export class PageQualityChecker {
       });
 
       if (robotsData.hasNoIndex) {
-        return {
-          passed: false,
-          message: 'Page has noindex directive (will not be indexed by search engines)',
-          details: robotsData,
-        };
+        return this.fail('Page has noindex directive (will not be indexed by search engines)', robotsData);
       }
 
       if (robotsData.hasNoFollow) {
-        return {
-          passed: false,
-          message: 'Page has nofollow directive (links will not be followed)',
-          details: robotsData,
-        };
+        return this.fail('Page has nofollow directive (links will not be followed)', robotsData);
       }
 
-      return {
-        passed: true,
-        message: 'Page is indexable',
-        details: robotsData,
-      };
+      return this.pass('Page is indexable', robotsData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'NoIndex check skipped',
-      };
+      return this.pass('NoIndex check skipped');
     }
   }
 }

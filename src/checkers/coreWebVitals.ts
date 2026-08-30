@@ -1,32 +1,27 @@
-import { Page, Response } from 'playwright';
-import { SEOCheckResult } from '../types';
+import { BaseChecker, CheckOutcome } from './base';
 
-export class CoreWebVitalsChecker {
-  constructor(private page: Page, private response: Response | null = null) {}
-
-  async checkAll(): Promise<SEOCheckResult[]> {
-    const results: SEOCheckResult[] = [];
-
-    results.push(await this.checkPageLoadTime());
-    results.push(await this.checkDOMContentLoaded());
-    results.push(await this.checkResourceCount());
-    results.push(await this.checkTotalPageSize());
-    results.push(await this.checkJavaScriptSize());
-    results.push(await this.checkCSSSize());
-    results.push(await this.checkImageSize());
-    results.push(await this.checkFontLoading());
-    results.push(await this.checkRenderBlocking());
-    results.push(await this.checkLazyLoadImplementation());
-    results.push(await this.checkCriticalCSS());
-    results.push(await this.checkAsyncScripts());
-    results.push(await this.checkPreloadPreconnect());
-    results.push(await this.checkCacheHeaders());
-    results.push(await this.checkServerResponseTime());
-
-    return results;
+export class CoreWebVitalsChecker extends BaseChecker {
+  protected checks() {
+    return [
+      { id: 'page-load-time-acceptable', run: () => this.checkPageLoadTime() },
+      { id: 'dom-content-loaded-acceptable', run: () => this.checkDOMContentLoaded() },
+      { id: 'resource-count-acceptable', run: () => this.checkResourceCount() },
+      { id: 'page-size-acceptable', run: () => this.checkTotalPageSize() },
+      { id: 'javascript-size-acceptable', run: () => this.checkJavaScriptSize() },
+      { id: 'css-size-acceptable', run: () => this.checkCSSSize() },
+      { id: 'image-size-acceptable', run: () => this.checkImageSize() },
+      { id: 'font-loading-optimized', run: () => this.checkFontLoading() },
+      { id: 'render-blocking-resources-minimal', run: () => this.checkRenderBlocking() },
+      { id: 'lazy-load-implemented', run: () => this.checkLazyLoadImplementation() },
+      { id: 'critical-css-present', run: () => this.checkCriticalCSS() },
+      { id: 'async-scripts-used', run: () => this.checkAsyncScripts() },
+      { id: 'resource-hints-present', run: () => this.checkPreloadPreconnect() },
+      { id: 'cache-headers-present', run: () => this.checkCacheHeaders() },
+      { id: 'server-response-time-acceptable', run: () => this.checkServerResponseTime() },
+    ];
   }
 
-  private async checkPageLoadTime(): Promise<SEOCheckResult> {
+  private async checkPageLoadTime(): Promise<CheckOutcome> {
     try {
       const timing = await this.page.evaluate(() => {
         const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
@@ -39,40 +34,22 @@ export class CoreWebVitalsChecker {
       });
 
       if (!timing) {
-        return {
-          passed: true,
-          message: 'Page load time check skipped (navigation timing unavailable)',
-        };
+        return this.pass('Page load time check skipped (navigation timing unavailable)');
       }
 
       if (timing.loadTime > 3000) {
-        return {
-          passed: false,
-          message: `Page load time is slow (${timing.loadTimeSeconds}s). Target: < 3s`,
-          details: timing,
-        };
+        return this.fail(`Page load time is slow (${timing.loadTimeSeconds}s). Target: < 3s`, timing);
       } else if (timing.loadTime > 2000) {
-        return {
-          passed: true,
-          message: `Page load time is acceptable (${timing.loadTimeSeconds}s)`,
-          details: timing,
-        };
+        return this.pass(`Page load time is acceptable (${timing.loadTimeSeconds}s)`, timing);
       }
 
-      return {
-        passed: true,
-        message: `Page load time is excellent (${timing.loadTimeSeconds}s)`,
-        details: timing,
-      };
+      return this.pass(`Page load time is excellent (${timing.loadTimeSeconds}s)`, timing);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Page load time check skipped',
-      };
+      return this.pass('Page load time check skipped');
     }
   }
 
-  private async checkDOMContentLoaded(): Promise<SEOCheckResult> {
+  private async checkDOMContentLoaded(): Promise<CheckOutcome> {
     try {
       const domTiming = await this.page.evaluate(() => {
         const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
@@ -85,33 +62,19 @@ export class CoreWebVitalsChecker {
       });
 
       if (!domTiming) {
-        return {
-          passed: true,
-          message: 'DOM load time check skipped (navigation timing unavailable)',
-        };
+        return this.pass('DOM load time check skipped (navigation timing unavailable)');
       }
       if (domTiming.domLoadTime > 1500) {
-        return {
-          passed: false,
-          message: `DOM load time is slow (${domTiming.domLoadTimeSeconds}s). Target: < 1.5s`,
-          details: domTiming,
-        };
+        return this.fail(`DOM load time is slow (${domTiming.domLoadTimeSeconds}s). Target: < 1.5s`, domTiming);
       }
 
-      return {
-        passed: true,
-        message: `DOM load time is good (${domTiming.domLoadTimeSeconds}s)`,
-        details: domTiming,
-      };
+      return this.pass(`DOM load time is good (${domTiming.domLoadTimeSeconds}s)`, domTiming);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'DOM load time check skipped',
-      };
+      return this.pass('DOM load time check skipped');
     }
   }
 
-  private async checkResourceCount(): Promise<SEOCheckResult> {
+  private async checkResourceCount(): Promise<CheckOutcome> {
     try {
       const resources = await this.page.evaluate(() => {
         const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
@@ -129,33 +92,18 @@ export class CoreWebVitalsChecker {
       });
 
       if (resources.total > 100) {
-        return {
-          passed: false,
-          message: `Too many HTTP requests (${resources.total}). Target: < 50`,
-          details: resources,
-        };
+        return this.fail(`Too many HTTP requests (${resources.total}). Target: < 50`, resources);
       } else if (resources.total > 50) {
-        return {
-          passed: true,
-          message: `HTTP requests acceptable (${resources.total})`,
-          details: resources,
-        };
+        return this.pass(`HTTP requests acceptable (${resources.total})`, resources);
       }
 
-      return {
-        passed: true,
-        message: `HTTP requests optimized (${resources.total})`,
-        details: resources,
-      };
+      return this.pass(`HTTP requests optimized (${resources.total})`, resources);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Resource count check skipped',
-      };
+      return this.pass('Resource count check skipped');
     }
   }
 
-  private async checkTotalPageSize(): Promise<SEOCheckResult> {
+  private async checkTotalPageSize(): Promise<CheckOutcome> {
     try {
       const pageSize = await this.page.evaluate(() => {
         const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
@@ -171,33 +119,18 @@ export class CoreWebVitalsChecker {
       });
 
       if (pageSize.bytes > 3 * 1024 * 1024) { // > 3MB
-        return {
-          passed: false,
-          message: `Page size is large (${pageSize.mb}MB). Target: < 1MB`,
-          details: pageSize,
-        };
+        return this.fail(`Page size is large (${pageSize.mb}MB). Target: < 1MB`, pageSize);
       } else if (pageSize.bytes > 1 * 1024 * 1024) { // > 1MB
-        return {
-          passed: true,
-          message: `Page size is acceptable (${pageSize.mb}MB)`,
-          details: pageSize,
-        };
+        return this.pass(`Page size is acceptable (${pageSize.mb}MB)`, pageSize);
       }
 
-      return {
-        passed: true,
-        message: `Page size is optimized (${pageSize.kb}KB)`,
-        details: pageSize,
-      };
+      return this.pass(`Page size is optimized (${pageSize.kb}KB)`, pageSize);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Page size check skipped',
-      };
+      return this.pass('Page size check skipped');
     }
   }
 
-  private async checkJavaScriptSize(): Promise<SEOCheckResult> {
+  private async checkJavaScriptSize(): Promise<CheckOutcome> {
     try {
       const jsSize = await this.page.evaluate(() => {
         const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
@@ -212,27 +145,16 @@ export class CoreWebVitalsChecker {
       });
 
       if (jsSize.bytes > 500 * 1024) { // > 500KB
-        return {
-          passed: false,
-          message: `JavaScript size is large (${jsSize.kb}KB, ${jsSize.count} files). Consider code splitting`,
-          details: jsSize,
-        };
+        return this.fail(`JavaScript size is large (${jsSize.kb}KB, ${jsSize.count} files). Consider code splitting`, jsSize);
       }
 
-      return {
-        passed: true,
-        message: `JavaScript size is acceptable (${jsSize.kb}KB, ${jsSize.count} files)`,
-        details: jsSize,
-      };
+      return this.pass(`JavaScript size is acceptable (${jsSize.kb}KB, ${jsSize.count} files)`, jsSize);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'JavaScript size check skipped',
-      };
+      return this.pass('JavaScript size check skipped');
     }
   }
 
-  private async checkCSSSize(): Promise<SEOCheckResult> {
+  private async checkCSSSize(): Promise<CheckOutcome> {
     try {
       const cssSize = await this.page.evaluate(() => {
         const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
@@ -247,27 +169,16 @@ export class CoreWebVitalsChecker {
       });
 
       if (cssSize.bytes > 100 * 1024) { // > 100KB
-        return {
-          passed: false,
-          message: `CSS size is large (${cssSize.kb}KB, ${cssSize.count} files). Consider minification`,
-          details: cssSize,
-        };
+        return this.fail(`CSS size is large (${cssSize.kb}KB, ${cssSize.count} files). Consider minification`, cssSize);
       }
 
-      return {
-        passed: true,
-        message: `CSS size is acceptable (${cssSize.kb}KB, ${cssSize.count} files)`,
-        details: cssSize,
-      };
+      return this.pass(`CSS size is acceptable (${cssSize.kb}KB, ${cssSize.count} files)`, cssSize);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'CSS size check skipped',
-      };
+      return this.pass('CSS size check skipped');
     }
   }
 
-  private async checkImageSize(): Promise<SEOCheckResult> {
+  private async checkImageSize(): Promise<CheckOutcome> {
     try {
       const imageSize = await this.page.evaluate(() => {
         const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
@@ -286,27 +197,16 @@ export class CoreWebVitalsChecker {
       });
 
       if (imageSize.bytes > 2 * 1024 * 1024) { // > 2MB
-        return {
-          passed: false,
-          message: `Images size is large (${imageSize.mb}MB, ${imageSize.count} images). Optimize images`,
-          details: imageSize,
-        };
+        return this.fail(`Images size is large (${imageSize.mb}MB, ${imageSize.count} images). Optimize images`, imageSize);
       }
 
-      return {
-        passed: true,
-        message: `Images size is acceptable (${imageSize.kb}KB, ${imageSize.count} images)`,
-        details: imageSize,
-      };
+      return this.pass(`Images size is acceptable (${imageSize.kb}KB, ${imageSize.count} images)`, imageSize);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Image size check skipped',
-      };
+      return this.pass('Image size check skipped');
     }
   }
 
-  private async checkFontLoading(): Promise<SEOCheckResult> {
+  private async checkFontLoading(): Promise<CheckOutcome> {
     try {
       const fontData = await this.page.evaluate(() => {
         const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
@@ -324,37 +224,25 @@ export class CoreWebVitalsChecker {
       });
 
       if (fontData.fontCount > 5) {
-        return {
-          passed: false,
-          message: `Too many font files (${fontData.fontCount}). Consider limiting to 2-3`,
-          details: fontData,
-        };
+        return this.fail(`Too many font files (${fontData.fontCount}). Consider limiting to 2-3`, fontData);
       }
 
       if (fontData.fontCount > 0 && !fontData.hasPreload) {
-        return {
-          passed: false,
-          message: `Fonts not preloaded (${fontData.fontCount} fonts). Add <link rel="preload">`,
-          details: fontData,
-        };
+        return this.fail(`Fonts not preloaded (${fontData.fontCount} fonts). Add <link rel="preload">`, fontData);
       }
 
-      return {
-        passed: true,
-        message: fontData.hasPreload
+      return this.pass(
+        fontData.hasPreload
           ? `Fonts properly preloaded (${fontData.fontCount} fonts)`
           : 'No custom fonts (good for performance)',
-        details: fontData,
-      };
+        fontData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Font loading check skipped',
-      };
+      return this.pass('Font loading check skipped');
     }
   }
 
-  private async checkRenderBlocking(): Promise<SEOCheckResult> {
+  private async checkRenderBlocking(): Promise<CheckOutcome> {
     try {
       const blockingData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[src]'));
@@ -391,27 +279,16 @@ export class CoreWebVitalsChecker {
       }
 
       if (issues.length > 0) {
-        return {
-          passed: false,
-          message: `Render-blocking resources: ${issues.join(', ')}`,
-          details: blockingData,
-        };
+        return this.fail(`Render-blocking resources: ${issues.join(', ')}`, blockingData);
       }
 
-      return {
-        passed: true,
-        message: 'Minimal render-blocking resources',
-        details: blockingData,
-      };
+      return this.pass('Minimal render-blocking resources', blockingData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Render-blocking check skipped',
-      };
+      return this.pass('Render-blocking check skipped');
     }
   }
 
-  private async checkLazyLoadImplementation(): Promise<SEOCheckResult> {
+  private async checkLazyLoadImplementation(): Promise<CheckOutcome> {
     try {
       const lazyData = await this.page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('img'));
@@ -432,29 +309,21 @@ export class CoreWebVitalsChecker {
       const lazyMedia = lazyData.lazyImages + lazyData.lazyIframes;
 
       if (totalMedia > 10 && lazyMedia === 0) {
-        return {
-          passed: false,
-          message: 'No lazy loading implemented despite many images/iframes',
-          details: lazyData,
-        };
+        return this.fail('No lazy loading implemented despite many images/iframes', lazyData);
       }
 
-      return {
-        passed: true,
-        message: lazyMedia > 0
+      return this.pass(
+        lazyMedia > 0
           ? `Lazy loading implemented (${lazyMedia}/${totalMedia} media)`
           : 'Lazy loading not needed (few media elements)',
-        details: lazyData,
-      };
+        lazyData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Lazy load implementation check skipped',
-      };
+      return this.pass('Lazy load implementation check skipped');
     }
   }
 
-  private async checkCriticalCSS(): Promise<SEOCheckResult> {
+  private async checkCriticalCSS(): Promise<CheckOutcome> {
     try {
       const cssData = await this.page.evaluate(() => {
         const inlineStyles = Array.from(document.querySelectorAll('style'));
@@ -471,22 +340,18 @@ export class CoreWebVitalsChecker {
         };
       });
 
-      return {
-        passed: true,
-        message: cssData.hasInlineCritical
+      return this.pass(
+        cssData.hasInlineCritical
           ? 'Critical CSS appears to be inlined'
           : 'No obvious critical CSS inlining (consider for above-fold content)',
-        details: cssData,
-      };
+        cssData
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Critical CSS check skipped',
-      };
+      return this.pass('Critical CSS check skipped');
     }
   }
 
-  private async checkAsyncScripts(): Promise<SEOCheckResult> {
+  private async checkAsyncScripts(): Promise<CheckOutcome> {
     try {
       const scriptData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[src]'));
@@ -508,27 +373,16 @@ export class CoreWebVitalsChecker {
       });
 
       if (scriptData.blocking > 3) {
-        return {
-          passed: false,
-          message: `${scriptData.blocking} scripts without async/defer (use async or defer)`,
-          details: scriptData,
-        };
+        return this.fail(`${scriptData.blocking} scripts without async/defer (use async or defer)`, scriptData);
       }
 
-      return {
-        passed: true,
-        message: 'Most scripts use async/defer',
-        details: scriptData,
-      };
+      return this.pass('Most scripts use async/defer', scriptData);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Async scripts check skipped',
-      };
+      return this.pass('Async scripts check skipped');
     }
   }
 
-  private async checkPreloadPreconnect(): Promise<SEOCheckResult> {
+  private async checkPreloadPreconnect(): Promise<CheckOutcome> {
     try {
       const resourceHints = await this.page.evaluate(() => {
         const preload = Array.from(document.querySelectorAll('link[rel="preload"]'));
@@ -547,28 +401,19 @@ export class CoreWebVitalsChecker {
       const total = resourceHints.preload + resourceHints.preconnect +
                    resourceHints.dnsPrefetch + resourceHints.prefetch;
 
-      return {
-        passed: true,
-        message: total > 0
-          ? `Resource hints implemented (${total} hints)`
-          : 'No resource hints (consider adding for critical resources)',
-        details: resourceHints,
-      };
+      return this.pass(
+        total > 0 ? `Resource hints implemented (${total} hints)` : 'No resource hints (consider adding for critical resources)',
+        resourceHints
+      );
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Resource hints check skipped',
-      };
+      return this.pass('Resource hints check skipped');
     }
   }
 
-  private async checkCacheHeaders(): Promise<SEOCheckResult> {
+  private async checkCacheHeaders(): Promise<CheckOutcome> {
     try {
       if (!this.response) {
-        return {
-          passed: false,
-          message: 'Could not check cache headers',
-        };
+        return this.fail('Could not check cache headers');
       }
 
       const headers = this.response.headers();
@@ -579,27 +424,16 @@ export class CoreWebVitalsChecker {
       const hasCaching = !!(cacheControl || expires || etag);
 
       if (!hasCaching) {
-        return {
-          passed: false,
-          message: 'No cache headers found (add Cache-Control)',
-          details: { cacheControl, expires, etag },
-        };
+        return this.fail('No cache headers found (add Cache-Control)', { cacheControl, expires, etag });
       }
 
-      return {
-        passed: true,
-        message: 'Cache headers present',
-        details: { cacheControl, expires, etag },
-      };
+      return this.pass('Cache headers present', { cacheControl, expires, etag });
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Cache headers check skipped',
-      };
+      return this.pass('Cache headers check skipped');
     }
   }
 
-  private async checkServerResponseTime(): Promise<SEOCheckResult> {
+  private async checkServerResponseTime(): Promise<CheckOutcome> {
     try {
       const responseTime = await this.page.evaluate(() => {
         const perf = performance.timing;
@@ -611,29 +445,14 @@ export class CoreWebVitalsChecker {
       });
 
       if (responseTime.ttfb > 600) {
-        return {
-          passed: false,
-          message: `Server response time is slow (${responseTime.ttfbSeconds}s TTFB). Target: < 200ms`,
-          details: responseTime,
-        };
+        return this.fail(`Server response time is slow (${responseTime.ttfbSeconds}s TTFB). Target: < 200ms`, responseTime);
       } else if (responseTime.ttfb > 200) {
-        return {
-          passed: true,
-          message: `Server response time is acceptable (${responseTime.ttfbSeconds}s TTFB)`,
-          details: responseTime,
-        };
+        return this.pass(`Server response time is acceptable (${responseTime.ttfbSeconds}s TTFB)`, responseTime);
       }
 
-      return {
-        passed: true,
-        message: `Server response time is excellent (${responseTime.ttfbSeconds}s TTFB)`,
-        details: responseTime,
-      };
+      return this.pass(`Server response time is excellent (${responseTime.ttfbSeconds}s TTFB)`, responseTime);
     } catch (error) {
-      return {
-        passed: true,
-        message: 'Server response time check skipped',
-      };
+      return this.pass('Server response time check skipped');
     }
   }
 }
