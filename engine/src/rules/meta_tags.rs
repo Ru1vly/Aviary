@@ -23,14 +23,21 @@ impl Rule for MetaTagsRule {
             }),
             Some(title) => {
                 let len = title.len();
-                let in_range = len >= 10 && len <= 60;
+                // Matches TS's checkTitle (src/checkers/metaTags.ts) —
+                // the two engines previously disagreed here (this used to
+                // accept 10–60), which docs/ACCURACY.md called out as a
+                // known divergence rather than a bug to fix, deferred until
+                // extract_text's script/style-stripping bug was fixed
+                // (word counts feeding into any threshold comparison were
+                // unreliable before that).
+                let in_range = (30..=60).contains(&len);
                 results.push(CheckResult {
                     name: "title_length".into(),
                     passed: in_range,
                     message: if in_range {
-                        format!("Title length is {len} characters (10–60)")
+                        format!("Title length is {len} characters (30–60)")
                     } else {
-                        format!("Title length is {len} characters; should be 10–60")
+                        format!("Title length is {len} characters; should be 30–60")
                     },
                     severity: Severity::Warning,
                     details: Some(serde_json::json!({ "title": title, "length": len })),
@@ -49,14 +56,15 @@ impl Rule for MetaTagsRule {
             }),
             Some(desc) => {
                 let len = desc.len();
-                let in_range = len >= 50 && len <= 160;
+                // Matches TS's checkMetaDescription — was 50–160.
+                let in_range = (120..=160).contains(&len);
                 results.push(CheckResult {
                     name: "meta_description_length".into(),
                     passed: in_range,
                     message: if in_range {
-                        format!("Meta description length is {len} characters (50–160)")
+                        format!("Meta description length is {len} characters (120–160)")
                     } else {
-                        format!("Meta description length is {len} characters; should be 50–160")
+                        format!("Meta description length is {len} characters; should be 120–160")
                     },
                     severity: Severity::Warning,
                     details: Some(serde_json::json!({ "description": desc, "length": len })),

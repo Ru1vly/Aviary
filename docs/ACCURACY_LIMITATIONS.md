@@ -178,11 +178,6 @@ These features are planned but not yet implemented, or represent undocumented CL
 
 - The Model Context Protocol (MCP) server sanitizes output using `sanitizeOutput()`. If audit payloads contain keywords like `<script`, `javascript:`, `onload=`, or SQL statements, the server redacts the entire output with `[REDACTED: Potential Security Payload Detected]`.
 
-### 4.4 Engine Threshold Discrepancy
-
-- The TypeScript checker expects titles of **30-60 characters** and descriptions of **120-160 characters**.
-- The Rust crawler engine uses different limits (**10-60 characters** for titles, and **50-160 characters** for descriptions).
-
 ---
 
 ## 5. Known False Positives by Category

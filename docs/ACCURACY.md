@@ -20,7 +20,6 @@ The E2E SEO Checker is designed to automate SEO analysis, but like all automated
 - Cannot evaluate semantic quality or relevance
 - Cannot determine if content matches user intent
 - May not detect dynamically injected meta tags in complex SPAs (handled via fallback rendering)
-- **Engine Threshold Discrepancy:** The TypeScript checker expects titles of **30-60 characters** and descriptions of **120-160 characters**. The Rust crawler engine uses different limits (**10-60 characters** for titles, and **50-160 characters** for descriptions).
 
 **Recommendation:** Always manually review meta tag content for quality and relevance.
 
