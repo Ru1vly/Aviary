@@ -1,0 +1,52 @@
+# Runs a scheduled SEO audit using the actual published aviary CLI image,
+# on a recurring schedule via kubectl logs (or your log aggregator) for
+# results — replaces the former admin-jobs/ Jobs, which ran `npm run
+# db:migrate` / `npm run db:seed` against a database that doesn't exist:
+# aviary is a stateless CLI with no persistence layer.
+#
+# Before applying:
+#   - Replace `ghcr.io/<your-org>/aviary:latest` with the image the
+#     release workflow (.github/workflows/release.yml) actually publishes
+#     for this repository (${{ github.repository }}), pinned to a real
+#     tag rather than `latest` for a production schedule.
+#   - Create the `aviary-config` ConfigMap with at least `AVIARY_URL` set
+#     to the page you want audited on this schedule (cli.ts reads it as
+#     an env var when no `-u`/`--url` flag is passed — see
+#     `Environment Variables` in `aviary --help`).
+#   - Create `aviary-secrets` if you're using an LLM provider that needs
+#     an API key (`AVIARY_LLM_API_KEY`); it's optional otherwise.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: aviary-scheduled-audit
+  namespace: aviary
+spec:
+  schedule: "0 6 * * *" # daily at 06:00 UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: aviary
+            component: scheduled-audit
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: audit
+              image: ghcr.io/<your-org>/aviary:latest
+              imagePullPolicy: IfNotPresent
+              # No positional/-u URL here — the target comes from
+              # AVIARY_URL in the aviary-config ConfigMap below, so the
+              # same image runs unmodified for whatever page(s) this
+              # CronJob is configured to audit.
+              args: ["--json"]
+              envFrom:
+                - configMapRef:
+                    name: aviary-config
+                - secretRef:
+                    name: aviary-secrets
+                    optional: true
