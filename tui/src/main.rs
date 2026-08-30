@@ -95,6 +95,12 @@ pub struct SEOReport {
     pub timestamp: String,
     pub summary: SEOReportSummary,
     pub checks: SEOReportChecks,
+    /// Set by the `aviary-fast` binary's report shape (engine/src/bin/aviary_fast.rs);
+    /// absent (defaults false) for a `node dist/cli.js --json` report.
+    #[serde(default)]
+    pub fast: bool,
+    #[serde(default, rename = "fastCategories")]
+    pub fast_categories: Vec<String>,
 }
 
 // ─── Channel Events ───────────────────────────────────────────────────────────
@@ -120,6 +126,7 @@ enum ActiveScreen {
 enum SetupField {
     Url,
     Preset,
+    FastMode,
     HtmlReport,
 }
 
@@ -134,10 +141,12 @@ enum SeverityFilter {
 struct App {
     active_screen: ActiveScreen,
     cli_path: String,
+    fast_bin_path: String,
 
     // Setup fields
     url_input: String,
     preset_index: usize, // 0=Basic, 1=Advanced, 2=Strict
+    fast_mode: bool,
     html_report_path: String,
     selected_setup_field: SetupField,
 
@@ -156,12 +165,14 @@ struct App {
 }
 
 impl App {
-    fn new(cli_path: String) -> App {
+    fn new(cli_path: String, fast_bin_path: String) -> App {
         let mut app = App {
             active_screen: ActiveScreen::Setup,
             cli_path,
+            fast_bin_path,
             url_input: "https://".to_string(),
             preset_index: 1,
+            fast_mode: false,
             html_report_path: "seo-report.html".to_string(),
             selected_setup_field: SetupField::Url,
             loading_status: String::new(),
@@ -280,12 +291,16 @@ const MID: Color = Color::Rgb(120, 120, 120);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Parse CLI args to find --cli-path
+    // Parse CLI args to find --cli-path / --fast-bin
     let mut cli_path: Option<String> = None;
+    let mut fast_bin_path: Option<String> = None;
     let args: Vec<String> = std::env::args().collect();
     for i in 0..args.len() {
         if args[i] == "--cli-path" && i + 1 < args.len() {
             cli_path = Some(args[i + 1].clone());
+        }
+        if args[i] == "--fast-bin" && i + 1 < args.len() {
+            fast_bin_path = Some(args[i + 1].clone());
         }
     }
 
@@ -302,6 +317,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "dist/cli.js".to_string()
     });
 
+    // Resolve fast_bin_path: explicit arg > next to this binary (a workspace
+    // build puts both `tui` and `aviary-fast` in the same target/<profile>/
+    // directory) > bare name, relying on PATH.
+    let fast_bin_path = fast_bin_path.unwrap_or_else(|| {
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                let candidate = exe_dir.join("aviary-fast");
+                if candidate.exists() {
+                    return candidate.to_string_lossy().into_owned();
+                }
+            }
+        }
+        "aviary-fast".to_string()
+    });
+
     // Terminal setup
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -312,7 +342,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Audit event channel — background task → main loop
     let (audit_tx, audit_rx) = mpsc::channel::<AuditEvent>(32);
 
-    let app = App::new(cli_path);
+    let app = App::new(cli_path, fast_bin_path);
 
     let run_result = run_loop(&mut terminal, app, audit_tx, audit_rx).await;
 
@@ -444,7 +474,7 @@ async fn handle_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<Audi
     match &app.active_screen {
         ActiveScreen::Setup => handle_setup_input(app, key, audit_tx).await,
         ActiveScreen::Loading => {} // Background handles it
-        ActiveScreen::Dashboard => handle_dashboard_input(app, key),
+        ActiveScreen::Dashboard => handle_dashboard_input(app, key, audit_tx),
         ActiveScreen::Error(_) => {
             if key.code == KeyCode::Enter || key.code == KeyCode::Char('q') {
                 app.active_screen = ActiveScreen::Setup;
@@ -464,7 +494,8 @@ async fn handle_setup_input(
         KeyCode::Tab | KeyCode::Down => {
             app.selected_setup_field = match app.selected_setup_field {
                 SetupField::Url => SetupField::Preset,
-                SetupField::Preset => SetupField::HtmlReport,
+                SetupField::Preset => SetupField::FastMode,
+                SetupField::FastMode => SetupField::HtmlReport,
                 SetupField::HtmlReport => SetupField::Url,
             };
         }
@@ -472,7 +503,8 @@ async fn handle_setup_input(
             app.selected_setup_field = match app.selected_setup_field {
                 SetupField::Url => SetupField::HtmlReport,
                 SetupField::Preset => SetupField::Url,
-                SetupField::HtmlReport => SetupField::Preset,
+                SetupField::FastMode => SetupField::Preset,
+                SetupField::HtmlReport => SetupField::FastMode,
             };
         }
         KeyCode::Left => {
@@ -485,6 +517,9 @@ async fn handle_setup_input(
                 app.preset_index += 1;
             }
         }
+        KeyCode::Char(' ') if app.selected_setup_field == SetupField::FastMode => {
+            app.fast_mode = !app.fast_mode;
+        }
         KeyCode::Char(c) => match app.selected_setup_field {
             SetupField::Url => app.url_input.push(c),
             SetupField::Preset => {
@@ -496,6 +531,13 @@ async fn handle_setup_input(
                     app.preset_index = 2;
                 }
             }
+            SetupField::FastMode => {
+                if c == 'y' || c == '1' {
+                    app.fast_mode = true;
+                } else if c == 'n' || c == '0' {
+                    app.fast_mode = false;
+                }
+            }
             SetupField::HtmlReport => app.html_report_path.push(c),
         },
         KeyCode::Backspace => match app.selected_setup_field {
@@ -503,13 +545,13 @@ async fn handle_setup_input(
                 app.url_input.pop();
             }
             SetupField::Preset => {}
+            SetupField::FastMode => {}
             SetupField::HtmlReport => {
                 app.html_report_path.pop();
             }
         },
         KeyCode::Enter => {
             app.active_screen = ActiveScreen::Loading;
-            app.loading_status = "Launching Playwright browser engine...".to_string();
 
             let url = app.url_input.clone();
             let preset = match app.preset_index {
@@ -519,18 +561,27 @@ async fn handle_setup_input(
             }
             .to_string();
             let html_path = app.html_report_path.clone();
-            let cli_path = app.cli_path.clone();
             let tx = audit_tx.clone();
 
-            tokio::spawn(async move {
-                run_audit_process(tx, cli_path, url, preset, html_path).await;
-            });
+            if app.fast_mode {
+                app.loading_status = "Fetching page (fast path)...".to_string();
+                let fast_bin_path = app.fast_bin_path.clone();
+                tokio::spawn(async move {
+                    run_fast_audit_process(tx, fast_bin_path, url).await;
+                });
+            } else {
+                app.loading_status = "Launching Playwright browser engine...".to_string();
+                let cli_path = app.cli_path.clone();
+                tokio::spawn(async move {
+                    run_audit_process(tx, cli_path, url, preset, html_path).await;
+                });
+            }
         }
         _ => {}
     }
 }
 
-fn handle_dashboard_input(app: &mut App, key: KeyEvent) {
+fn handle_dashboard_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<AuditEvent>) {
     match key.code {
         KeyCode::Left | KeyCode::BackTab => {
             app.active_panel_right = false;
@@ -586,6 +637,28 @@ fn handle_dashboard_input(app: &mut App, key: KeyEvent) {
         KeyCode::Char('w') | KeyCode::Char('W') => {
             app.severity_filter = SeverityFilter::WarningsOnly;
             app.check_list_state.select(Some(0));
+        }
+        KeyCode::Char('f') | KeyCode::Char('F') => {
+            let is_fast = app.report.as_ref().map(|r| r.fast).unwrap_or(false);
+            if is_fast {
+                app.active_screen = ActiveScreen::Loading;
+                app.loading_status = "Launching Playwright browser engine (full audit)...".to_string();
+
+                let url = app.url_input.clone();
+                let preset = match app.preset_index {
+                    0 => "basic",
+                    1 => "advanced",
+                    _ => "strict",
+                }
+                .to_string();
+                let html_path = app.html_report_path.clone();
+                let cli_path = app.cli_path.clone();
+                let tx = audit_tx.clone();
+
+                tokio::spawn(async move {
+                    run_audit_process(tx, cli_path, url, preset, html_path).await;
+                });
+            }
         }
         _ => {}
     }
@@ -683,6 +756,68 @@ async fn run_audit_process(
     }
 }
 
+/// The `--fast` path: runs `aviary-fast <url>` (engine/src/bin/aviary_fast.rs)
+/// instead of the full Node/Playwright CLI. Its stdout is already shaped as
+/// a SEOReport JSON (a subset of the 28 categories — see that binary's
+/// module docs), so it's parsed identically to `run_audit_process`'s output.
+async fn run_fast_audit_process(tx: mpsc::Sender<AuditEvent>, fast_bin_path: String, url: String) {
+    let _ = tx
+        .send(AuditEvent::StatusUpdate(format!(
+            "Fetching {} (fast path: meta tags, headings, security, content only)...",
+            url
+        )))
+        .await;
+
+    let mut cmd = Command::new(&fast_bin_path);
+    cmd.arg(&url);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    match cmd.spawn() {
+        Ok(child) => match child.wait_with_output().await {
+            Ok(out) => {
+                if out.status.success() {
+                    let stdout_str = String::from_utf8_lossy(&out.stdout);
+                    match serde_json::from_str::<SEOReport>(&stdout_str) {
+                        Ok(parsed_report) => {
+                            let _ = tx.send(AuditEvent::Complete(Box::new(parsed_report))).await;
+                        }
+                        Err(err) => {
+                            let _ = tx
+                                .send(AuditEvent::Error(format!(
+                                    "JSON parse failed: {}. Output: {}",
+                                    err,
+                                    stdout_str.chars().take(200).collect::<String>()
+                                )))
+                                .await;
+                        }
+                    }
+                } else {
+                    let stderr_str = String::from_utf8_lossy(&out.stderr);
+                    let _ = tx
+                        .send(AuditEvent::Error(format!(
+                            "Fast-path process exited with error: {}",
+                            stderr_str.chars().take(400).collect::<String>()
+                        )))
+                        .await;
+                }
+            }
+            Err(err) => {
+                let _ = tx
+                    .send(AuditEvent::Error(format!("Process wait error: {}", err)))
+                    .await;
+            }
+        },
+        Err(err) => {
+            let _ = tx
+                .send(AuditEvent::Error(format!(
+                    "Failed to spawn {}. Build it with `cargo build --bin aviary-fast` or pass --fast-bin. Error: {}",
+                    fast_bin_path, err
+                )))
+                .await;
+        }
+    }
+}
+
 // ─── UI Drawing ───────────────────────────────────────────────────────────────
 
 fn draw_ui(f: &mut Frame, app: &App, spinner_frame: usize, elapsed_secs: u64) {
@@ -713,6 +848,7 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
             Constraint::Length(1), // Separator
             Constraint::Length(3), // URL input
             Constraint::Length(3), // Preset
+            Constraint::Length(3), // Fast mode
             Constraint::Length(3), // HTML output
             Constraint::Length(1), // Separator
             Constraint::Length(1), // Footer
@@ -726,7 +862,11 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
             Style::default().fg(FG).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("{:>width$}", "[ESC:QUIT]", width = area.width as usize - 26),
+            format!(
+                "{:>width$}",
+                "[ESC:QUIT]",
+                width = (area.width as usize).saturating_sub(26)
+            ),
             Style::default().fg(DIM),
         ),
     ]))
@@ -800,6 +940,39 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
         .style(Style::default().bg(BG));
     f.render_widget(preset_widget, chunks[3]);
 
+    // ── Fast Mode Field
+    let fast_active = app.selected_setup_field == SetupField::FastMode;
+    let fast_border = if fast_active { RED } else { DIM };
+    let fast_label = if fast_active {
+        "FAST PATH ▶"
+    } else {
+        "FAST PATH"
+    };
+    let fast_widget = Paragraph::new(Line::from(vec![
+        if app.fast_mode {
+            Span::styled(
+                "[ON]  meta tags · headings · security · content (Rust, no browser)",
+                Style::default().fg(YELLOW).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            Span::styled(
+                "[OFF] full 28-category Playwright audit",
+                Style::default().fg(DIM),
+            )
+        },
+    ]))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(fast_border))
+            .title(Span::styled(
+                format!(" {} ", fast_label),
+                Style::default().fg(if fast_active { RED } else { MID }),
+            )),
+    )
+    .style(Style::default().bg(BG));
+    f.render_widget(fast_widget, chunks[4]);
+
     // ── HTML Output Field
     let html_active = app.selected_setup_field == SetupField::HtmlReport;
     let html_border = if html_active { RED } else { DIM };
@@ -823,12 +996,12 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
             )),
     )
     .style(Style::default().bg(BG));
-    f.render_widget(html_widget, chunks[4]);
+    f.render_widget(html_widget, chunks[5]);
 
     // ── Bottom separator
     let sep2 = Paragraph::new("═".repeat(area.width as usize))
         .style(Style::default().fg(DIM).bg(BG));
-    f.render_widget(sep2, chunks[5]);
+    f.render_widget(sep2, chunks[6]);
 
     // ── Footer / keybindings
     let footer = Paragraph::new(Line::from(vec![
@@ -838,11 +1011,13 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
         Span::styled(":LAUNCH  ", Style::default().fg(DIM)),
         Span::styled("←/→", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
         Span::styled(":PRESET  ", Style::default().fg(DIM)),
+        Span::styled("SPACE", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
+        Span::styled(":TOGGLE FAST  ", Style::default().fg(DIM)),
         Span::styled("ESC", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
         Span::styled(":QUIT", Style::default().fg(DIM)),
     ]))
     .style(Style::default().bg(BG));
-    f.render_widget(footer, chunks[6]);
+    f.render_widget(footer, chunks[7]);
 }
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
@@ -997,7 +1172,7 @@ fn draw_dashboard(f: &mut Frame, area: Rect, app: &App) {
         SeverityFilter::ErrorsOnly => "ERRORS",
         SeverityFilter::WarningsOnly => "WARNINGS",
     };
-    let footer = Paragraph::new(Line::from(vec![
+    let mut footer_spans = vec![
         Span::styled("TAB", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
         Span::styled(":PANEL  ", Style::default().fg(DIM)),
         Span::styled("↑↓", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
@@ -1008,17 +1183,21 @@ fn draw_dashboard(f: &mut Frame, area: Rect, app: &App) {
         Span::styled(":ERRORS  ", Style::default().fg(DIM)),
         Span::styled("W", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
         Span::styled(":WARNINGS  ", Style::default().fg(DIM)),
-        Span::styled("Q", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
-        Span::styled(":BACK  ", Style::default().fg(DIM)),
-        Span::styled("ESC", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
-        Span::styled(":QUIT  ", Style::default().fg(DIM)),
-        Span::styled("FILTER:", Style::default().fg(DIM)),
-        Span::styled(
-            filter_label,
-            Style::default().fg(YELLOW).add_modifier(Modifier::BOLD),
-        ),
-    ]))
-    .style(Style::default().bg(BG));
+    ];
+    if report.fast {
+        footer_spans.push(Span::styled("F", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
+        footer_spans.push(Span::styled(":FULL AUDIT  ", Style::default().fg(DIM)));
+    }
+    footer_spans.push(Span::styled("Q", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
+    footer_spans.push(Span::styled(":BACK  ", Style::default().fg(DIM)));
+    footer_spans.push(Span::styled("ESC", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
+    footer_spans.push(Span::styled(":QUIT  ", Style::default().fg(DIM)));
+    footer_spans.push(Span::styled("FILTER:", Style::default().fg(DIM)));
+    footer_spans.push(Span::styled(
+        filter_label,
+        Style::default().fg(YELLOW).add_modifier(Modifier::BOLD),
+    ));
+    let footer = Paragraph::new(Line::from(footer_spans)).style(Style::default().bg(BG));
     f.render_widget(footer, chunks[3]);
 }
 
@@ -1074,6 +1253,14 @@ fn draw_dashboard_header(f: &mut Frame, area: Rect, app: &App, report: &SEORepor
                 format!("FAIL:{}", report.summary.failed),
                 Style::default().fg(RED),
             ),
+            if report.fast {
+                Span::styled(
+                    format!("  ⚡FAST ({}/28)", report.fast_categories.len()),
+                    Style::default().fg(YELLOW).add_modifier(Modifier::BOLD),
+                )
+            } else {
+                Span::raw("")
+            },
         ]),
         Line::from(Span::styled(
             score_bar,

@@ -3,6 +3,10 @@ name = "aviary-engine"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "aviary-fast"
+path = "src/bin/aviary_fast.rs"
+
 [dependencies]
 reqwest = { version = "0.12", features = ["json", "gzip", "brotli"] }
 scraper = "0.22"

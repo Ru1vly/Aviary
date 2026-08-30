@@ -66,6 +66,10 @@ pub struct EngineResult {
     pub url: String,
     pub page_context: PageContext,
     pub check_results: Vec<CheckResult>,
+    /// `check_results` grouped by which Rule produced them — see
+    /// `rules::Rule::name()`. Keys today: "meta_tags", "headings",
+    /// "security", "content".
+    pub results_by_category: std::collections::HashMap<String, Vec<CheckResult>>,
     pub semantic_analysis: Option<SemanticAnalysis>,
     /// The full Node CLI SEOReport (all 28 checkers, run against the
     /// JS-rendered DOM), present only when `looks_like_spa` triggered the
@@ -141,8 +145,19 @@ pub async fn run_analysis(url: &str, config: &EngineConfig) -> Result<EngineResu
     // ── Rule engine ───────────────────────────────────────────────────────────
     let all_rules = rules::all_rules();
     let mut check_results: Vec<CheckResult> = Vec::new();
+    // Grouped by Rule::name() ("meta_tags", "headings", "security",
+    // "content") alongside the flat `check_results` above — built here
+    // rather than by adding a `category` field to CheckResult itself, which
+    // would have required touching every CheckResult literal in rules/*.rs.
+    let mut results_by_category: std::collections::HashMap<String, Vec<CheckResult>> =
+        std::collections::HashMap::new();
     for rule in &all_rules {
-        check_results.extend(rule.check(&ctx));
+        let results = rule.check(&ctx);
+        results_by_category
+            .entry(rule.name().to_string())
+            .or_default()
+            .extend(results.clone());
+        check_results.extend(results);
     }
 
     // ── Semantic analysis ─────────────────────────────────────────────────────
@@ -170,6 +185,7 @@ pub async fn run_analysis(url: &str, config: &EngineConfig) -> Result<EngineResu
         url: url.to_string(),
         page_context: ctx,
         check_results,
+        results_by_category,
         semantic_analysis,
         node_report,
         score,
