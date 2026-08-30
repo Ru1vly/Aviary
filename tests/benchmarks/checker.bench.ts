@@ -5,7 +5,21 @@ import { ImagesChecker } from '../../src/checkers/images';
 import { ContentChecker } from '../../src/checkers/content';
 import { createMockPage } from '../mocks/mockPage';
 import { Page } from 'playwright';
-import { ImageInfo, HeadingStructure } from '../../src/types';
+
+function headingsHtml(sectionCount: number): string {
+  let html = '<h1>Main Title</h1>';
+  for (let i = 0; i < sectionCount; i++) {
+    html += `<h2>Section ${i}</h2><h3>Subsection ${i}</h3>`;
+  }
+  return html;
+}
+
+function imagesHtml(count: number): string {
+  return Array(count)
+    .fill(null)
+    .map((_, i) => `<img src="img${i}.jpg" alt="Image ${i}">`)
+    .join('');
+}
 
 describe('Checker Performance Benchmarks', () => {
   describe('MetaTagsChecker Performance', () => {
@@ -13,17 +27,16 @@ describe('Checker Performance Benchmarks', () => {
       const mockPage = createMockPage({
         title: 'Perfect SEO Title Length Here For Testing',
         metaTags: {
-          description: 'This is an optimal meta description with perfect length between 120 and 160 characters for best SEO results.',
+          description:
+            'This is an optimal meta description with perfect length between 120 and 160 characters for best SEO results.',
           viewport: 'width=device-width, initial-scale=1.0',
           canonical: 'https://example.com',
         },
-        evaluateResults: {
-          'og:': [
-            { property: 'og:title', content: 'Test' },
-            { property: 'og:description', content: 'Test' },
-            { property: 'og:image', content: 'test.jpg' },
-          ],
-        },
+        headHtml: `
+          <meta property="og:title" content="Test">
+          <meta property="og:description" content="Test">
+          <meta property="og:image" content="https://example.com/test.jpg">
+        `,
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -43,31 +56,14 @@ describe('Checker Performance Benchmarks', () => {
 
   describe('HeadingsChecker Performance', () => {
     bench('checkAll - small document', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'Title', level: 1 },
-        { tag: 'h2', text: 'Section 1', level: 2 },
-        { tag: 'h2', text: 'Section 2', level: 2 },
-      ];
-
-      const mockPage = createMockPage({
-        evaluateResults: { querySelectorAll: headings },
-      }) as Page;
+      const mockPage = createMockPage({ html: headingsHtml(2) }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
       await checker.checkAll();
     });
 
     bench('checkAll - large document', async () => {
-      const headings: HeadingStructure[] = [];
-      headings.push({ tag: 'h1', text: 'Main Title', level: 1 });
-      for (let i = 0; i < 50; i++) {
-        headings.push({ tag: 'h2', text: `Section ${i}`, level: 2 });
-        headings.push({ tag: 'h3', text: `Subsection ${i}`, level: 3 });
-      }
-
-      const mockPage = createMockPage({
-        evaluateResults: { querySelectorAll: headings },
-      }) as Page;
+      const mockPage = createMockPage({ html: headingsHtml(50) }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
       await checker.checkAll();
@@ -76,31 +72,14 @@ describe('Checker Performance Benchmarks', () => {
 
   describe('ImagesChecker Performance', () => {
     bench('checkAll - few images', async () => {
-      const images: ImageInfo[] = [
-        { src: 'img1.jpg', alt: 'Image 1', hasAlt: true },
-        { src: 'img2.jpg', alt: 'Image 2', hasAlt: true },
-      ];
-
-      const mockPage = createMockPage({
-        evaluateResults: { querySelectorAll: images },
-      }) as Page;
+      const mockPage = createMockPage({ html: imagesHtml(2) }) as Page;
 
       const checker = new ImagesChecker(mockPage);
       await checker.checkAll();
     });
 
     bench('checkAll - many images', async () => {
-      const images: ImageInfo[] = Array(100)
-        .fill(null)
-        .map((_, i) => ({
-          src: `img${i}.jpg`,
-          alt: `Image ${i}`,
-          hasAlt: true,
-        }));
-
-      const mockPage = createMockPage({
-        evaluateResults: { querySelectorAll: images },
-      }) as Page;
+      const mockPage = createMockPage({ html: imagesHtml(100) }) as Page;
 
       const checker = new ImagesChecker(mockPage);
       await checker.checkAll();
@@ -109,18 +88,14 @@ describe('Checker Performance Benchmarks', () => {
 
   describe('ContentChecker Performance', () => {
     bench('checkAll - short content', async () => {
-      const mockPage = createMockPage({
-        evaluateResults: { innerText: 'word '.repeat(100) },
-      }) as Page;
+      const mockPage = createMockPage({ html: `<p>${'word '.repeat(100)}</p>` }) as Page;
 
       const checker = new ContentChecker(mockPage);
       await checker.checkAll();
     });
 
     bench('checkAll - long content', async () => {
-      const mockPage = createMockPage({
-        evaluateResults: { innerText: 'word '.repeat(5000) },
-      }) as Page;
+      const mockPage = createMockPage({ html: `<p>${'word '.repeat(5000)}</p>` }) as Page;
 
       const checker = new ContentChecker(mockPage);
       await checker.checkAll();
@@ -132,10 +107,7 @@ describe('Checker Performance Benchmarks', () => {
       const mockPage = createMockPage({
         title: 'Test Page',
         metaTags: { description: 'Test description' },
-        evaluateResults: {
-          querySelectorAll: [{ tag: 'h1', text: 'Title', level: 1 }],
-          innerText: 'word '.repeat(500),
-        },
+        html: `<h1>Title</h1><p>${'word '.repeat(500)}</p>`,
       }) as Page;
 
       const metaChecker = new MetaTagsChecker(mockPage);
@@ -151,10 +123,7 @@ describe('Checker Performance Benchmarks', () => {
       const mockPage = createMockPage({
         title: 'Test Page',
         metaTags: { description: 'Test description' },
-        evaluateResults: {
-          querySelectorAll: [{ tag: 'h1', text: 'Title', level: 1 }],
-          innerText: 'word '.repeat(500),
-        },
+        html: `<h1>Title</h1><p>${'word '.repeat(500)}</p>`,
       }) as Page;
 
       const metaChecker = new MetaTagsChecker(mockPage);

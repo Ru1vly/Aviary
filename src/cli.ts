@@ -2,6 +2,7 @@
 
 import { SEOChecker } from './index';
 import { generateHtmlReport } from './reporter';
+import { CHECKER_REGISTRY } from './checkers/registry';
 import * as fs from 'fs';
 import { loadEnvConfig } from './config/env';
 import { createLogger } from './config/logger';
@@ -25,6 +26,7 @@ const metricsServer = http.createServer(async (req, res) => {
     res.end('Not found');
   }
 });
+metricsServer.on('error', () => {});
 metricsServer.listen(9090);
 metricsServer.unref();
 
@@ -92,8 +94,8 @@ function parseArgs(): CliArgs {
         if (!arg.startsWith('-')) {
           process.stderr.write(`❌ Error: Positional URL arguments are no longer supported.\n`);
           process.stderr.write(`   Please use the -u or --url flag to specify the URL, e.g.:\n`);
-          process.stderr.write(`     e2e-seo -u ${arg}\n`);
-          process.stderr.write(`\n   Or run "e2e-seo" with no arguments to launch the interactive Terminal User Interface (TUI).\n`);
+          process.stderr.write(`     aviary -u ${arg}\n`);
+          process.stderr.write(`\n   Or run "aviary" with no arguments to launch the interactive Terminal User Interface (TUI).\n`);
           process.exit(1);
         }
     }
@@ -104,9 +106,9 @@ function parseArgs(): CliArgs {
 
 function printHelp() {
   process.stderr.write(`
-e2e-seo - End-to-end SEO checker tool
+aviary - End-to-end SEO checker tool
 
-Usage: e2e-seo [options] <url>
+Usage: aviary [options] <url>
 
 Options:
   -u, --url <url>        URL to check (required)
@@ -122,30 +124,30 @@ Options:
   -h, --help             Show this help message
 
 Environment Variables (12-Factor config):
-  E2E_SEO_URL            Target URL (overridden by --url)
-  E2E_SEO_HEADLESS       "true"/"false" (overridden by --headed)
-  E2E_SEO_TIMEOUT        Timeout in milliseconds (default: 30000)
-  E2E_SEO_VIEWPORT       Viewport "WxH" format (overridden by --viewport)
-  E2E_SEO_PRESET         Preset name: basic/advanced/strict (overridden by --preset)
-  E2E_SEO_OUTPUT         JSON output file path (overridden by --output)
-  E2E_SEO_HTML_OUTPUT    HTML report path (overridden by --html)
-  E2E_SEO_LOG_LEVEL      Log level: debug/info/warn/error (default: info)
-  E2E_SEO_LLM_PROVIDER   LLM provider (default: stub)
-  E2E_SEO_LLM_ENDPOINT   LLM endpoint URL (default: http://localhost:11434)
-  E2E_SEO_LLM_MODEL      LLM model name (default: llama3.2)
-  E2E_SEO_LLM_API_KEY    LLM API key (never logged)
+  AVIARY_URL            Target URL (overridden by --url)
+  AVIARY_HEADLESS       "true"/"false" (overridden by --headed)
+  AVIARY_TIMEOUT        Timeout in milliseconds (default: 30000)
+  AVIARY_VIEWPORT       Viewport "WxH" format (overridden by --viewport)
+  AVIARY_PRESET         Preset name: basic/advanced/strict (overridden by --preset)
+  AVIARY_OUTPUT         JSON output file path (overridden by --output)
+  AVIARY_HTML_OUTPUT    HTML report path (overridden by --html)
+  AVIARY_LOG_LEVEL      Log level: debug/info/warn/error (default: info)
+  AVIARY_LLM_PROVIDER   LLM provider (default: stub)
+  AVIARY_LLM_ENDPOINT   LLM endpoint URL (default: http://localhost:11434)
+  AVIARY_LLM_MODEL      LLM model name (default: llama3.2)
+  AVIARY_LLM_API_KEY    LLM API key (never logged)
 
 Examples:
-  e2e-seo https://example.com
-  e2e-seo -u https://example.com -o report.json
-  e2e-seo https://example.com --viewport 375x667
-  e2e-seo https://example.com --headed
-  e2e-seo https://example.com --preset basic
-  e2e-seo https://example.com --config .e2e-seo.json
-  E2E_SEO_URL=https://example.com e2e-seo --json
-  e2e-seo --init-config
+  aviary https://example.com
+  aviary -u https://example.com -o report.json
+  aviary https://example.com --viewport 375x667
+  aviary https://example.com --headed
+  aviary https://example.com --preset basic
+  aviary https://example.com --config .aviary.json
+  AVIARY_URL=https://example.com aviary --json
+  aviary --init-config
 
-Checks performed (260+ checks across 27 categories):
+Checks performed (260+ checks across ${CHECKER_REGISTRY.length} categories):
   • Meta tags (title, description, Open Graph, canonical, viewport)
   • Heading structure (H1-H6 hierarchy)
   • Image optimization (alt text)
@@ -173,8 +175,9 @@ Checks performed (260+ checks across 27 categories):
   • Legal Compliance (privacy, GDPR, CCPA, cookies, copyright)
   • E-commerce (products, pricing, reviews, checkout, security)
   • Internationalization (hreflang, languages, localization, Unicode)
+  • Heatmap & UX (predictive click maps, scroll depth, above-the-fold scoring)
 
-For more information, visit: https://github.com/yourusername/e2e-seo
+For more information, visit: https://github.com/yourusername/aviary
   `);
 }
 
@@ -183,7 +186,7 @@ async function main() {
   const envConfig = loadEnvConfig();
   const logger = createLogger((envConfig.logLevel as 'debug' | 'info' | 'warn' | 'error') || 'info');
 
-  // If run with no arguments and no E2E_SEO_URL, launch the interactive TUI
+  // If run with no arguments and no AVIARY_URL, launch the interactive TUI
   const hasNoArgs = process.argv.slice(2).length === 0;
   if (hasNoArgs && !envConfig.url) {
     const path = await import('path');
@@ -212,8 +215,8 @@ async function main() {
   // Handle --init-config flag
   if (args.initConfig) {
     const { ConfigLoader } = await import('./config');
-    const configPath = '.e2e-seo.json';
-    // CLI --preset > ENV E2E_SEO_PRESET > default
+    const configPath = '.aviary.json';
+    // CLI --preset > ENV AVIARY_PRESET > default
     const preset = (args.preset as 'basic' | 'advanced' | 'strict') || envConfig.preset || 'advanced';
     ConfigLoader.createDefaultConfig(configPath, preset);
     process.stderr.write(`✓ Created configuration file: ${configPath}\n`);
@@ -222,7 +225,7 @@ async function main() {
     process.exit(0);
   }
 
-  // Resolve effective URL: CLI --url > ENV E2E_SEO_URL
+  // Resolve effective URL: CLI --url > ENV AVIARY_URL
   const effectiveUrl = args.url || envConfig.url;
 
   if (args.help || !effectiveUrl) {
@@ -247,7 +250,7 @@ async function main() {
     logger.info('Running SEO check', { url: effectiveUrl });
   }
 
-  // Resolve viewport: CLI --viewport > ENV E2E_SEO_VIEWPORT > default
+  // Resolve viewport: CLI --viewport > ENV AVIARY_VIEWPORT > default
   const effectiveViewportStr = args.viewport || envConfig.viewport;
   let viewport = { width: 1920, height: 1080 };
   if (effectiveViewportStr) {
@@ -257,10 +260,10 @@ async function main() {
     }
   }
 
-  // Resolve preset: CLI --preset > ENV E2E_SEO_PRESET > undefined
+  // Resolve preset: CLI --preset > ENV AVIARY_PRESET > undefined
   const effectivePreset = args.preset || envConfig.preset;
 
-  // Resolve headless: CLI --headed (args.headless=false) > ENV E2E_SEO_HEADLESS > default (true)
+  // Resolve headless: CLI --headed (args.headless=false) > ENV AVIARY_HEADLESS > default (true)
   let effectiveHeadless = true;
   if (args.headless === false) {
     effectiveHeadless = false;
@@ -309,36 +312,10 @@ async function main() {
     process.stderr.write(`  ✓ Passed: ${report.summary.passed}\n`);
     process.stderr.write(`  ✗ Failed: ${report.summary.failed}\n\n`);
 
-    const sections = [
-      { name: 'Meta Tags', checks: report.checks.metaTags },
-      { name: 'Headings', checks: report.checks.headings },
-      { name: 'Images', checks: report.checks.images },
-      { name: 'Performance', checks: report.checks.performance },
-      { name: 'Robots.txt', checks: report.checks.robotsTxt },
-      { name: 'Sitemap', checks: report.checks.sitemap },
-      { name: 'Security', checks: report.checks.security },
-      { name: 'Structured Data', checks: report.checks.structuredData },
-      { name: 'Social Media', checks: report.checks.socialMedia },
-      { name: 'Content', checks: report.checks.content },
-      { name: 'Links', checks: report.checks.links },
-      { name: 'UI Elements', checks: report.checks.uiElements },
-      { name: 'Technical SEO', checks: report.checks.technical },
-      { name: 'Accessibility', checks: report.checks.accessibility },
-      { name: 'URL Factors', checks: report.checks.urlFactors },
-      { name: 'Spam Detection', checks: report.checks.spamDetection },
-      { name: 'Page Quality', checks: report.checks.pageQuality },
-      { name: 'Advanced Images', checks: report.checks.advancedImages },
-      { name: 'Multimedia', checks: report.checks.multimedia },
-      { name: 'Core Web Vitals', checks: report.checks.coreWebVitals },
-      { name: 'Analytics & Tracking', checks: report.checks.analytics },
-      { name: 'Mobile UX', checks: report.checks.mobileUX },
-      { name: 'Schema Validation', checks: report.checks.schemaValidation },
-      { name: 'Resource Optimization', checks: report.checks.resourceOptimization },
-      { name: 'Legal & Compliance', checks: report.checks.legalCompliance },
-      { name: 'E-commerce', checks: report.checks.ecommerce },
-      { name: 'Internationalization', checks: report.checks.internationalization },
-      { name: 'Heatmap & UX', checks: report.checks.heatmap },
-    ];
+    const sections = CHECKER_REGISTRY.map(({ key, label }) => ({
+      name: label,
+      checks: report.checks[key],
+    }));
 
     sections.forEach((section) => {
       process.stderr.write(`${section.name}:\n`);

@@ -28,6 +28,9 @@ pub struct SEOCheckResult {
     pub message: String,
     pub severity: Option<String>,
     pub details: Option<serde_json::Value>,
+    /// Stable rule identifier (e.g. "title-exists"). Not yet populated by
+    /// every checker — see SEOCheckResult in src/types/index.ts.
+    pub name: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -42,7 +42,8 @@ describe('MetaTagsChecker', () => {
 
     it('should fail when title is too long', async () => {
       const mockPage = createMockPage({
-        title: 'This is a very long title that exceeds the recommended sixty character limit for SEO optimization',
+        title:
+          'This is a very long title that exceeds the recommended sixty character limit for SEO optimization',
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -58,7 +59,8 @@ describe('MetaTagsChecker', () => {
     it('should pass with optimal meta description', async () => {
       const mockPage = createMockPage({
         metaTags: {
-          description: 'This is an optimal meta description that is between 120 and 160 characters long, providing enough detail for search engines.',
+          description:
+            'This is an optimal meta description that is between 120 and 160 characters long, providing enough detail for search engines.',
         },
       }) as Page;
 
@@ -71,9 +73,7 @@ describe('MetaTagsChecker', () => {
     });
 
     it('should fail when meta description is missing', async () => {
-      const mockPage = createMockPage({
-        metaTags: {},
-      }) as Page;
+      const mockPage = createMockPage({ metaTags: {} }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
       const results = await checker.checkAll();
@@ -85,9 +85,7 @@ describe('MetaTagsChecker', () => {
 
     it('should fail when meta description is too short', async () => {
       const mockPage = createMockPage({
-        metaTags: {
-          description: 'Too short',
-        },
+        metaTags: { description: 'Too short' },
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -101,7 +99,8 @@ describe('MetaTagsChecker', () => {
     it('should fail when meta description is too long', async () => {
       const mockPage = createMockPage({
         metaTags: {
-          description: 'This is an extremely long meta description that far exceeds the recommended 160 character limit for optimal search engine results display and user experience and marketing purposes and goals.',
+          description:
+            'This is an extremely long meta description that far exceeds the recommended 160 character limit for optimal search engine results display and user experience and marketing purposes and goals.',
         },
       }) as Page;
 
@@ -116,9 +115,7 @@ describe('MetaTagsChecker', () => {
 
   describe('checkMetaKeywords', () => {
     it('should pass even when keywords are missing', async () => {
-      const mockPage = createMockPage({
-        metaTags: {},
-      }) as Page;
+      const mockPage = createMockPage({ metaTags: {} }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
       const results = await checker.checkAll();
@@ -130,9 +127,7 @@ describe('MetaTagsChecker', () => {
 
     it('should pass when keywords are present', async () => {
       const mockPage = createMockPage({
-        metaTags: {
-          keywords: 'seo, testing, web',
-        },
+        metaTags: { keywords: 'seo, testing, web' },
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -146,15 +141,13 @@ describe('MetaTagsChecker', () => {
   describe('checkOpenGraphTags', () => {
     it('should pass when all essential OG tags are present and valid', async () => {
       const mockPage = createMockPage({
-        evaluateResults: {
-          'og:': [
-            { property: 'og:title', content: 'Test Title' },
-            { property: 'og:description', content: 'Test Description' },
-            { property: 'og:image', content: 'https://example.com/image.jpg' },
-            { property: 'og:type', content: 'website' },
-            { property: 'og:url', content: 'https://example.com/page' },
-          ],
-        },
+        headHtml: `
+          <meta property="og:title" content="Test Title">
+          <meta property="og:description" content="Test Description">
+          <meta property="og:image" content="https://example.com/image.jpg">
+          <meta property="og:type" content="website">
+          <meta property="og:url" content="https://example.com/page">
+        `,
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -167,9 +160,7 @@ describe('MetaTagsChecker', () => {
 
     it('should fail when essential OG tags are missing', async () => {
       const mockPage = createMockPage({
-        evaluateResults: {
-          'og:': [{ property: 'og:title', content: 'Test Title' }],
-        },
+        headHtml: '<meta property="og:title" content="Test Title">',
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -182,15 +173,13 @@ describe('MetaTagsChecker', () => {
 
     it('should fail when og:image is a relative URL', async () => {
       const mockPage = createMockPage({
-        evaluateResults: {
-          'og:': [
-            { property: 'og:title', content: 'Test Title' },
-            { property: 'og:description', content: 'Test Description' },
-            { property: 'og:image', content: '/images/photo.jpg' }, // relative!
-            { property: 'og:type', content: 'website' },
-            { property: 'og:url', content: 'https://example.com/page' },
-          ],
-        },
+        headHtml: `
+          <meta property="og:title" content="Test Title">
+          <meta property="og:description" content="Test Description">
+          <meta property="og:image" content="/images/photo.jpg">
+          <meta property="og:type" content="website">
+          <meta property="og:url" content="https://example.com/page">
+        `,
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -205,9 +194,7 @@ describe('MetaTagsChecker', () => {
   describe('checkCanonicalUrl', () => {
     it('should pass when canonical URL is present', async () => {
       const mockPage = createMockPage({
-        metaTags: {
-          canonical: 'https://example.com/page',
-        },
+        metaTags: { canonical: 'https://example.com/page' },
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -219,9 +206,7 @@ describe('MetaTagsChecker', () => {
     });
 
     it('should fail when canonical URL is missing', async () => {
-      const mockPage = createMockPage({
-        metaTags: {},
-      }) as Page;
+      const mockPage = createMockPage({ metaTags: {} }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
       const results = await checker.checkAll();
@@ -235,9 +220,7 @@ describe('MetaTagsChecker', () => {
   describe('checkViewport', () => {
     it('should pass when viewport meta tag is present', async () => {
       const mockPage = createMockPage({
-        metaTags: {
-          viewport: 'width=device-width, initial-scale=1.0',
-        },
+        metaTags: { viewport: 'width=device-width, initial-scale=1.0' },
       }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
@@ -249,9 +232,7 @@ describe('MetaTagsChecker', () => {
     });
 
     it('should fail when viewport meta tag is missing', async () => {
-      const mockPage = createMockPage({
-        metaTags: {},
-      }) as Page;
+      const mockPage = createMockPage({ metaTags: {} }) as Page;
 
       const checker = new MetaTagsChecker(mockPage);
       const results = await checker.checkAll();
@@ -267,7 +248,8 @@ describe('MetaTagsChecker', () => {
       const mockPage = createMockPage({
         title: 'This is an optimal SEO title here',
         metaTags: {
-          description: 'This is an optimal meta description that is between 120 and 160 characters long, providing enough detail for search engines.',
+          description:
+            'This is an optimal meta description that is between 120 and 160 characters long, providing enough detail for search engines.',
           viewport: 'width=device-width, initial-scale=1.0',
         },
       }) as Page;

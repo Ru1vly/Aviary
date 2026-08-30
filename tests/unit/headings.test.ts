@@ -2,20 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { HeadingsChecker } from '../../src/checkers/headings';
 import { createMockPage } from '../mocks/mockPage';
 import { Page } from 'playwright';
-import { HeadingStructure } from '../../src/types';
 
 describe('HeadingsChecker', () => {
   describe('checkH1', () => {
     it('should pass when exactly one H1 is present', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'Main Title', level: 1 },
-        { tag: 'h2', text: 'Subtitle', level: 2 },
-      ];
-
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        html: '<h1>Main Title</h1><h2>Subtitle</h2>',
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
@@ -27,15 +19,8 @@ describe('HeadingsChecker', () => {
     });
 
     it('should fail when no H1 is present', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h2', text: 'Subtitle', level: 2 },
-        { tag: 'h3', text: 'Section', level: 3 },
-      ];
-
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        html: '<h2>Subtitle</h2><h3>Section</h3>',
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
@@ -47,16 +32,8 @@ describe('HeadingsChecker', () => {
     });
 
     it('should fail when multiple H1s are present', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'First Title', level: 1 },
-        { tag: 'h1', text: 'Second Title', level: 1 },
-        { tag: 'h2', text: 'Subtitle', level: 2 },
-      ];
-
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        html: '<h1>First Title</h1><h1>Second Title</h1><h2>Subtitle</h2>',
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
@@ -70,17 +47,8 @@ describe('HeadingsChecker', () => {
 
   describe('checkHeadingHierarchy', () => {
     it('should pass when heading hierarchy is correct', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'Main Title', level: 1 },
-        { tag: 'h2', text: 'Section 1', level: 2 },
-        { tag: 'h3', text: 'Subsection 1.1', level: 3 },
-        { tag: 'h2', text: 'Section 2', level: 2 },
-      ];
-
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        html: '<h1>Main Title</h1><h2>Section 1</h2><h3>Subsection 1.1</h3><h2>Section 2</h2>',
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
@@ -92,15 +60,9 @@ describe('HeadingsChecker', () => {
     });
 
     it('should fail when heading levels are skipped', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'Main Title', level: 1 },
-        { tag: 'h3', text: 'Subsection', level: 3 }, // Skipped h2
-      ];
-
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        // h1 -> h3 skips h2
+        html: '<h1>Main Title</h1><h3>Subsection</h3>',
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
@@ -114,15 +76,8 @@ describe('HeadingsChecker', () => {
 
   describe('checkHeadingLength', () => {
     it('should pass when all headings are appropriate length', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'Short Title', level: 1 },
-        { tag: 'h2', text: 'Another Good Length Heading', level: 2 },
-      ];
-
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        html: '<h1>Short Title</h1><h2>Another Good Length Heading</h2>',
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
@@ -134,14 +89,10 @@ describe('HeadingsChecker', () => {
     });
 
     it('should fail when headings are too long', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'This is a very long heading that exceeds the recommended seventy character limit for optimal SEO', level: 1 },
-      ];
-
+      const longHeading =
+        'This is a very long heading that exceeds the recommended seventy character limit for optimal SEO';
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        html: `<h1>${longHeading}</h1>`,
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);
@@ -155,15 +106,8 @@ describe('HeadingsChecker', () => {
 
   describe('checkAll', () => {
     it('should return all heading check results', async () => {
-      const headings: HeadingStructure[] = [
-        { tag: 'h1', text: 'Main Title', level: 1 },
-        { tag: 'h2', text: 'Section', level: 2 },
-      ];
-
       const mockPage = createMockPage({
-        evaluateResults: {
-          querySelectorAll: headings,
-        },
+        html: '<h1>Main Title</h1><h2>Section</h2>',
       }) as Page;
 
       const checker = new HeadingsChecker(mockPage);

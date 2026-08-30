@@ -5,6 +5,14 @@ export interface SEOCheckResult {
   message: string;
   severity?: RuleSeverity;
   details?: Record<string, any>;
+  /**
+   * Stable rule identifier (e.g. 'title-exists', 'https-enabled'), matching
+   * the rule names used in preset/config files (see src/config/presets.ts).
+   * Optional for now — populated as each checker migrates onto BaseChecker
+   * (see src/checkers/base.ts); until then this is undefined and per-rule
+   * config falls back to checker-level resolution.
+   */
+  name?: string;
 }
 
 export type { RuleSeverity };
