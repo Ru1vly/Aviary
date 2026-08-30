@@ -7,7 +7,6 @@ export {
   SEOCheckerError,
   NetworkError,
   BrowserError,
-  ValidationError,
   ConfigurationError,
   TimeoutError,
   ErrorCategory,
@@ -17,29 +16,13 @@ export {
 } from './types.js';
 
 // Retry utilities
-export {
-  retry,
-  retryWithErrorHandling,
-  CircuitBreaker,
-  RetryOptions,
-  RetryContext,
-} from './retry.js';
+export { retry, RetryOptions, RetryContext } from './retry.js';
 
 // Logger
-export { ErrorLogger, LogLevel, LogEntry, LoggerOptions, ErrorSummary } from './logger.js';
+export { ErrorLogger, LogLevel, LogEntry, LoggerOptions } from './logger.js';
 
 // Graceful degradation
-export {
-  withGracefulDegradation,
-  withGracefulDegradationBatch,
-  withGracefulDegradationParallel,
-  withFallback,
-  withPartialSuccess,
-  withTimeout,
-  safeExecute,
-  createSafeCheck,
-  GracefulOptions,
-} from './graceful.js';
+export { withGracefulDegradation, GracefulOptions } from './graceful.js';
 
 // Checker helpers
 export { CheckerErrorHandler } from './checkerHelpers.js';

@@ -2,9 +2,7 @@
  * Error logging and reporting system
  */
 
-import { SEOCheckerError, ErrorSeverity, ErrorCategory } from './types.js';
-import fs from 'fs';
-import path from 'path';
+import { SEOCheckerError, ErrorSeverity } from './types.js';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -36,18 +34,6 @@ export interface LoggerOptions {
   console?: boolean;
 
   /**
-   * Whether to save logs to file
-   * @default false
-   */
-  file?: boolean;
-
-  /**
-   * Log file path (only used if file: true)
-   * @default './e2e-seo-errors.log'
-   */
-  filePath?: string;
-
-  /**
    * Whether to include stack traces in logs
    * @default true
    */
@@ -65,15 +51,12 @@ export interface LoggerOptions {
  */
 export class ErrorLogger {
   private static instance: ErrorLogger;
-  private logs: LogEntry[] = [];
   private options: Required<LoggerOptions>;
 
   private constructor(options: LoggerOptions = {}) {
     this.options = {
       minLevel: options.minLevel ?? LogLevel.INFO,
       console: options.console ?? true,
-      file: options.file ?? false,
-      filePath: options.filePath ?? './e2e-seo-errors.log',
       includeStackTrace: options.includeStackTrace ?? true,
       colorize: options.colorize ?? true,
     };
@@ -90,20 +73,6 @@ export class ErrorLogger {
       };
     }
     return ErrorLogger.instance;
-  }
-
-  /**
-   * Configure the logger
-   */
-  configure(options: Partial<LoggerOptions>): void {
-    this.options = { ...this.options, ...options };
-  }
-
-  /**
-   * Log a debug message
-   */
-  debug(message: string, metadata?: Record<string, unknown>): void {
-    this.log(LogLevel.DEBUG, message, undefined, metadata);
   }
 
   /**
@@ -151,22 +120,8 @@ export class ErrorLogger {
       return;
     }
 
-    const entry: LogEntry = {
-      timestamp: new Date(),
-      level,
-      message,
-      error,
-      metadata,
-    };
-
-    this.logs.push(entry);
-
     if (this.options.console) {
-      this.logToConsole(entry);
-    }
-
-    if (this.options.file) {
-      this.logToFile(entry);
+      this.logToConsole({ timestamp: new Date(), level, message, error, metadata });
     }
   }
 
@@ -193,40 +148,11 @@ export class ErrorLogger {
       output += `\n  Metadata: ${JSON.stringify(entry.metadata, null, 2)}`;
     }
 
-    const logFn = entry.level >= LogLevel.ERROR ? console.error : console.log;
-    logFn(output);
-  }
-
-  /**
-   * Log to file
-   */
-  private logToFile(entry: LogEntry): void {
-    try {
-      const timestamp = entry.timestamp.toISOString();
-      const levelStr = LogLevel[entry.level];
-      let logLine = `[${timestamp}] [${levelStr}] ${entry.message}`;
-
-      if (entry.error) {
-        logLine += `\n${JSON.stringify(entry.error.toJSON(), null, 2)}`;
-      }
-
-      if (entry.metadata) {
-        logLine += `\n  Metadata: ${JSON.stringify(entry.metadata)}`;
-      }
-
-      logLine += '\n\n';
-
-      // Ensure directory exists
-      const dir = path.dirname(this.options.filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      fs.appendFileSync(this.options.filePath, logLine, 'utf-8');
-    } catch (error) {
-      // Don't crash if logging fails
-      console.error('Failed to write to log file:', error);
-    }
+    // All levels go to stderr, not just ERROR+: stdout is reserved for
+    // program output (e.g. `aviary --json`). Writing INFO/WARN/DEBUG to
+    // stdout here would interleave log lines with the JSON report and
+    // corrupt it, exactly like the bug fixed in src/config/logger.ts.
+    process.stderr.write(output + '\n');
   }
 
   /**
@@ -292,92 +218,4 @@ export class ErrorLogger {
         return LogLevel.INFO;
     }
   }
-
-  /**
-   * Get all logged entries
-   */
-  getLogs(): LogEntry[] {
-    return [...this.logs];
-  }
-
-  /**
-   * Get logs filtered by level
-   */
-  getLogsByLevel(level: LogLevel): LogEntry[] {
-    return this.logs.filter((log) => log.level === level);
-  }
-
-  /**
-   * Get error logs only
-   */
-  getErrors(): LogEntry[] {
-    return this.logs.filter((log) => log.level >= LogLevel.ERROR);
-  }
-
-  /**
-   * Generate error summary report
-   */
-  generateErrorSummary(): ErrorSummary {
-    const errors = this.getErrors();
-    const categoryCounts: Record<string, number> = {};
-    const severityCounts: Record<string, number> = {};
-    const checkCounts: Record<string, number> = {};
-
-    for (const entry of errors) {
-      if (entry.error) {
-        const category = entry.error.context.category;
-        const severity = entry.error.context.severity;
-        const check = entry.error.context.checkName || 'unknown';
-
-        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-        severityCounts[severity] = (severityCounts[severity] || 0) + 1;
-        checkCounts[check] = (checkCounts[check] || 0) + 1;
-      }
-    }
-
-    return {
-      totalErrors: errors.length,
-      totalLogs: this.logs.length,
-      byCategory: categoryCounts,
-      bySeverity: severityCounts,
-      byCheck: checkCounts,
-      errors: errors.map((e) => ({
-        timestamp: e.timestamp.toISOString(),
-        message: e.message,
-        category: e.error?.context.category,
-        severity: e.error?.context.severity,
-        checkName: e.error?.context.checkName,
-      })),
-    };
-  }
-
-  /**
-   * Clear all logs
-   */
-  clear(): void {
-    this.logs = [];
-  }
-
-  /**
-   * Export logs to JSON file
-   */
-  exportToJSON(filePath: string): void {
-    const summary = this.generateErrorSummary();
-    fs.writeFileSync(filePath, JSON.stringify(summary, null, 2), 'utf-8');
-  }
-}
-
-export interface ErrorSummary {
-  totalErrors: number;
-  totalLogs: number;
-  byCategory: Record<string, number>;
-  bySeverity: Record<string, number>;
-  byCheck: Record<string, number>;
-  errors: Array<{
-    timestamp: string;
-    message: string;
-    category?: ErrorCategory;
-    severity?: ErrorSeverity;
-    checkName?: string;
-  }>;
 }

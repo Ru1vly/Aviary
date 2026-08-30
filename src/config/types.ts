@@ -11,7 +11,20 @@ export interface CheckerRules {
   [checkName: string]: RuleConfig | boolean;
 }
 
-export type CheckerConfig = CheckerRules | boolean;
+/**
+ * Whole-checker enable/disable plus an optional default severity applied to
+ * every rule in that checker, without specifying each rule individually.
+ * This is distinct from `CheckerRules`, whose index signature only accepts
+ * `RuleConfig | boolean` values — a bare `severity: 'warning'` string can
+ * never satisfy that, which is why presets previously needed `as any` to
+ * write `{ enabled: true, severity: 'warning' }` at the checker level.
+ */
+export interface CheckerLevelConfig {
+  enabled: boolean;
+  severity?: RuleSeverity;
+}
+
+export type CheckerConfig = boolean | CheckerLevelConfig | CheckerRules;
 
 export interface SEOConfig {
   // Preset configuration
@@ -49,6 +62,7 @@ export interface SEOConfig {
     legalCompliance?: CheckerConfig;
     ecommerce?: CheckerConfig;
     internationalization?: CheckerConfig;
+    heatmap?: CheckerConfig;
   };
 
   // Custom rules (extensibility for future)

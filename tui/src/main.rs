@@ -280,13 +280,26 @@ const MID: Color = Color::Rgb(120, 120, 120);
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse CLI args to find --cli-path
-    let mut cli_path = "dist/cli.js".to_string();
+    let mut cli_path: Option<String> = None;
     let args: Vec<String> = std::env::args().collect();
     for i in 0..args.len() {
         if args[i] == "--cli-path" && i + 1 < args.len() {
-            cli_path = args[i + 1].clone();
+            cli_path = Some(args[i + 1].clone());
         }
     }
+
+    // Resolve cli_path: explicit arg > next to binary > CWD fallback
+    let cli_path = cli_path.unwrap_or_else(|| {
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                let candidate = exe_dir.join("cli.js");
+                if candidate.exists() {
+                    return candidate.to_string_lossy().into_owned();
+                }
+            }
+        }
+        "dist/cli.js".to_string()
+    });
 
     // Terminal setup
     enable_raw_mode()?;
@@ -619,43 +632,26 @@ async fn run_audit_process(
                 Ok(out) => {
                     if out.status.success() {
                         let stdout_str = String::from_utf8_lossy(&out.stdout);
-                        // stdout is clean JSON (12-Factor compliant CLI)
+                        // stdout is guaranteed clean JSON under --json: the CLI's
+                        // only stdout write is the report itself (src/cli.ts), and
+                        // its logger writes to stderr (src/config/logger.ts) — so
+                        // no preamble-scanning fallback is needed here. If this
+                        // ever fails to parse, something upstream regressed and
+                        // silently re-scanning for a stray '{' would only hide it.
                         match serde_json::from_str::<SEOReport>(&stdout_str) {
                             Ok(parsed_report) => {
                                 let _ = tx
                                     .send(AuditEvent::Complete(Box::new(parsed_report)))
                                     .await;
                             }
-                            Err(_) => {
-                                // Fallback: find first { in case of any preamble
-                                if let Some(json_start) = stdout_str.find('{') {
-                                    let json_part = &stdout_str[json_start..];
-                                    match serde_json::from_str::<SEOReport>(json_part) {
-                                        Ok(parsed_report) => {
-                                            let _ = tx
-                                                .send(AuditEvent::Complete(Box::new(
-                                                    parsed_report,
-                                                )))
-                                                .await;
-                                        }
-                                        Err(err) => {
-                                            let _ = tx
-                                                .send(AuditEvent::Error(format!(
-                                                    "JSON parse failed: {}. Output: {}",
-                                                    err,
-                                                    stdout_str.chars().take(200).collect::<String>()
-                                                )))
-                                                .await;
-                                        }
-                                    }
-                                } else {
-                                    let _ = tx
-                                        .send(AuditEvent::Error(format!(
-                                            "No JSON found in output: {}",
-                                            stdout_str.chars().take(200).collect::<String>()
-                                        )))
-                                        .await;
-                                }
+                            Err(err) => {
+                                let _ = tx
+                                    .send(AuditEvent::Error(format!(
+                                        "JSON parse failed: {}. Output: {}",
+                                        err,
+                                        stdout_str.chars().take(200).collect::<String>()
+                                    )))
+                                    .await;
                             }
                         }
                     } else {
@@ -725,7 +721,7 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
     // ── Header
     let header = Paragraph::new(Line::from(vec![
         Span::styled(
-            "E2E-SEO AUDIT ENGINE v1.0",
+            "AVIARY AUDIT ENGINE v1.0",
             Style::default().fg(FG).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
@@ -1052,7 +1048,7 @@ fn draw_dashboard_header(f: &mut Frame, area: Rect, app: &App, report: &SEORepor
 
     let header = Paragraph::new(vec![
         Line::from(vec![
-            Span::styled("E2E-SEO", Style::default().fg(FG).add_modifier(Modifier::BOLD)),
+            Span::styled("AVIARY", Style::default().fg(FG).add_modifier(Modifier::BOLD)),
             Span::styled(" │ ", Style::default().fg(DIM)),
             Span::styled(url_display, Style::default().fg(MID)),
             Span::styled(" │ SCORE: ", Style::default().fg(DIM)),

@@ -1,4 +1,6 @@
-// 12-Factor: Route all logs to stdout as structured event streams
+// 12-Factor: route all logs to stderr as structured event streams, keeping
+// stdout reserved for program output (e.g. `aviary --json`). Logging to
+// stdout would interleave log lines with the JSON report and corrupt it.
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
@@ -18,7 +20,7 @@ class Logger {
       message,
       ...(data ? { data } : {}),
     };
-    process.stdout.write(JSON.stringify(entry) + '\n');
+    process.stderr.write(JSON.stringify(entry) + '\n');
   }
 
   debug(msg: string, data?: Record<string, unknown>) {

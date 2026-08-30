@@ -1,7 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { SEOConfig, ResolvedRuleConfig, RuleSeverity, CheckerRules } from './types';
+import {
+  SEOConfig,
+  ResolvedRuleConfig,
+  RuleSeverity,
+  CheckerRules,
+  CheckerLevelConfig,
+  CheckerConfig,
+} from './types';
 import { presets } from './presets';
 
 /**
@@ -87,23 +94,48 @@ export class ConfigLoader {
     const merged = { ...base };
 
     for (const [checkerName, checkerRules] of Object.entries(override)) {
+      const key = checkerName as keyof typeof merged;
       if (checkerRules === false) {
         // Disable entire checker
-        merged[checkerName as keyof typeof merged] = false as any;
+        merged[key] = false;
       } else if (checkerRules === true) {
         // Enable entire checker with defaults
-        merged[checkerName as keyof typeof merged] = true as any;
+        merged[key] = true;
       } else if (typeof checkerRules === 'object') {
         // Merge individual rules
-        const baseCheckerRules = (merged[checkerName as keyof typeof merged] || {}) as CheckerRules;
-        merged[checkerName as keyof typeof merged] = {
+        const baseCheckerRules = (merged[key] || {}) as CheckerRules;
+        merged[key] = {
           ...baseCheckerRules,
           ...checkerRules,
-        } as any;
+        } as CheckerConfig;
       }
     }
 
     return merged;
+  }
+
+  /**
+   * Distinguish a checker-level `{ enabled, severity }` object from a
+   * per-rule `CheckerRules` map. `CheckerRules`'s index signature only
+   * accepts `RuleConfig | boolean` values, which a bare `severity` string
+   * can never satisfy — so a string `severity` unambiguously means
+   * checker-level config. A lone boolean `enabled` with no other keys is
+   * also treated as checker-level, since that's the exact shape
+   * `{ enabled: false }` needs to disable a whole checker.
+   *
+   * This can only misfire if a user names one of their own rules "enabled"
+   * or "severity" AND gives it no sibling rules — an edge case not used by
+   * any built-in preset or example config.
+   */
+  private static isCheckerLevelConfig(
+    value: CheckerRules | CheckerLevelConfig
+  ): value is CheckerLevelConfig {
+    const keys = Object.keys(value);
+    if (keys.length === 0 || !keys.every((k) => k === 'enabled' || k === 'severity')) {
+      return false;
+    }
+    const v = value as CheckerLevelConfig;
+    return typeof v.enabled === 'boolean' || typeof v.severity === 'string';
   }
 
   /**
@@ -118,7 +150,12 @@ export class ConfigLoader {
     if (checkerRules === false) return false;
     if (checkerRules === true) return true;
 
-    // If it's an object with individual rules, the checker is enabled
+    if (this.isCheckerLevelConfig(checkerRules)) {
+      return checkerRules.enabled !== false;
+    }
+
+    // Per-rule detail map with no checker-level `enabled` — the checker
+    // itself is enabled; individual rules are resolved by getRuleConfig.
     return true;
   }
 
@@ -150,6 +187,16 @@ export class ConfigLoader {
       return defaultConfig;
     }
 
+    // Checker-level { enabled, severity } with no per-rule detail — every
+    // rule in the checker inherits this as its own default.
+    if (this.isCheckerLevelConfig(checkerRules)) {
+      return {
+        enabled: checkerRules.enabled !== false,
+        severity: checkerRules.severity || config.severity || 'warning',
+        options: {},
+      };
+    }
+
     // Check specific rule configuration
     const ruleConfig = (checkerRules as CheckerRules)[ruleName];
 
@@ -175,16 +222,16 @@ export class ConfigLoader {
 
   /**
    * Find and load configuration from default locations
-   * Searches for .e2e-seo.json, .e2e-seo.yaml, .e2e-seo.yml in current directory
+   * Searches for .aviary.json, .aviary.yaml, .aviary.yml in current directory
    */
   static findAndLoad(): SEOConfig | null {
     const configFiles = [
-      '.e2e-seo.json',
-      '.e2e-seo.yaml',
-      '.e2e-seo.yml',
-      'e2e-seo.config.json',
-      'e2e-seo.config.yaml',
-      'e2e-seo.config.yml',
+      '.aviary.json',
+      '.aviary.yaml',
+      '.aviary.yml',
+      'aviary.config.json',
+      'aviary.config.yaml',
+      'aviary.config.yml',
     ];
 
     for (const filename of configFiles) {

@@ -2,8 +2,8 @@
  * Graceful degradation utilities for handling errors without failing completely
  */
 
-import { SEOCheckResult } from '../types/index.js';
-import { SEOCheckerError, categorizeError, ErrorSeverity } from './types.js';
+import { SEOCheckResult, RuleSeverity } from '../types/index.js';
+import { categorizeError, ErrorSeverity } from './types.js';
 import { ErrorLogger } from './logger.js';
 
 export interface GracefulOptions {
@@ -32,7 +32,9 @@ export interface GracefulOptions {
   logError?: boolean;
 
   /**
-   * Severity to log the error as
+   * Severity to log the error as, and to report on the degraded check
+   * result (converted to the report's lowercase RuleSeverity — see
+   * errorSeverityToRuleSeverity below)
    * @default ErrorSeverity.WARNING
    */
   logSeverity?: ErrorSeverity;
@@ -45,6 +47,29 @@ const DEFAULT_GRACEFUL_OPTIONS: Required<GracefulOptions> = {
   logError: true,
   logSeverity: ErrorSeverity.WARNING,
 };
+
+/**
+ * Map the internal (uppercase) ErrorSeverity taxonomy to the report-facing
+ * (lowercase) RuleSeverity used by SEOCheckResult.
+ *
+ * Previously, withGracefulDegradation wrote an ErrorSeverity value directly
+ * into a field typed as RuleSeverity, hidden behind an `as unknown as T`
+ * cast. Since reporter.ts compares severity case-sensitively (`=== 'error'`)
+ * to pick badge/row styling, a degraded result's severity never matched
+ * anything and silently rendered with no badge at all.
+ */
+function errorSeverityToRuleSeverity(severity: ErrorSeverity): RuleSeverity {
+  switch (severity) {
+    case ErrorSeverity.CRITICAL:
+    case ErrorSeverity.ERROR:
+      return 'error';
+    case ErrorSeverity.INFO:
+      return 'info';
+    case ErrorSeverity.WARNING:
+    default:
+      return 'warning';
+  }
+}
 
 /**
  * Execute a check with graceful degradation
@@ -72,187 +97,12 @@ export async function withGracefulDegradation<T extends SEOCheckResult>(
     const detailsText = opts.includeErrorDetails ? `: ${errorMessage}` : '';
     const message = `${opts.messagePrefix}${detailsText}`;
 
-    return {
+    const result: SEOCheckResult = {
       passed: opts.passOnError,
       message,
-      category: categorized.context.category,
-      severity: categorized.context.severity,
-    } as unknown as T;
+      severity: errorSeverityToRuleSeverity(opts.logSeverity),
+    };
+
+    return result as T;
   }
-}
-
-/**
- * Execute multiple checks with graceful degradation
- * Continues execution even if some checks fail
- */
-export async function withGracefulDegradationBatch<T extends SEOCheckResult>(
-  checks: Array<{
-    name: string;
-    fn: () => Promise<T>;
-    options?: GracefulOptions;
-  }>
-): Promise<T[]> {
-  const results: T[] = [];
-
-  for (const check of checks) {
-    const result = await withGracefulDegradation(check.fn, check.name, check.options);
-    results.push(result);
-  }
-
-  return results;
-}
-
-/**
- * Execute checks in parallel with graceful degradation
- */
-export async function withGracefulDegradationParallel<T extends SEOCheckResult>(
-  checks: Array<{
-    name: string;
-    fn: () => Promise<T>;
-    options?: GracefulOptions;
-  }>
-): Promise<T[]> {
-  const promises = checks.map((check) =>
-    withGracefulDegradation(check.fn, check.name, check.options)
-  );
-
-  return Promise.all(promises);
-}
-
-/**
- * Fallback mechanism - try primary function, fall back to secondary if it fails
- */
-export async function withFallback<T>(
-  primary: () => Promise<T>,
-  fallback: () => Promise<T>,
-  checkName: string
-): Promise<T> {
-  try {
-    return await primary();
-  } catch (primaryError) {
-    const categorized = categorizeError(primaryError);
-    categorized.context.checkName = checkName;
-
-    ErrorLogger.getInstance().logWarning(
-      `Primary check failed for ${checkName}, attempting fallback`,
-      { primaryError: categorized.message }
-    );
-
-    try {
-      return await fallback();
-    } catch (fallbackError) {
-      const categorizedFallback = categorizeError(fallbackError);
-      categorizedFallback.context.checkName = checkName;
-
-      ErrorLogger.getInstance().logError(categorizedFallback, {
-        primaryError: categorized.message,
-        fallbackError: categorizedFallback.message,
-      });
-
-      throw fallbackError;
-    }
-  }
-}
-
-/**
- * Partial success handler - returns results for checks that succeeded
- */
-export async function withPartialSuccess<T>(
-  checks: Array<() => Promise<T>>,
-  checkName: string,
-  options: { minSuccessRate?: number } = {}
-): Promise<{
-  results: T[];
-  failures: Array<{ index: number; error: SEOCheckerError }>;
-  successRate: number;
-}> {
-  const results: T[] = [];
-  const failures: Array<{ index: number; error: SEOCheckerError }> = [];
-
-  for (let i = 0; i < checks.length; i++) {
-    try {
-      const result = await checks[i]();
-      results.push(result);
-    } catch (error) {
-      const categorized = categorizeError(error);
-      categorized.context.checkName = checkName;
-      failures.push({ index: i, error: categorized });
-    }
-  }
-
-  const successRate = checks.length > 0 ? results.length / checks.length : 0;
-  const minSuccessRate = options.minSuccessRate ?? 0;
-
-  if (successRate < minSuccessRate) {
-    ErrorLogger.getInstance().logError(
-      categorizeError(
-        new Error(
-          `Success rate ${(successRate * 100).toFixed(1)}% below minimum ${(minSuccessRate * 100).toFixed(1)}%`
-        )
-      ),
-      {
-        checkName,
-        successRate,
-        minSuccessRate,
-        failureCount: failures.length,
-      }
-    );
-  }
-
-  return { results, failures, successRate };
-}
-
-/**
- * Timeout wrapper with graceful degradation
- */
-export async function withTimeout<T extends SEOCheckResult>(
-  fn: () => Promise<T>,
-  timeoutMs: number,
-  checkName: string,
-  options: GracefulOptions = {}
-): Promise<T> {
-  return withGracefulDegradation(
-    async () => {
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Timeout after ${timeoutMs}ms`));
-        }, timeoutMs);
-      });
-
-      return Promise.race([fn(), timeoutPromise]);
-    },
-    checkName,
-    options
-  );
-}
-
-/**
- * Safe execution wrapper that never throws
- */
-export async function safeExecute<T>(
-  fn: () => Promise<T>,
-  defaultValue: T,
-  checkName?: string
-): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (checkName) {
-      const categorized = categorizeError(error);
-      categorized.context.checkName = checkName;
-      ErrorLogger.getInstance().logError(categorized);
-    }
-    return defaultValue;
-  }
-}
-
-/**
- * Create a safe version of a check function that handles all errors gracefully
- */
-export function createSafeCheck<T extends SEOCheckResult>(
-  checkFn: () => Promise<T>,
-  checkName: string,
-  options: GracefulOptions = {}
-): () => Promise<T> {
-  return async () => withGracefulDegradation(checkFn, checkName, options);
 }

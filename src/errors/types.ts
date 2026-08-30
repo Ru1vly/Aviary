@@ -1,11 +1,10 @@
 /**
- * Custom error types for the e2e-seo checker
+ * Custom error types for the aviary checker
  */
 
 export enum ErrorCategory {
   NETWORK = 'NETWORK',
   BROWSER = 'BROWSER',
-  VALIDATION = 'VALIDATION',
   CONFIGURATION = 'CONFIGURATION',
   TIMEOUT = 'TIMEOUT',
   UNKNOWN = 'UNKNOWN',
@@ -31,7 +30,7 @@ export interface ErrorContext {
 }
 
 /**
- * Base error class for all e2e-seo errors
+ * Base error class for all aviary errors
  */
 export class SEOCheckerError extends Error {
   public readonly context: ErrorContext;
@@ -89,19 +88,6 @@ export class BrowserError extends SEOCheckerError {
       category: ErrorCategory.BROWSER,
     });
     this.name = 'BrowserError';
-  }
-}
-
-/**
- * Validation errors (invalid configuration, invalid URLs)
- */
-export class ValidationError extends SEOCheckerError {
-  constructor(message: string, context: Partial<ErrorContext> = {}) {
-    super(message, {
-      ...context,
-      category: ErrorCategory.VALIDATION,
-    });
-    this.name = 'ValidationError';
   }
 }
 

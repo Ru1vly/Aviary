@@ -1,6 +1,7 @@
 import { chromium, Browser, Page, Response } from 'playwright';
 import { SEOCheckerOptions, SEOReport, SEOCheckResult } from './types';
 import { SEOConfig, ConfigLoader } from './config';
+import { calculateWeightedScore } from './scoring';
 import { MetaTagsChecker } from './checkers/metaTags';
 import { HeadingsChecker } from './checkers/headings';
 import { ImagesChecker } from './checkers/images';
@@ -67,7 +68,7 @@ export class SEOChecker {
       const allChecks = [...metaTags, ...headings, ...images, ...performance, ...robotsTxt, ...sitemap, ...security, ...structuredData, ...socialMedia, ...content, ...links, ...uiElements, ...technical, ...accessibility, ...urlFactors, ...spamDetection, ...pageQuality, ...advancedImages, ...multimedia, ...coreWebVitals, ...analytics, ...mobileUX, ...schemaValidation, ...resourceOptimization, ...legalCompliance, ...ecommerce, ...internationalization, ...heatmap];
       const passed = allChecks.filter((c) => c.passed).length;
       const failed = allChecks.filter((c) => !c.passed).length;
-      const score = this.calculateWeightedScore(allChecks);
+      const score = calculateWeightedScore(allChecks);
 
       return {
         url: this.options.url,
@@ -114,35 +115,6 @@ export class SEOChecker {
     }
   }
 
-  /**
-   * Calculate a severity-weighted score.
-   * - error failures penalise 3x
-   * - warning failures penalise 1x (default)
-   * - info failures penalise 0.5x
-   * This prevents irrelevant category checks from unfairly dragging the score down.
-   */
-  private calculateWeightedScore(checks: import('./types').SEOCheckResult[]): number {
-    const severityWeight = (severity?: string) => {
-      switch (severity) {
-        case 'error':   return 3;
-        case 'info':    return 0.5;
-        default:        return 1; // 'warning' or unset
-      }
-    };
-
-    let totalWeight = 0;
-    let passedWeight = 0;
-
-    for (const check of checks) {
-      const weight = severityWeight(check.severity);
-      totalWeight += weight;
-      if (check.passed) passedWeight += weight;
-    }
-
-    if (totalWeight === 0) return 100;
-    return Math.round((passedWeight / totalWeight) * 100);
-  }
-
   private async launch(): Promise<void> {
     this.browser = await chromium.launch({
       headless: this.options.headless,
@@ -169,6 +141,31 @@ export class SEOChecker {
 
     // Additional stability wait
     await this.page.waitForTimeout(1000);
+  }
+
+  /**
+   * Run a single checker's checkAll(), converting a thrown/rejected error
+   * into one failed result instead of letting it propagate. Without this,
+   * a single checker throwing (e.g. from a page.evaluate() that runs during
+   * navigation and hits a destroyed execution context) would fail the
+   * entire audit via Promise.all, taking every other checker's results
+   * down with it.
+   */
+  private async safeCheckAll(
+    checkerName: string,
+    promise: Promise<SEOCheckResult[]>
+  ): Promise<SEOCheckResult[]> {
+    try {
+      return await promise;
+    } catch (err) {
+      return [
+        {
+          passed: false,
+          message: `${checkerName} checker crashed: ${(err as Error).message}`,
+          severity: 'error',
+        },
+      ];
+    }
   }
 
   /**
@@ -208,169 +205,169 @@ export class SEOChecker {
     const checkerPromises = [];
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'metaTags')) {
-      checkerPromises.push(metaTagsChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('metaTags', metaTagsChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'headings')) {
-      checkerPromises.push(headingsChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('headings', headingsChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'images')) {
-      checkerPromises.push(imagesChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('images', imagesChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'performance')) {
-      checkerPromises.push(performanceChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('performance', performanceChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'robotsTxt')) {
-      checkerPromises.push(robotsTxtChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('robotsTxt', robotsTxtChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'sitemap')) {
-      checkerPromises.push(sitemapChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('sitemap', sitemapChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'security')) {
-      checkerPromises.push(securityChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('security', securityChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'structuredData')) {
-      checkerPromises.push(structuredDataChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('structuredData', structuredDataChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'socialMedia')) {
-      checkerPromises.push(socialMediaChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('socialMedia', socialMediaChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'content')) {
-      checkerPromises.push(contentChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('content', contentChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'links')) {
-      checkerPromises.push(linksChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('links', linksChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'uiElements')) {
-      checkerPromises.push(uiElementsChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('uiElements', uiElementsChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'technical')) {
-      checkerPromises.push(technicalChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('technical', technicalChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'accessibility')) {
-      checkerPromises.push(accessibilityChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('accessibility', accessibilityChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'urlFactors')) {
-      checkerPromises.push(urlFactorsChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('urlFactors', urlFactorsChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'spamDetection')) {
-      checkerPromises.push(spamDetectionChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('spamDetection', spamDetectionChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'pageQuality')) {
-      checkerPromises.push(pageQualityChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('pageQuality', pageQualityChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'advancedImages')) {
-      checkerPromises.push(advancedImagesChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('advancedImages', advancedImagesChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'multimedia')) {
-      checkerPromises.push(multimediaChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('multimedia', multimediaChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'coreWebVitals')) {
-      checkerPromises.push(coreWebVitalsChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('coreWebVitals', coreWebVitalsChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'analytics')) {
-      checkerPromises.push(analyticsChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('analytics', analyticsChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'mobileUX')) {
-      checkerPromises.push(mobileUXChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('mobileUX', mobileUXChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'schemaValidation')) {
-      checkerPromises.push(schemaValidationChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('schemaValidation', schemaValidationChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'resourceOptimization')) {
-      checkerPromises.push(resourceOptimizationChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('resourceOptimization', resourceOptimizationChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'legalCompliance')) {
-      checkerPromises.push(legalComplianceChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('legalCompliance', legalComplianceChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'ecommerce')) {
-      checkerPromises.push(ecommerceChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('ecommerce', ecommerceChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'internationalization')) {
-      checkerPromises.push(internationalizationChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('internationalization', internationalizationChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
 
     if (ConfigLoader.isCheckerEnabled(this.config, 'heatmap')) {
-      checkerPromises.push(heatmapChecker.checkAll());
+      checkerPromises.push(this.safeCheckAll('heatmap', heatmapChecker.checkAll()));
     } else {
       checkerPromises.push(Promise.resolve([]));
     }
@@ -424,17 +421,24 @@ export class SEOChecker {
   }
 
   async close(): Promise<void> {
-    if (this.page) {
-      await this.page.close();
-    }
-    if (this.browser) {
-      await this.browser.close();
+    // A throwing page.close() must not prevent browser.close() from running
+    // — otherwise a single closed/crashed page leaks the whole Chromium
+    // process for the lifetime of the Node process that spawned it.
+    try {
+      if (this.page) {
+        await this.page.close();
+      }
+    } finally {
+      if (this.browser) {
+        await this.browser.close();
+      }
     }
   }
 }
 
 export * from './types';
 export * from './config';
+export { calculateWeightedScore } from './scoring';
 export { generateHtmlReport, renderHtmlReport } from './reporter';
 export { MetaTagsChecker } from './checkers/metaTags';
 export { HeadingsChecker } from './checkers/headings';

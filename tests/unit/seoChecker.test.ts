@@ -136,6 +136,31 @@ describe('SEOChecker', () => {
       expect(mockPage.close).toHaveBeenCalled();
       expect(mockBrowser.close).toHaveBeenCalled();
     });
+
+    it('should degrade a crashing checker to one failed result instead of failing the whole audit', async () => {
+      // Every checker that calls page.evaluate() will now throw. Before the
+      // resilience fix, this would reject the shared Promise.all in
+      // runAllCheckers() and take every other checker's results down with
+      // it — check() would reject entirely instead of returning a report.
+      mockPage.evaluate = vi.fn().mockRejectedValue(new Error('boom: injected checker failure'));
+
+      const checker = new SEOChecker({ url: 'https://example.com' });
+      const report = await checker.check();
+
+      expect(report).toHaveProperty('score');
+      expect(typeof report.score).toBe('number');
+      expect(report.summary.total).toBeGreaterThan(0);
+
+      const allChecks = Object.values(report.checks).flat();
+      const crashedChecks = allChecks.filter((c) => c.message.includes('checker crashed'));
+      // At least one evaluate()-dependent checker should have degraded to a
+      // single synthesized failed result naming the crash, proving the
+      // failure was contained rather than propagated or silently dropped.
+      expect(crashedChecks.length).toBeGreaterThan(0);
+      expect(crashedChecks[0].passed).toBe(false);
+      expect(crashedChecks[0].severity).toBe('error');
+      expect(crashedChecks[0].message).toContain('boom: injected checker failure');
+    });
   });
 
   describe('close', () => {
