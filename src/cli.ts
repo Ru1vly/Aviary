@@ -149,7 +149,7 @@ Examples:
   AVIARY_URL=https://example.com aviary --json
   aviary --init-config
 
-Checks performed (260+ checks across ${CHECKER_REGISTRY.length} categories):
+Checks performed (235 checks across ${CHECKER_REGISTRY.length} categories):
   • Meta tags (title, description, Open Graph, canonical, viewport)
   • Heading structure (H1-H6 hierarchy)
   • Image optimization (alt text)

@@ -9,7 +9,7 @@ An end-to-end SEO testing toolkit for websites using browser automation. Built w
 
 ## Features
 
-The library executes 260+ individual checks across 28 categories. Below is an overview of the core checker modules:
+The library executes 235 individual checks across 28 categories (heatmap's click/scroll/attention checks are opt-in and included in that default count). Below is an overview of the core checker modules:
 
 | Category | Description | Key Checks |
 |---|---|---|

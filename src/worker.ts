@@ -1,7 +1,27 @@
 import net from 'net';
 import { decode, encode } from '@msgpack/msgpack';
 import { SEOChecker } from './index';
+import { SEOReport } from './types';
+import { categorizeError } from './errors/index.js';
 import fs from 'fs';
+
+interface PingRequest {
+  type: 'ping';
+  id: string | number;
+}
+
+interface AuditRequest {
+  type?: undefined;
+  id: string | number;
+  url: string;
+}
+
+type WorkerRequest = PingRequest | AuditRequest;
+
+type WorkerResponse =
+  | { id: string | number; type: 'pong' }
+  | { id: string | number; success: true; report: SEOReport }
+  | { id: string | number; success: false; error: string };
 
 const socketPath = process.argv[2];
 if (!socketPath) {
@@ -57,9 +77,9 @@ const server = net.createServer((socket) => {
 });
 
 async function handlePayload(socket: net.Socket, payload: Buffer) {
-    let request: any;
+    let request: WorkerRequest;
     try {
-        request = decode(payload);
+        request = decode(payload) as WorkerRequest;
     } catch (err) {
         console.error("Failed to decode msgpack:", err);
         return;
@@ -75,12 +95,12 @@ async function handlePayload(socket: net.Socket, payload: Buffer) {
         const checker = new SEOChecker({ url, headless: true });
         const report = await checker.check();
         sendMsg(socket, { id, success: true, report });
-    } catch (err: any) {
-        sendMsg(socket, { id, success: false, error: err.message });
+    } catch (err) {
+        sendMsg(socket, { id, success: false, error: categorizeError(err).message });
     }
 }
 
-function sendMsg(socket: net.Socket, msg: any) {
+function sendMsg(socket: net.Socket, msg: WorkerResponse) {
     try {
         const encoded = encode(msg);
         const lenBuf = Buffer.alloc(4);
