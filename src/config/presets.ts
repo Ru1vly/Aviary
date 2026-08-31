@@ -32,6 +32,21 @@ export const basicPreset: SEOConfig = {
     security: {
       'https-enabled': { enabled: true, severity: 'error' },
     },
+    // Lightweight, fundamental checks kept on under "basic" — fast,
+    // HTTP/DOM-only, no elaborate parsing — as opposed to the checkers
+    // disabled below. Listed explicitly (rather than left to the
+    // isCheckerEnabled default-to-enabled-when-absent behavior) so a
+    // future checker added to the registry doesn't silently inherit
+    // "on" under basic without that being a deliberate choice — the same
+    // omission this preset previously left `heatmap` to, by accident.
+    robotsTxt: true,
+    sitemap: true,
+    content: true,
+    links: true,
+    uiElements: true,
+    technical: true,
+    accessibility: true,
+    urlFactors: true,
     // Disable advanced checkers in basic preset
     structuredData: false,
     socialMedia: false,

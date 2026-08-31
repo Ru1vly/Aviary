@@ -6,17 +6,19 @@ import { CHECKER_REGISTRY } from '../../src/checkers/registry';
 // key is absent from a preset's `rules` object — omission silently means
 // "on", not "unspecified". Phase 1 found and fixed exactly this for
 // `heatmap` (missing from all three presets, so it ran even under `basic`,
-// which explicitly disables 14 other heavy checkers).
-//
-// Note: `basic` also omits 8 lighter checkers (robotsTxt, sitemap,
-// content, links, uiElements, technical, accessibility, urlFactors) rather
-// than listing them `true` — found while writing this test. That may well
-// be intentional (they're not "heavy" in the way the 15 explicitly-disabled
-// ones are), but it rests on the same omission-means-enabled default that
-// made the heatmap bug possible, so it's flagged to the user rather than
-// asserted on here as either correct or a bug.
+// which explicitly disables 14 other heavy checkers). `basic` also used to
+// omit 8 lighter checkers (robotsTxt, sitemap, content, links, uiElements,
+// technical, accessibility, urlFactors) rather than listing them `true` —
+// same fragility, fixed by making every registry key explicit in every
+// preset, asserted below so it can't silently regress.
 describe('presets', () => {
   const registryKeys = CHECKER_REGISTRY.map((c) => c.key);
+
+  it.each(Object.entries(presets))('%s preset explicitly configures every registry checker', (name, preset) => {
+    const configuredKeys = Object.keys(preset.rules ?? {});
+    const missing = registryKeys.filter((key) => !configuredKeys.includes(key));
+    expect(missing, `${name} preset is missing: ${missing.join(', ')}`).toEqual([]);
+  });
 
   it.each(Object.entries(presets))('%s preset has no unknown checker keys (registry drift guard)', (name, preset) => {
     const configuredKeys = Object.keys(preset.rules ?? {});
@@ -25,7 +27,7 @@ describe('presets', () => {
   });
 
   it('basic preset disables every heavy/advanced checker', () => {
-    // The 14 checkers basic explicitly turns off — a change here reflects a
+    // The 15 checkers basic explicitly turns off — a change here reflects a
     // real product decision, so pin the exact set rather than just "some".
     const expectedDisabled = [
       'structuredData',
@@ -46,6 +48,22 @@ describe('presets', () => {
     ];
     for (const key of expectedDisabled) {
       expect(presets.basic.rules?.[key as keyof typeof presets.basic.rules], key).toBe(false);
+    }
+  });
+
+  it('basic preset keeps every lightweight/fundamental checker on', () => {
+    const expectedEnabled = [
+      'robotsTxt',
+      'sitemap',
+      'content',
+      'links',
+      'uiElements',
+      'technical',
+      'accessibility',
+      'urlFactors',
+    ];
+    for (const key of expectedEnabled) {
+      expect(presets.basic.rules?.[key as keyof typeof presets.basic.rules], key).toBe(true);
     }
   });
 });

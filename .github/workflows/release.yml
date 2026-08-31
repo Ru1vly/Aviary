@@ -32,7 +32,14 @@ jobs:
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:coverage
 
-  # ── Cross-compile Rust TUI ─────────────────────────────────
+  # ── Cross-compile Rust TUI + fast-path engine binary ────────
+  # Each artifact bundles both `tui` and `aviary-fast` (from the
+  # aviary-engine package — engine/src/bin/aviary_fast.rs) side by side:
+  # the TUI's --fast mode resolves aviary-fast by looking next to its own
+  # binary (see tui/src/main.rs), so someone downloading just the TUI
+  # binary from a GitHub release — not installing via npm, where
+  # scripts/build-tui.js already bundles both into dist/ — needs both
+  # here too, or --fast silently has nothing to spawn.
   build-rust-matrix:
     name: Build TUI (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
@@ -44,23 +51,33 @@ jobs:
             target: x86_64-unknown-linux-gnu
             artifact_name: tui-linux-amd64
             binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-linux-amd64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: tui-linux-arm64
             binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-linux-arm64
             cross: true
           - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: tui-macos-amd64
             binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-macos-amd64
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: tui-macos-arm64
             binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-macos-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: tui-windows-amd64
             binary_name: tui.exe
+            fast_binary_name: aviary-fast.exe
+            fast_artifact_name: aviary-fast-windows-amd64.exe
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -70,27 +87,35 @@ jobs:
       - name: Install cross (for ARM builds)
         if: matrix.cross
         run: cargo install cross --git https://github.com/cross-rs/cross
+      # --bin aviary-fast selects the binary *target* (engine/src/bin/aviary_fast.rs)
+      # from the aviary-engine package — "aviary-fast" is a binary name, not
+      # a package name, so `--package aviary-fast` alone wouldn't resolve.
       - name: Build (native)
         if: '!matrix.cross'
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
         working-directory: tui
       - name: Build (cross)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
         working-directory: tui
       # `tui` is a member of the root Cargo workspace (see /Cargo.toml), so
       # even when built from within `tui/`, cargo/cross write output to
       # `<repo>/target/<triple>/release/`, not `tui/target/...` — verified
       # locally (cargo build --release --target x86_64-unknown-linux-gnu
       # from tui/ produces ../target/x86_64-unknown-linux-gnu/release/tui).
-      - name: Rename binary
+      - name: Rename binaries
         run: |
-          cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} ${{ matrix.artifact_name }}
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "${{ matrix.artifact_name }}"
+          cp "target/${{ matrix.target }}/release/${{ matrix.fast_binary_name }}" "${{ matrix.fast_artifact_name }}"
         shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.fast_artifact_name }}
+          path: ${{ matrix.fast_artifact_name }}
 
   # ── Build & Publish npm package ────────────────────────────
   publish-npm:
@@ -168,6 +193,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: tui-*
+          merge-multiple: true
+          path: release-artifacts/
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: aviary-fast-*
           merge-multiple: true
           path: release-artifacts/
       - name: Generate changelog
