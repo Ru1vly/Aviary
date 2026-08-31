@@ -179,15 +179,30 @@ export function createMockPage(options: MockPageOptions = {}): Partial<Page> {
         window: globals.window,
         getComputedStyle: globals.getComputedStyle,
         performance: globals.performance,
+        navigator: globals.navigator,
       };
       globals.document = doc;
       globals.window = window;
       // Real pages expose these as bare globals (not just window.X), and
       // checker evaluate() bodies call them unqualified — mirrored here so
-      // e.g. heatmap.ts's getComputedStyle(el) and resourceOptimization.ts's
-      // performance.getEntriesByType(...) don't throw "not defined".
+      // e.g. heatmap.ts's getComputedStyle(el), resourceOptimization.ts's
+      // performance.getEntriesByType(...), and mobileUX.ts's `navigator`
+      // (PWA/service-worker detection) don't throw "not defined". `navigator`
+      // in particular must be overridden, not merely set: Node 21+ ships its
+      // own built-in global `navigator`, which only masks a missing
+      // override on newer Node — CI's pinned Node 20 has no such global, so
+      // an evaluate() body reading bare `navigator` throws there even though
+      // it silently "works" (against the wrong object) on newer local Node.
+      // Node's built-in `navigator` is a getter-only accessor with no
+      // setter, so a plain `globals.navigator = ...` throws in this ESM
+      // module's strict mode ("Cannot set property navigator... which has
+      // only a getter") — defineProperty is required to override it.
+      const setGlobal = (key: string, value: unknown): void => {
+        Object.defineProperty(globals, key, { value, configurable: true, writable: true, enumerable: true });
+      };
       globals.getComputedStyle = (window as unknown as { getComputedStyle: unknown }).getComputedStyle;
       globals.performance = (window as unknown as { performance: unknown }).performance;
+      setGlobal('navigator', (window as unknown as { navigator: unknown }).navigator);
       try {
         return await (pageFunction as (arg?: unknown) => unknown)(arg);
       } finally {
@@ -195,6 +210,7 @@ export function createMockPage(options: MockPageOptions = {}): Partial<Page> {
         globals.window = previous.window;
         globals.getComputedStyle = previous.getComputedStyle;
         globals.performance = previous.performance;
+        setGlobal('navigator', previous.navigator);
       }
     }) as Page['evaluate'],
 
