@@ -19,8 +19,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level moderate
         continue-on-error: true
+      # cyclonedx-npm shells out to `npm ls`, which doesn't understand a
+      # pnpm-managed node_modules tree (reports every pnpm-linked package as
+      # extraneous/invalid and fails outright) -- cdxgen reads the lockfile
+      # directly and supports pnpm natively.
       - name: Generate Node.js SBOM
-        run: npx @cyclonedx/cyclonedx-npm --output-format JSON --output-file bom-node.json
+        run: npx @cyclonedx/cdxgen --output bom-node.json --spec-version 1.6
       - uses: actions/upload-artifact@v4
         with:
           name: sbom-node
