@@ -1,6 +1,7 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractJsonLdBlocks } from './shared/dom';
 import { PRODUCT_DESCRIPTION_MIN_LENGTH } from '../config/thresholds';
+import { JsonLdBlock, ProductSchema, isSchemaType } from './shared/schemaTypes';
 
 export class EcommerceChecker extends BaseChecker {
   protected checks() {
@@ -26,14 +27,14 @@ export class EcommerceChecker extends BaseChecker {
   private async checkProductSchema(): Promise<CheckOutcome> {
     try {
       const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
-      const productSchemas = jsonLdScripts.filter(
-        (data: any) => data && data['@type'] === 'Product'
+      const productSchemas = jsonLdScripts.filter((data): data is ProductSchema =>
+        isSchemaType<ProductSchema>(data as JsonLdBlock, 'Product')
       );
 
       const schemaData = (() => {
         if (productSchemas.length === 0) return { found: false as const };
 
-        const product = productSchemas[0] as any;
+        const product = productSchemas[0];
         return {
           found: true as const,
           hasName: !!product.name,

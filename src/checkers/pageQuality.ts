@@ -1,5 +1,6 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractJsonLdBlocks } from './shared/dom';
+import { JsonLdBlock } from './shared/schemaTypes';
 
 export class PageQualityChecker extends BaseChecker {
   protected checks() {
@@ -175,7 +176,7 @@ export class PageQualityChecker extends BaseChecker {
       });
 
       const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
-      const hasSchemaAuthor = jsonLdScripts.some((data: any) => data.author || data.creator);
+      const hasSchemaAuthor = (jsonLdScripts as JsonLdBlock[]).some((data) => data.author || data.creator);
 
       const authorData = {
         hasAuthorMeta: !!domAuthorData.authorMeta,

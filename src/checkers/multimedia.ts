@@ -1,5 +1,6 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractJsonLdBlocks } from './shared/dom';
+import { JsonLdBlock, isSchemaType } from './shared/schemaTypes';
 
 export class MultimediaChecker extends BaseChecker {
   protected checks() {
@@ -208,8 +209,8 @@ export class MultimediaChecker extends BaseChecker {
   private async checkVideoSchema(): Promise<CheckOutcome> {
     try {
       const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
-      const hasVideoSchema = jsonLdScripts.some(
-        (data: any) => data['@type'] === 'VideoObject' || data['@type']?.includes('Video')
+      const hasVideoSchema = (jsonLdScripts as JsonLdBlock[]).some(
+        (data) => isSchemaType(data, 'VideoObject') || isSchemaType(data, 'Video', { includes: true })
       );
 
       const videoCount = await this.page.evaluate(

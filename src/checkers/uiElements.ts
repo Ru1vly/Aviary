@@ -1,5 +1,6 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractJsonLdBlocks } from './shared/dom';
+import { JsonLdBlock, isSchemaType } from './shared/schemaTypes';
 
 export class UIElementsChecker extends BaseChecker {
   protected checks() {
@@ -47,8 +48,8 @@ export class UIElementsChecker extends BaseChecker {
   private async checkBreadcrumbs(): Promise<CheckOutcome> {
     try {
       const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
-      const jsonLdBreadcrumbCount = jsonLdScripts.filter(
-        (data: any) => data['@type'] === 'BreadcrumbList'
+      const jsonLdBreadcrumbCount = jsonLdScripts.filter((data) =>
+        isSchemaType(data as JsonLdBlock, 'BreadcrumbList')
       ).length;
 
       const domCounts = await this.page.evaluate(() => ({
