@@ -20,7 +20,7 @@ The library executes 260+ individual checks across 28 categories. Below is an ov
 | Technical SEO | Verifies server configuration and response status | Response status codes, page sizes, compression headers, duplicate content detection |
 | Heatmap & UX | Models visual hierarchy and attention zones | Predictive click maps, scroll depth levels, above-the-fold content scoring, CTA visibility |
 | Accessibility | Inspects basic accessibility markers | ARIA landmarks, form input labeling, keyboard navigation order, skip links |
-| Resource Performance | Inspects real browser navigation metrics | DOM load time, HTTP request counts, resource weights, performance timing API |
+| Core Web Vitals | Measures real LCP/CLS/FCP/TTFB via `web-vitals`, plus navigation/resource heuristics | Largest Contentful Paint, Cumulative Layout Shift, First Contentful Paint, Time to First Byte, Total Blocking Time, DOM load time, HTTP request counts, resource weights |
 | URL Factors | Audits the page address format | URL length, character validity, directory depth, readability rules |
 | Spam Detection | Guards against search engine red flags | Hidden text, excessive keyword repetitions, link densities, iframe abuses |
 

@@ -95,13 +95,26 @@ export const CHECKER_REGISTRY: CheckerDescriptor[] = [
   { key: 'pageQuality', label: 'Page Quality', icon: '⭐', create: (ctx) => new PageQualityChecker({ ...ctx, checkerKey: 'pageQuality' }) },
   { key: 'advancedImages', label: 'Advanced Images', icon: '📷', create: (ctx) => new AdvancedImagesChecker({ ...ctx, checkerKey: 'advancedImages' }) },
   { key: 'multimedia', label: 'Multimedia', icon: '🎬', create: (ctx) => new MultimediaChecker({ ...ctx, checkerKey: 'multimedia' }) },
-  // Label is "Resource Performance", not "Core Web Vitals" — this checker
-  // measures load time, resource sizes, and caching via the Navigation
-  // Timing API, not real LCP/CLS/INP (no PerformanceObserver). The `key`
-  // stays `coreWebVitals` (it's load-bearing across config/presets.ts,
-  // the TUI's Rust struct, and existing reports) — only the display name
-  // changes. See docs/ACCURACY_LIMITATIONS.md.
-  { key: 'coreWebVitals', label: 'Resource Performance', icon: '📊', create: (ctx) => new CoreWebVitalsChecker({ ...ctx, checkerKey: 'coreWebVitals' }) },
+  // Label is "Core Web Vitals" — this checker now measures real LCP/CLS/FCP/
+  // TTFB via a `web-vitals` PerformanceObserver injected before navigation
+  // (src/index.ts's launch()), alongside its original Navigation/Resource
+  // Timing heuristics (page size, render-blocking resources, caching, etc).
+  // Two disclosed approximations, not hidden limitations:
+  //  1. These audits never navigate away or hide the tab, so web-vitals'
+  //     normal "final value" trigger never fires. Metrics are collected with
+  //     `reportAllChanges: true` and read at the same point every other
+  //     checker reads the page (after networkidle + the stability wait) —
+  //     the *latest* reported value, which for LCP/CLS/FCP on a page that's
+  //     finished loading is normally already final, but isn't guaranteed to
+  //     be down to the millisecond the way a real user session's would be.
+  //  2. INP is fundamentally interaction-driven (it needs a real user click/
+  //     tap/keypress) and this audit never interacts with the page — there
+  //     is no synthetic substitute that would be honest to call "INP", so
+  //     it's not reported. `total-blocking-time-acceptable` (summed
+  //     `longtask` entries) is the disclosed lab proxy instead, the same
+  //     substitution Lighthouse makes for the same reason.
+  // See docs/ACCURACY_LIMITATIONS.md.
+  { key: 'coreWebVitals', label: 'Core Web Vitals', icon: '📊', create: (ctx) => new CoreWebVitalsChecker({ ...ctx, checkerKey: 'coreWebVitals' }) },
   { key: 'analytics', label: 'Analytics & Tracking', icon: '📈', create: (ctx) => new AnalyticsChecker({ ...ctx, checkerKey: 'analytics' }) },
   { key: 'mobileUX', label: 'Mobile UX', icon: '📲', create: (ctx) => new MobileUXChecker({ ...ctx, checkerKey: 'mobileUX' }) },
   { key: 'schemaValidation', label: 'Schema Validation', icon: '✅', create: (ctx) => new SchemaValidationChecker({ ...ctx, checkerKey: 'schemaValidation' }) },

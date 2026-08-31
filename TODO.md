@@ -28,7 +28,7 @@ This document outlines the remaining tasks to make the aviary checker tool produ
   - [x] SSL/HTTPS verification
   - [x] Mobile-friendliness test
   - [x] Page speed insights integration
-  - [ ] Core Web Vitals (LCP, FID, CLS) — the "Core Web Vitals" checker measures load time, resource counts/sizes, and caching via the Navigation Timing API, not real LCP/CLS/INP (no PerformanceObserver); see docs/ACCURACY_LIMITATIONS.md
+  - [x] Core Web Vitals (LCP, CLS) — real values via `web-vitals`'/`PerformanceObserver`, injected before navigation; plus FCP and TTFB. INP itself isn't reported (it requires a real user interaction this unattended audit never performs) — Total Blocking Time (long-task entries) is the disclosed proxy instead, same as Lighthouse. See docs/ACCURACY_LIMITATIONS.md §3.4
   - [x] Server response time check
   - [x] Redirect chain detection
   - [x] 404 error detection

@@ -153,6 +153,13 @@ These limitations stem from the tool running in a browser context:
 - Tool checks *if* page is indexable, not if it's *indexed*
 - Cannot verify Google's actual index status
 
+### 3.4 Core Web Vitals Measurement Approximations
+
+The **Core Web Vitals** category (`coreWebVitals`) measures real LCP, CLS, FCP, and TTFB via the standard `web-vitals` library, injected into the page before navigation so its observers can see load-time entries. Two disclosed approximations follow directly from running as an unattended, single-shot audit rather than a real browser session:
+
+- **Latest-value, not final-value.** `web-vitals` normally reports a metric's *final* value when the page is navigated away from or the tab is hidden — neither ever happens here, since the audit closes the browser outright. Metrics are instead collected with `reportAllChanges: true` and read at the same point every other checker reads the page (after `networkidle` plus a stability wait). For a page that has finished loading, this is normally the same value a real session would report, but it isn't guaranteed down to the millisecond.
+- **No real INP — Total Blocking Time substitutes.** INP (Interaction to Next Paint) requires a real user interaction (click, tap, keypress) to measure, and this audit never interacts with the page — there's no honest way to synthesize one. Rather than fabricate an interaction to claim an "INP" number, the `total-blocking-time-acceptable` check reports Total Blocking Time (summed `longtask` entries over the 50ms threshold) as a disclosed lab proxy for interactivity — the same substitution Lighthouse makes, and for the same reason.
+
 ---
 
 ## 4. Missing Production Features & Hidden Behaviors

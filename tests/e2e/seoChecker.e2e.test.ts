@@ -135,6 +135,49 @@ describe('E2E Tests - Full SEOChecker', () => {
     await expect(checker.close()).resolves.not.toThrow();
   }, 60000);
 
+  it('should report real Core Web Vitals metrics via the pre-navigation web-vitals injection', async () => {
+    // happy-dom (used by the other 27 checkers' unit tests) has no
+    // PerformanceObserver/paint pipeline, so this needs a real browser —
+    // see docs/ACCURACY_LIMITATIONS.md §3.4 for what "real" means here.
+    const checker = new SEOChecker({
+      url: mockServer.getUrl('/optimal'),
+      headless: true,
+      timeout: 30000,
+    });
+
+    const report = await checker.check();
+    const cwv = report.checks.coreWebVitals;
+    expect(cwv).toBeDefined();
+
+    const byName = Object.fromEntries(cwv.map((r) => [r.name, r]));
+    for (const id of ['lcp-good', 'cls-good', 'fcp-good', 'ttfb-good', 'total-blocking-time-acceptable']) {
+      expect(byName[id], `expected a '${id}' result`).toBeDefined();
+    }
+
+    // Real metrics were captured (not the "skipped, no entry observed"
+    // fallback path) — assert plausible values, not exact numbers, since
+    // timing is inherently variable across runs/machines.
+    expect(byName['lcp-good'].message).not.toContain('skipped');
+    expect(byName['cls-good'].message).not.toContain('skipped');
+    expect(byName['fcp-good'].message).not.toContain('skipped');
+    expect(byName['ttfb-good'].message).not.toContain('skipped');
+
+    const lcp = byName['lcp-good'].details?.lcp as number;
+    const fcp = byName['fcp-good'].details?.fcp as number;
+    const cls = byName['cls-good'].details?.cls as number;
+    const ttfb = byName['ttfb-good'].details?.ttfb as number;
+    expect(lcp).toBeGreaterThan(0);
+    expect(lcp).toBeLessThan(30000); // sanity bound, not a threshold assertion
+    expect(fcp).toBeGreaterThan(0);
+    expect(fcp).toBeLessThanOrEqual(lcp); // FCP always precedes or equals LCP by definition
+    expect(cls).toBeGreaterThanOrEqual(0);
+    expect(ttfb).toBeGreaterThanOrEqual(0);
+
+    // A static local fixture page with no long tasks should read ~0ms TBT.
+    const tbt = byName['total-blocking-time-acceptable'].details?.totalBlockingTime as number;
+    expect(tbt).toBe(0);
+  }, 60000);
+
   it('should compare scores between optimal and poor pages', async () => {
     const optimalChecker = new SEOChecker({
       url: mockServer.getUrl('/optimal'),

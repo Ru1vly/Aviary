@@ -1,8 +1,78 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { chromium, Browser, Page, Response } from 'playwright';
 import { SEOCheckerOptions, SEOReport, SEOCheckResult } from './types';
 import { SEOConfig, ConfigLoader } from './config';
 import { calculateWeightedScore } from './scoring';
 import { CHECKER_REGISTRY, CheckerContext, CheckerKey } from './checkers/registry';
+
+/**
+ * web-vitals' IIFE build declares `var webVitals = ...` at its top level,
+ * relying on non-module top-level `var` becoming a `window` property — true
+ * for a plain inline `<script>`, but Playwright's `page.addInitScript()`
+ * evaluates its source inside a wrapper function (confirmed empirically:
+ * `{ path }` alone leaves `window.webVitals` undefined), so the `var` stays
+ * local to that wrapper and never reaches `window`. Fix: read the file
+ * ourselves and append an explicit `window.webVitals = webVitals;` in the
+ * same script string — same wrapper scope, so the appended line still sees
+ * the `var` declared earlier in that same source, and this time assigns
+ * through `window` explicitly rather than relying on implicit global leakage.
+ *
+ * Also: web-vitals' package.json `exports` map only exposes its ESM/UMD
+ * entry points (for `import`/`require` from Node), not this IIFE build — so
+ * `require.resolve('web-vitals/dist/web-vitals.iife.js')` is blocked with
+ * ERR_PACKAGE_PATH_NOT_EXPORTED. The IIFE file exists on disk next to the
+ * UMD entry point that *is* exported, so resolve that (a real, supported
+ * entry point) and rewrite the filename — this only touches the filesystem
+ * path, not module resolution.
+ */
+function loadWebVitalsInitScriptSource(): string {
+  const umdEntry = require.resolve('web-vitals');
+  const iifePath = path.join(path.dirname(umdEntry), 'web-vitals.iife.js');
+  return fs.readFileSync(iifePath, 'utf8') + '\nwindow.webVitals = webVitals;';
+}
+
+/**
+ * Runs in the page before any application script. Calls web-vitals' onLCP/
+ * onCLS/onFCP/onTTFB with `reportAllChanges: true` and stores the latest
+ * reported value of each on `window.__aviaryCWV` — see the long comment on
+ * the `coreWebVitals` registry entry for why `reportAllChanges` is required
+ * here (these audits never trigger the library's normal "final value"
+ * event) and why INP has no entry (it needs a real user interaction this
+ * audit never performs; `totalBlockingTime` below is the substitute).
+ * Also aggregates `PerformanceObserver('longtask')` entries into
+ * `totalBlockingTime`, the standard Total Blocking Time definition (time
+ * over the 50ms long-task threshold), as a lab proxy for interactivity.
+ */
+function cwvCollectorInitScript(): void {
+  (window as unknown as { __aviaryCWV: Record<string, number> }).__aviaryCWV = {
+    totalBlockingTime: 0,
+  };
+  const store = (window as unknown as { __aviaryCWV: Record<string, number> }).__aviaryCWV;
+
+  const wv = (window as unknown as { webVitals?: Record<string, (cb: (m: { value: number }) => void, opts?: { reportAllChanges: boolean }) => void> }).webVitals;
+  if (wv) {
+    const report = (key: string) => (metric: { value: number }) => {
+      store[key] = metric.value;
+    };
+    wv.onLCP?.(report('lcp'), { reportAllChanges: true });
+    wv.onCLS?.(report('cls'), { reportAllChanges: true });
+    wv.onFCP?.(report('fcp'), { reportAllChanges: true });
+    wv.onTTFB?.(report('ttfb'), { reportAllChanges: true });
+  }
+
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const blocking = entry.duration - 50;
+        if (blocking > 0) store.totalBlockingTime += blocking;
+      }
+    });
+    observer.observe({ type: 'longtask', buffered: true });
+  } catch {
+    // longtask entry type unsupported in this browser — totalBlockingTime stays 0.
+  }
+}
 
 export class SEOChecker {
   private browser: Browser | null = null;
@@ -64,6 +134,15 @@ export class SEOChecker {
     });
 
     await this.page.setDefaultTimeout(this.options.timeout!);
+
+    // Must run before navigate() — LCP/CLS/FCP observers only see entries
+    // dispatched after they attach, so they have to exist before the page
+    // we're auditing starts loading. Gated on the checker being enabled so
+    // audits that don't want it don't pay for a third-party script load.
+    if (ConfigLoader.isCheckerEnabled(this.config, 'coreWebVitals')) {
+      await this.page.addInitScript({ content: loadWebVitalsInitScriptSource() });
+      await this.page.addInitScript(cwvCollectorInitScript);
+    }
   }
 
   private async navigate(): Promise<void> {

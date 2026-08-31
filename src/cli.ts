@@ -169,7 +169,7 @@ Checks performed (260+ checks across ${CHECKER_REGISTRY.length} categories):
   • Page quality (duplicates, freshness, E-A-T signals)
   • Advanced images (responsive, lazy loading, WebP, dimensions)
   • Multimedia (videos, audio, accessibility, schema)
-  • Resource Performance (page load, resource sizes, caching, render-blocking)
+  • Core Web Vitals (LCP, CLS, FCP, TTFB, Total Blocking Time, page load, resource sizes, caching)
   • Analytics (Google Analytics, GTM, pixels, tracking, verification)
   • Mobile UX (tap targets, viewport, responsive, PWA, AMP)
   • Schema Validation (Product, Article, Organization, Event, etc.)

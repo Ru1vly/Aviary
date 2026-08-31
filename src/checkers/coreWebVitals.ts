@@ -20,10 +20,25 @@ import {
   CWV_MAX_BLOCKING_SCRIPTS,
   CWV_TTFB_FAIL_MS,
   CWV_TTFB_WARN_MS,
+  CWV_LCP_GOOD_MS,
+  CWV_CLS_GOOD,
+  CWV_FCP_GOOD_MS,
+  CWV_TTFB_GOOD_MS,
+  CWV_TOTAL_BLOCKING_TIME_GOOD_MS,
 } from '../config/thresholds';
+
+/** Populated by the init script installed in src/index.ts's launch(), before navigation. */
+interface AviaryCWVMetrics {
+  lcp?: number;
+  cls?: number;
+  fcp?: number;
+  ttfb?: number;
+  totalBlockingTime: number;
+}
 
 export class CoreWebVitalsChecker extends BaseChecker {
   private resourceTimingsPromise?: Promise<ResourceTimingEntry[]>;
+  private cwvMetricsPromise?: Promise<AviaryCWVMetrics | null>;
 
   private getResourceTimings(): Promise<ResourceTimingEntry[]> {
     if (!this.resourceTimingsPromise) {
@@ -32,8 +47,30 @@ export class CoreWebVitalsChecker extends BaseChecker {
     return this.resourceTimingsPromise;
   }
 
+  /**
+   * Reads window.__aviaryCWV, set by the init script in src/index.ts. Only
+   * present when the coreWebVitals checker was enabled at launch time (the
+   * init script is gated on the same config check) — null otherwise, e.g.
+   * if this checker is constructed directly in a test without going through
+   * SEOChecker.launch().
+   */
+  private getCWVMetrics(): Promise<AviaryCWVMetrics | null> {
+    if (!this.cwvMetricsPromise) {
+      this.cwvMetricsPromise = this.page.evaluate(() => {
+        const w = window as unknown as { __aviaryCWV?: AviaryCWVMetrics };
+        return w.__aviaryCWV ?? null;
+      });
+    }
+    return this.cwvMetricsPromise;
+  }
+
   protected checks() {
     return [
+      { id: 'lcp-good', run: () => this.checkLCP() },
+      { id: 'cls-good', run: () => this.checkCLS() },
+      { id: 'fcp-good', run: () => this.checkFCP() },
+      { id: 'ttfb-good', run: () => this.checkTTFB() },
+      { id: 'total-blocking-time-acceptable', run: () => this.checkTotalBlockingTime() },
       { id: 'page-load-time-acceptable', run: () => this.checkPageLoadTime() },
       { id: 'dom-content-loaded-acceptable', run: () => this.checkDOMContentLoaded() },
       { id: 'resource-count-acceptable', run: () => this.checkResourceCount() },
@@ -510,6 +547,97 @@ export class CoreWebVitalsChecker extends BaseChecker {
       return this.pass(`Server response time is excellent (${responseTime.ttfbSeconds}s TTFB)`, responseTime);
     } catch (error) {
       return this.pass('Server response time check skipped');
+    }
+  }
+
+  private async checkLCP(): Promise<CheckOutcome> {
+    try {
+      const metrics = await this.getCWVMetrics();
+      if (!metrics || metrics.lcp === undefined) {
+        return this.pass('LCP check skipped (no largest-contentful-paint entry observed)');
+      }
+      const goodMs = this.threshold('lcp-good', 'goodMs', CWV_LCP_GOOD_MS);
+      const seconds = (metrics.lcp / 1000).toFixed(2);
+      if (metrics.lcp > goodMs) {
+        return this.fail(`LCP is slow (${seconds}s). Target: < ${goodMs / 1000}s`, { lcp: metrics.lcp });
+      }
+      return this.pass(`LCP is good (${seconds}s)`, { lcp: metrics.lcp });
+    } catch (error) {
+      return this.pass('LCP check skipped');
+    }
+  }
+
+  private async checkCLS(): Promise<CheckOutcome> {
+    try {
+      const metrics = await this.getCWVMetrics();
+      if (!metrics || metrics.cls === undefined) {
+        return this.pass('CLS check skipped (no layout-shift entries observed)');
+      }
+      const goodScore = this.threshold('cls-good', 'goodScore', CWV_CLS_GOOD);
+      if (metrics.cls > goodScore) {
+        return this.fail(`CLS is high (${metrics.cls.toFixed(3)}). Target: < ${goodScore}`, { cls: metrics.cls });
+      }
+      return this.pass(`CLS is good (${metrics.cls.toFixed(3)})`, { cls: metrics.cls });
+    } catch (error) {
+      return this.pass('CLS check skipped');
+    }
+  }
+
+  private async checkFCP(): Promise<CheckOutcome> {
+    try {
+      const metrics = await this.getCWVMetrics();
+      if (!metrics || metrics.fcp === undefined) {
+        return this.pass('FCP check skipped (no first-contentful-paint entry observed)');
+      }
+      const goodMs = this.threshold('fcp-good', 'goodMs', CWV_FCP_GOOD_MS);
+      const seconds = (metrics.fcp / 1000).toFixed(2);
+      if (metrics.fcp > goodMs) {
+        return this.fail(`FCP is slow (${seconds}s). Target: < ${goodMs / 1000}s`, { fcp: metrics.fcp });
+      }
+      return this.pass(`FCP is good (${seconds}s)`, { fcp: metrics.fcp });
+    } catch (error) {
+      return this.pass('FCP check skipped');
+    }
+  }
+
+  private async checkTTFB(): Promise<CheckOutcome> {
+    try {
+      const metrics = await this.getCWVMetrics();
+      if (!metrics || metrics.ttfb === undefined) {
+        return this.pass('TTFB check skipped (no navigation timing entry observed)');
+      }
+      const goodMs = this.threshold('ttfb-good', 'goodMs', CWV_TTFB_GOOD_MS);
+      const seconds = (metrics.ttfb / 1000).toFixed(2);
+      if (metrics.ttfb > goodMs) {
+        return this.fail(`TTFB is slow (${seconds}s). Target: < ${goodMs / 1000}s`, { ttfb: metrics.ttfb });
+      }
+      return this.pass(`TTFB is good (${seconds}s)`, { ttfb: metrics.ttfb });
+    } catch (error) {
+      return this.pass('TTFB check skipped');
+    }
+  }
+
+  private async checkTotalBlockingTime(): Promise<CheckOutcome> {
+    try {
+      const metrics = await this.getCWVMetrics();
+      if (!metrics) {
+        return this.pass('Total Blocking Time check skipped (metrics unavailable)');
+      }
+      const goodMs = this.threshold(
+        'total-blocking-time-acceptable',
+        'goodMs',
+        CWV_TOTAL_BLOCKING_TIME_GOOD_MS
+      );
+      const tbt = Math.round(metrics.totalBlockingTime);
+      if (tbt > goodMs) {
+        return this.fail(
+          `Total Blocking Time is high (${tbt}ms) — lab proxy for interactivity since INP needs real user input this unattended audit never provides. Target: < ${goodMs}ms`,
+          { totalBlockingTime: tbt }
+        );
+      }
+      return this.pass(`Total Blocking Time is good (${tbt}ms)`, { totalBlockingTime: tbt });
+    } catch (error) {
+      return this.pass('Total Blocking Time check skipped');
     }
   }
 }

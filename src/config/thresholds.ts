@@ -152,3 +152,21 @@ export const MAX_SPAM_KEYWORD_TYPES = 3;
 export const MIN_META_REFRESH_DELAY_SECONDS = 3;
 export const TINY_TEXT_MAX_FONT_SIZE_PX = 5;
 export const TINY_TEXT_MIN_TEXT_LENGTH = 20;
+
+// ---- coreWebVitals.ts: real field metrics (window.__aviaryCWV, see src/index.ts) ----
+// "Good" bar per Google's published thresholds (https://web.dev/articles/lcp,
+// cls, fcp) — the pass/fail bar in this file, matching its existing binary
+// pass/fail checks rather than introducing a third "needs improvement" tier
+// nothing else here has. TBT has no official pass/fail line; 200ms is the
+// commonly-cited "good" ceiling (same source as Lighthouse's TBT scoring).
+export const CWV_LCP_GOOD_MS = 2500;
+export const CWV_CLS_GOOD = 0.1;
+export const CWV_FCP_GOOD_MS = 1800;
+// Google's official TTFB "good" bar (web.dev/articles/ttfb) — deliberately
+// separate from CWV_TTFB_WARN_MS/CWV_TTFB_FAIL_MS above, which back the
+// pre-existing `server-response-time-acceptable` check's own invented
+// thresholds against the legacy `performance.timing` API. This constant
+// backs the new `ttfb-good` check, which reads the real value web-vitals'
+// onTTFB computes from the Navigation Timing L2 API.
+export const CWV_TTFB_GOOD_MS = 800;
+export const CWV_TOTAL_BLOCKING_TIME_GOOD_MS = 200;

@@ -19,6 +19,7 @@ describe('SEOChecker', () => {
       url: vi.fn().mockReturnValue('https://example.com'),
       goto: vi.fn().mockResolvedValue(null),
       setDefaultTimeout: vi.fn(),
+      addInitScript: vi.fn().mockResolvedValue(undefined),
       evaluate: vi.fn().mockResolvedValue([]),
       locator: vi.fn().mockReturnValue({
         getAttribute: vi.fn().mockResolvedValue(null),
