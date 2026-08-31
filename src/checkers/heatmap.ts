@@ -1,4 +1,21 @@
 import { BaseChecker, BaseCheckerDeps, CheckOutcome } from './base';
+import {
+  HEATMAP_GOOD_CLICK_TARGET_WIDTH_PX,
+  HEATMAP_GOOD_CLICK_TARGET_HEIGHT_PX,
+  HEATMAP_MIN_GOOD_DISTRIBUTION_POINTS,
+  HEATMAP_SCROLL_RATIO_MIN,
+  HEATMAP_SCROLL_RATIO_MAX,
+  HEATMAP_PARAGRAPH_CONTENT_MIN_LENGTH,
+  HEATMAP_MIN_ELEMENT_SIZE_PX,
+  HEATMAP_HERO_IMAGE_MIN_WIDTH_PX,
+  HEATMAP_HERO_IMAGE_MIN_HEIGHT_PX,
+  HEATMAP_MIN_F_PATTERN_COVERAGE,
+  HEATMAP_CTA_TEXT_MAX_LENGTH,
+  HEATMAP_H1_PROMINENCE_MIN_WIDTH_PX,
+  HEATMAP_H1_PROMINENCE_MIN_HEIGHT_PX,
+  HEATMAP_ABOVE_FOLD_TEXT_MIN_LENGTH,
+  HEATMAP_MIN_ATTENTION_SCORE,
+} from '../config/thresholds';
 
 export interface HeatmapPoint {
   x: number;
@@ -74,7 +91,17 @@ export class HeatmapChecker extends BaseChecker {
    * Generate predictive click heatmap based on interactive elements
    */
   private async generateClickHeatmap(): Promise<CheckOutcome> {
-    const heatmapData = await this.page.evaluate(() => {
+    const goodTargetWidth = this.threshold(
+      'click-heatmap-generated',
+      'goodTargetWidthPx',
+      HEATMAP_GOOD_CLICK_TARGET_WIDTH_PX
+    );
+    const goodTargetHeight = this.threshold(
+      'click-heatmap-generated',
+      'goodTargetHeightPx',
+      HEATMAP_GOOD_CLICK_TARGET_HEIGHT_PX
+    );
+    const heatmapData = await this.page.evaluate(({ goodTargetWidth, goodTargetHeight }) => {
       // Get all interactive elements
       const interactiveSelectors = [
         'a', 'button', 'input', 'select', 'textarea',
@@ -101,7 +128,7 @@ export class HeatmapChecker extends BaseChecker {
           }
 
           // Boost for larger elements
-          if (rect.width > 100 && rect.height > 40) {
+          if (rect.width > goodTargetWidth && rect.height > goodTargetHeight) {
             value += 15;
           }
 
@@ -132,9 +159,14 @@ export class HeatmapChecker extends BaseChecker {
         viewportHeight: window.innerHeight,
         pageHeight: document.documentElement.scrollHeight
       };
-    });
+    }, { goodTargetWidth, goodTargetHeight });
 
-    const hasGoodDistribution = heatmapData.points.length > 5;
+    const minGoodDistributionPoints = this.threshold(
+      'click-heatmap-generated',
+      'minGoodDistributionPoints',
+      HEATMAP_MIN_GOOD_DISTRIBUTION_POINTS
+    );
+    const hasGoodDistribution = heatmapData.points.length > minGoodDistributionPoints;
     const aboveFoldPoints = heatmapData.points.filter(
       (p: HeatmapPoint) => p.y < heatmapData.viewportHeight
     );
@@ -160,7 +192,12 @@ export class HeatmapChecker extends BaseChecker {
    * Analyze scroll depth and content distribution
    */
   private async analyzeScrollDepth(): Promise<CheckOutcome> {
-    const scrollData = await this.page.evaluate(() => {
+    const paragraphMinLength = this.threshold(
+      'scroll-depth-reasonable',
+      'paragraphMinLength',
+      HEATMAP_PARAGRAPH_CONTENT_MIN_LENGTH
+    );
+    const scrollData = await this.page.evaluate((paragraphMinLength) => {
       const pageHeight = document.documentElement.scrollHeight;
       const viewportHeight = window.innerHeight;
       const folds = Math.ceil(pageHeight / viewportHeight);
@@ -183,7 +220,7 @@ export class HeatmapChecker extends BaseChecker {
           if (['H1', 'H2', 'H3', 'IMG', 'VIDEO', 'BUTTON', 'A'].includes(el.tagName)) {
             contentScore += 10;
           }
-          if (el.tagName === 'P' && el.textContent && el.textContent.length > 50) {
+          if (el.tagName === 'P' && el.textContent && el.textContent.length > paragraphMinLength) {
             contentScore += 5;
           }
         });
@@ -202,9 +239,12 @@ export class HeatmapChecker extends BaseChecker {
         depthAnalysis,
         scrollRatio: pageHeight / viewportHeight,
       };
-    });
+    }, paragraphMinLength);
 
-    const isReasonableLength = scrollData.scrollRatio >= 1 && scrollData.scrollRatio <= 10;
+    const scrollRatioMin = this.threshold('scroll-depth-reasonable', 'scrollRatioMin', HEATMAP_SCROLL_RATIO_MIN);
+    const scrollRatioMax = this.threshold('scroll-depth-reasonable', 'scrollRatioMax', HEATMAP_SCROLL_RATIO_MAX);
+    const isReasonableLength =
+      scrollData.scrollRatio >= scrollRatioMin && scrollData.scrollRatio <= scrollRatioMax;
     const hasContentDistribution = scrollData.depthAnalysis.every(
       (d: { contentScore: number }) => d.contentScore > 0
     );
@@ -229,7 +269,23 @@ export class HeatmapChecker extends BaseChecker {
    * Analyze attention zones using F-pattern and visual hierarchy
    */
   private async analyzeAttentionZones(): Promise<CheckOutcome> {
-    const attentionData = await this.page.evaluate(() => {
+    const minElementSize = this.threshold(
+      'attention-zones-strong',
+      'minElementSizePx',
+      HEATMAP_MIN_ELEMENT_SIZE_PX
+    );
+    const heroImageMinWidth = this.threshold(
+      'attention-zones-strong',
+      'heroImageMinWidthPx',
+      HEATMAP_HERO_IMAGE_MIN_WIDTH_PX
+    );
+    const heroImageMinHeight = this.threshold(
+      'attention-zones-strong',
+      'heroImageMinHeightPx',
+      HEATMAP_HERO_IMAGE_MIN_HEIGHT_PX
+    );
+    const attentionData = await this.page.evaluate(
+      ({ minElementSize, heroImageMinWidth, heroImageMinHeight }) => {
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
@@ -257,12 +313,12 @@ export class HeatmapChecker extends BaseChecker {
       // Images
       document.querySelectorAll('img').forEach((el, i) => {
         const rect = el.getBoundingClientRect();
-        if (rect.width < 50 || rect.height < 50) return;
+        if (rect.width < minElementSize || rect.height < minElementSize) return;
 
         let score = 50;
 
         // Large images get more attention
-        if (rect.width > 300 && rect.height > 200) {
+        if (rect.width > heroImageMinWidth && rect.height > heroImageMinHeight) {
           score += 30;
         }
 
@@ -312,9 +368,16 @@ export class HeatmapChecker extends BaseChecker {
         fPatternCoverage: attentionElements.filter((e) => e.zone === 'hero-area' || e.zone === 'above-fold').length,
         totalElements: attentionElements.length,
       };
-    });
+      },
+      { minElementSize, heroImageMinWidth, heroImageMinHeight }
+    );
 
-    const hasStrongHeroContent = attentionData.fPatternCoverage >= 3;
+    const minFPatternCoverage = this.threshold(
+      'attention-zones-strong',
+      'minFPatternCoverage',
+      HEATMAP_MIN_F_PATTERN_COVERAGE
+    );
+    const hasStrongHeroContent = attentionData.fPatternCoverage >= minFPatternCoverage;
 
     return {
       passed: hasStrongHeroContent,
@@ -337,7 +400,12 @@ export class HeatmapChecker extends BaseChecker {
    * Analyze CTA placement and visibility
    */
   private async analyzeCTAPlacement(): Promise<CheckOutcome> {
-    const ctaData = await this.page.evaluate(() => {
+    const ctaTextMaxLength = this.threshold(
+      'cta-above-fold',
+      'ctaTextMaxLength',
+      HEATMAP_CTA_TEXT_MAX_LENGTH
+    );
+    const ctaData = await this.page.evaluate((ctaTextMaxLength) => {
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
 
@@ -370,7 +438,7 @@ export class HeatmapChecker extends BaseChecker {
         let score = 50;
         if (isAboveFold) score += 30;
         if (isVisible) score += 10;
-        if (text.length > 0 && text.length < 20) score += 10; // Good CTA text length
+        if (text.length > 0 && text.length < ctaTextMaxLength) score += 10; // Good CTA text length
 
         ctaAnalysis.push({
           text,
@@ -386,7 +454,7 @@ export class HeatmapChecker extends BaseChecker {
         ctaAnalysis: ctaAnalysis.sort((a, b) => b.score - a.score),
         hasCTAs: ctas.length > 0,
       };
-    });
+    }, ctaTextMaxLength);
 
     const hasPrimaryCTA = ctaData.primaryCTAAboveFold;
 
@@ -409,7 +477,23 @@ export class HeatmapChecker extends BaseChecker {
    * Check above-the-fold content quality
    */
   private async checkAboveFoldContent(): Promise<CheckOutcome> {
-    const foldData = await this.page.evaluate(() => {
+    const heroImageMinWidth = this.threshold(
+      'above-fold-content-strong',
+      'heroImageMinWidthPx',
+      HEATMAP_H1_PROMINENCE_MIN_WIDTH_PX
+    );
+    const heroImageMinHeight = this.threshold(
+      'above-fold-content-strong',
+      'heroImageMinHeightPx',
+      HEATMAP_H1_PROMINENCE_MIN_HEIGHT_PX
+    );
+    const valuePropMinLength = this.threshold(
+      'above-fold-content-strong',
+      'valuePropMinLength',
+      HEATMAP_ABOVE_FOLD_TEXT_MIN_LENGTH
+    );
+    const foldData = await this.page.evaluate(
+      ({ heroImageMinWidth, heroImageMinHeight, valuePropMinLength }) => {
       const viewportHeight = window.innerHeight;
 
       const checks = {
@@ -431,7 +515,7 @@ export class HeatmapChecker extends BaseChecker {
       const images = document.querySelectorAll('img');
       images.forEach((img) => {
         const rect = img.getBoundingClientRect();
-        if (rect.top < viewportHeight && rect.width > 200 && rect.height > 150) {
+        if (rect.top < viewportHeight && rect.width > heroImageMinWidth && rect.height > heroImageMinHeight) {
           checks.hasHeroImage = true;
         }
       });
@@ -449,7 +533,7 @@ export class HeatmapChecker extends BaseChecker {
       const subheadings = document.querySelectorAll('h2, .subtitle, .tagline, [class*="hero"] p');
       subheadings.forEach((el) => {
         const rect = el.getBoundingClientRect();
-        if (rect.top < viewportHeight && el.textContent && el.textContent.length > 20) {
+        if (rect.top < viewportHeight && el.textContent && el.textContent.length > valuePropMinLength) {
           checks.hasValueProposition = true;
         }
       });
@@ -466,7 +550,9 @@ export class HeatmapChecker extends BaseChecker {
       checks.contentDensity = aboveFoldCount;
 
       return checks;
-    });
+      },
+      { heroImageMinWidth, heroImageMinHeight, valuePropMinLength }
+    );
 
     const score = [
       foldData.hasH1,
@@ -475,7 +561,8 @@ export class HeatmapChecker extends BaseChecker {
       foldData.hasValueProposition,
     ].filter(Boolean).length;
 
-    const passed = score >= 3;
+    const minScore = this.threshold('above-fold-content-strong', 'minScore', HEATMAP_MIN_ATTENTION_SCORE);
+    const passed = score >= minScore;
 
     return {
       passed,

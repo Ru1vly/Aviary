@@ -1,5 +1,11 @@
 import { MetaTag } from '../types';
 import { BaseChecker, CheckOutcome } from './base';
+import {
+  TITLE_MIN_LENGTH,
+  TITLE_MAX_LENGTH,
+  META_DESCRIPTION_MIN_LENGTH,
+  META_DESCRIPTION_MAX_LENGTH,
+} from '../config/thresholds';
 
 export class MetaTagsChecker extends BaseChecker {
   protected checks() {
@@ -22,18 +28,21 @@ export class MetaTagsChecker extends BaseChecker {
         return this.fail('Page title is missing');
       }
 
-      if (titleLength < 30) {
-        return this.fail(`Title is too short (${titleLength} characters). Recommended: 30-60 characters`, {
-          title,
-          length: titleLength,
-        });
+      const minLength = this.threshold('title-length-valid', 'minLength', TITLE_MIN_LENGTH);
+      const maxLength = this.threshold('title-length-valid', 'maxLength', TITLE_MAX_LENGTH);
+
+      if (titleLength < minLength) {
+        return this.fail(
+          `Title is too short (${titleLength} characters). Recommended: ${minLength}-${maxLength} characters`,
+          { title, length: titleLength }
+        );
       }
 
-      if (titleLength > 60) {
-        return this.fail(`Title is too long (${titleLength} characters). Recommended: 30-60 characters`, {
-          title,
-          length: titleLength,
-        });
+      if (titleLength > maxLength) {
+        return this.fail(
+          `Title is too long (${titleLength} characters). Recommended: ${minLength}-${maxLength} characters`,
+          { title, length: titleLength }
+        );
       }
 
       return this.pass(`Title is optimal (${titleLength} characters)`, { title, length: titleLength });
@@ -52,17 +61,27 @@ export class MetaTagsChecker extends BaseChecker {
     }
 
     const descLength = description.length;
+    const minLength = this.threshold(
+      'meta-description-length-valid',
+      'minLength',
+      META_DESCRIPTION_MIN_LENGTH
+    );
+    const maxLength = this.threshold(
+      'meta-description-length-valid',
+      'maxLength',
+      META_DESCRIPTION_MAX_LENGTH
+    );
 
-    if (descLength < 120) {
+    if (descLength < minLength) {
       return this.fail(
-        `Meta description is too short (${descLength} characters). Recommended: 120-160 characters`,
+        `Meta description is too short (${descLength} characters). Recommended: ${minLength}-${maxLength} characters`,
         { description, length: descLength }
       );
     }
 
-    if (descLength > 160) {
+    if (descLength > maxLength) {
       return this.fail(
-        `Meta description is too long (${descLength} characters). Recommended: 120-160 characters`,
+        `Meta description is too long (${descLength} characters). Recommended: ${minLength}-${maxLength} characters`,
         { description, length: descLength }
       );
     }

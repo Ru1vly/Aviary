@@ -112,4 +112,60 @@ describe('BaseChecker', () => {
     const results = await checker.checkAll();
     expect(results[0].severity).toBe('error');
   });
+
+  // threshold() (src/checkers/base.ts, added in Phase 7) is what makes the
+  // ~90 named constants in src/config/thresholds.ts actually overridable
+  // per rule via config, not just documentation. This is the regression
+  // test for that wiring, independent of any specific checker.
+  it('threshold() falls back to the default when no rule-option override is set', async () => {
+    class ThresholdChecker extends BaseChecker {
+      protected checks() {
+        return [
+          {
+            id: 'word-count-adequate',
+            run: async (): Promise<CheckOutcome> => {
+              const minWords = this.threshold('word-count-adequate', 'minWords', 300);
+              return minWords >= 300 ? this.pass(`min ${minWords}`) : this.fail(`min ${minWords}`);
+            },
+          },
+        ];
+      }
+    }
+    const checker = new ThresholdChecker({ page: {} as Page, config: {}, checkerKey: 'content' });
+
+    const results = await checker.checkAll();
+    expect(results[0]).toMatchObject({ passed: true, message: 'min 300' });
+  });
+
+  it('threshold() honors a rule-option override, flipping a check that would otherwise pass', async () => {
+    class ThresholdChecker extends BaseChecker {
+      protected checks() {
+        return [
+          {
+            id: 'word-count-adequate',
+            run: async (): Promise<CheckOutcome> => {
+              const wordCount = 400;
+              const minWords = this.threshold('word-count-adequate', 'minWords', 300);
+              return wordCount >= minWords
+                ? this.pass(`${wordCount} words meets ${minWords}`)
+                : this.fail(`${wordCount} words below ${minWords}`);
+            },
+          },
+        ];
+      }
+    }
+
+    // Default (300): 400 words passes.
+    const defaultChecker = new ThresholdChecker({ page: {} as Page, config: {}, checkerKey: 'content' });
+    expect((await defaultChecker.checkAll())[0].passed).toBe(true);
+
+    // Override raises the bar past 400 words: same input now fails.
+    const overriddenChecker = new ThresholdChecker({
+      page: {} as Page,
+      config: { rules: { content: { 'word-count-adequate': { options: { minWords: 500 } } } } },
+      checkerKey: 'content',
+    });
+    const results = await overriddenChecker.checkAll();
+    expect(results[0]).toMatchObject({ passed: false, message: '400 words below 500' });
+  });
 });

@@ -1,5 +1,6 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { formatBytes } from './shared/format';
+import { HTML_SIZE_FAIL_KB, HTML_SIZE_WARN_KB } from '../config/thresholds';
 
 export class TechnicalChecker extends BaseChecker {
   protected checks() {
@@ -65,10 +66,13 @@ export class TechnicalChecker extends BaseChecker {
       const htmlSize = await this.page.evaluate(() => document.documentElement.outerHTML.length);
       const pageSize = { htmlSize, htmlSizeKB: formatBytes(htmlSize).kb };
 
-      // Recommended: HTML size should be under 100KB for optimal performance
-      if (pageSize.htmlSizeKB > 200) {
-        return this.fail(`HTML size is large (${pageSize.htmlSizeKB} KB). Recommended: under 100 KB`, pageSize);
-      } else if (pageSize.htmlSizeKB > 100) {
+      const failKB = this.threshold('page-size-acceptable', 'failKB', HTML_SIZE_FAIL_KB);
+      const warnKB = this.threshold('page-size-acceptable', 'warnKB', HTML_SIZE_WARN_KB);
+
+      // Recommended: HTML size should be under warnKB for optimal performance
+      if (pageSize.htmlSizeKB > failKB) {
+        return this.fail(`HTML size is large (${pageSize.htmlSizeKB} KB). Recommended: under ${warnKB} KB`, pageSize);
+      } else if (pageSize.htmlSizeKB > warnKB) {
         return this.pass(`HTML size is acceptable (${pageSize.htmlSizeKB} KB) but could be optimized`, pageSize);
       }
 

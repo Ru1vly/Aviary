@@ -1,6 +1,6 @@
 import { PerformanceMetrics } from '../types';
 import { BaseChecker, CheckOutcome } from './base';
-import { PAGE_LOAD_TIME_MS } from '../config/thresholds';
+import { PAGE_LOAD_TIME_MS, DOM_CONTENT_LOADED_WARN_SECONDS } from '../config/thresholds';
 
 export class PerformanceChecker extends BaseChecker {
   protected checks() {
@@ -33,8 +33,9 @@ export class PerformanceChecker extends BaseChecker {
   private async checkLoadTime(): Promise<CheckOutcome> {
     const metrics = await this.getMetrics();
     const loadTimeSec = metrics.loadTime / 1000;
+    const maxLoadTimeMs = this.threshold('load-time-acceptable', 'maxLoadTimeMs', PAGE_LOAD_TIME_MS);
 
-    if (metrics.loadTime > PAGE_LOAD_TIME_MS) {
+    if (metrics.loadTime > maxLoadTimeMs) {
       return this.fail(`Page load time is slow (${loadTimeSec.toFixed(2)}s). Recommended: < 3s`, {
         loadTime: loadTimeSec,
       });
@@ -46,10 +47,15 @@ export class PerformanceChecker extends BaseChecker {
   private async checkDOMContentLoaded(): Promise<CheckOutcome> {
     const metrics = await this.getMetrics();
     const domTimeSec = metrics.domContentLoaded / 1000;
+    const maxDomTimeSec = this.threshold(
+      'dom-content-loaded-acceptable',
+      'maxSeconds',
+      DOM_CONTENT_LOADED_WARN_SECONDS
+    );
 
-    if (domTimeSec > 2) {
+    if (domTimeSec > maxDomTimeSec) {
       return this.fail(
-        `DOM content loaded time is slow (${domTimeSec.toFixed(2)}s). Recommended: < 2s`,
+        `DOM content loaded time is slow (${domTimeSec.toFixed(2)}s). Recommended: < ${maxDomTimeSec}s`,
         { domContentLoaded: domTimeSec }
       );
     }

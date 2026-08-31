@@ -1,5 +1,17 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { formatBytes } from './shared/format';
+import {
+  MIN_MINIFICATION_RATE_PERCENT,
+  MAX_SEPARATE_SCRIPTS,
+  MAX_SEPARATE_STYLESHEETS,
+  MIN_MODERN_IMAGE_FORMAT_RATE_PERCENT,
+  MODERN_IMAGE_FORMAT_MIN_IMAGE_COUNT,
+  INLINE_CONTENT_NONTRIVIAL_LENGTH,
+  MIN_JS_OPTIMIZATION_RATE_PERCENT,
+  MAX_THIRD_PARTY_RESOURCE_SHARE_PERCENT,
+  MIN_CACHE_HEADER_RATE_PERCENT,
+  MAX_TOTAL_INLINE_RESOURCE_BYTES,
+} from '../config/thresholds';
 
 export class ResourceOptimizationChecker extends BaseChecker {
   protected checks() {
@@ -47,8 +59,9 @@ export class ResourceOptimizationChecker extends BaseChecker {
       const styleMinificationRate = minificationData.totalStyles > 0
         ? (minificationData.minifiedStyles / minificationData.totalStyles) * 100
         : 100;
+      const minRate = this.threshold('minification-adequate', 'minRatePercent', MIN_MINIFICATION_RATE_PERCENT);
 
-      if (scriptMinificationRate < 50 || styleMinificationRate < 50) {
+      if (scriptMinificationRate < minRate || styleMinificationRate < minRate) {
         return this.fail(
           `Low minification rate (JS: ${scriptMinificationRate.toFixed(0)}%, CSS: ${styleMinificationRate.toFixed(0)}%)`,
           minificationData
@@ -77,12 +90,18 @@ export class ResourceOptimizationChecker extends BaseChecker {
       });
 
       const issues: string[] = [];
+      const maxScripts = this.threshold('resource-combining-adequate', 'maxScripts', MAX_SEPARATE_SCRIPTS);
+      const maxStylesheets = this.threshold(
+        'resource-combining-adequate',
+        'maxStylesheets',
+        MAX_SEPARATE_STYLESHEETS
+      );
 
-      if (combiningData.scriptCount > 10) {
+      if (combiningData.scriptCount > maxScripts) {
         issues.push(`${combiningData.scriptCount} separate script files (consider bundling)`);
       }
 
-      if (combiningData.stylesheetCount > 5) {
+      if (combiningData.stylesheetCount > maxStylesheets) {
         issues.push(`${combiningData.stylesheetCount} separate CSS files (consider combining)`);
       }
 
@@ -172,8 +191,18 @@ export class ResourceOptimizationChecker extends BaseChecker {
       }
 
       const modernRate = (formatData.modernCount / formatData.totalImages) * 100;
+      const minRate = this.threshold(
+        'modern-image-formats-used',
+        'minRatePercent',
+        MIN_MODERN_IMAGE_FORMAT_RATE_PERCENT
+      );
+      const minImageCount = this.threshold(
+        'modern-image-formats-used',
+        'minImageCount',
+        MODERN_IMAGE_FORMAT_MIN_IMAGE_COUNT
+      );
 
-      if (modernRate < 50 && formatData.totalImages > 5) {
+      if (modernRate < minRate && formatData.totalImages > minImageCount) {
         return this.fail(`Only ${modernRate.toFixed(0)}% of images use modern formats (WebP/AVIF)`, formatData);
       }
 
@@ -292,8 +321,13 @@ export class ResourceOptimizationChecker extends BaseChecker {
       }
 
       const optimizationRate = (jsData.optimizedScripts / jsData.totalScripts) * 100;
+      const minRate = this.threshold(
+        'javascript-optimization-adequate',
+        'minRatePercent',
+        MIN_JS_OPTIMIZATION_RATE_PERCENT
+      );
 
-      if (optimizationRate < 50) {
+      if (optimizationRate < minRate) {
         return this.fail(`Only ${optimizationRate.toFixed(0)}% of scripts use async/defer (blocks rendering)`, jsData);
       }
 
@@ -332,9 +366,14 @@ export class ResourceOptimizationChecker extends BaseChecker {
 
   private async checkCriticalResources(): Promise<CheckOutcome> {
     try {
-      const criticalData = await this.page.evaluate(() => {
+      const minCriticalCSSLength = this.threshold(
+        'critical-resources-optimized',
+        'minInlineCSSLength',
+        INLINE_CONTENT_NONTRIVIAL_LENGTH
+      );
+      const criticalData = await this.page.evaluate((minCriticalCSSLength) => {
         const criticalCSS = Array.from(document.querySelectorAll('style')).some((style) =>
-          style.textContent?.length && style.textContent.length > 100
+          style.textContent?.length && style.textContent.length > minCriticalCSSLength
         );
 
         const preloadedResources = document.querySelectorAll('link[rel="preload"]');
@@ -345,7 +384,7 @@ export class ResourceOptimizationChecker extends BaseChecker {
           preloadedResources: preloadedResources.length,
           criticalImages: criticalImages.length,
         };
-      });
+      }, minCriticalCSSLength);
 
       if (!criticalData.hasCriticalCSS && criticalData.preloadedResources === 0) {
         return this.fail('No critical resource optimization detected', criticalData);
@@ -393,8 +432,13 @@ export class ResourceOptimizationChecker extends BaseChecker {
 
       const thirdPartyRate = ((thirdPartyData.thirdPartyScripts + thirdPartyData.thirdPartyStyles) /
         (thirdPartyData.totalScripts + thirdPartyData.totalStyles)) * 100;
+      const maxRate = this.threshold(
+        'third-party-resources-limited',
+        'maxRatePercent',
+        MAX_THIRD_PARTY_RESOURCE_SHARE_PERCENT
+      );
 
-      if (thirdPartyRate > 50) {
+      if (thirdPartyRate > maxRate) {
         return this.fail(`High third-party resource usage (${thirdPartyRate.toFixed(0)}%) may impact performance`, thirdPartyData);
       }
 
@@ -434,8 +478,14 @@ export class ResourceOptimizationChecker extends BaseChecker {
         return this.pass('No resources to check for caching');
       }
 
+      const minCacheRate = this.threshold(
+        'resource-caching-present',
+        'minRatePercent',
+        MIN_CACHE_HEADER_RATE_PERCENT
+      );
+
       return this.pass(
-        cachingData.cacheRate > 50
+        cachingData.cacheRate > minCacheRate
           ? `${cachingData.cacheRate.toFixed(0)}% of resources use cache-busting`
           : 'Limited cache-busting detected (check server cache headers)',
         cachingData
@@ -447,13 +497,18 @@ export class ResourceOptimizationChecker extends BaseChecker {
 
   private async checkInlineResources(): Promise<CheckOutcome> {
     try {
-      const rawInlineData = await this.page.evaluate(() => {
+      const minNontrivialLength = this.threshold(
+        'inline-resources-acceptable',
+        'minNontrivialLength',
+        INLINE_CONTENT_NONTRIVIAL_LENGTH
+      );
+      const rawInlineData = await this.page.evaluate((minNontrivialLength) => {
         const inlineScripts = Array.from(document.querySelectorAll('script:not([src])')).filter(
-          (script) => script.textContent && script.textContent.trim().length > 100
+          (script) => script.textContent && script.textContent.trim().length > minNontrivialLength
         );
 
         const inlineStyles = Array.from(document.querySelectorAll('style')).filter(
-          (style) => style.textContent && style.textContent.trim().length > 100
+          (style) => style.textContent && style.textContent.trim().length > minNontrivialLength
         );
 
         const totalInlineSize = [...inlineScripts, ...inlineStyles].reduce((sum, el) => {
@@ -465,14 +520,19 @@ export class ResourceOptimizationChecker extends BaseChecker {
           inlineStyles: inlineStyles.length,
           totalInlineSize,
         };
-      });
+      }, minNontrivialLength);
 
       const inlineData = {
         ...rawInlineData,
         totalInlineSizeKB: formatBytes(rawInlineData.totalInlineSize).kb,
       };
+      const maxTotalBytes = this.threshold(
+        'inline-resources-acceptable',
+        'maxTotalBytes',
+        MAX_TOTAL_INLINE_RESOURCE_BYTES
+      );
 
-      if (inlineData.totalInlineSize > 50000) {
+      if (inlineData.totalInlineSize > maxTotalBytes) {
         return this.fail(`Large inline resources (${inlineData.totalInlineSizeKB}KB) - consider externalizing`, inlineData);
       }
 

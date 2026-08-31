@@ -1,6 +1,17 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractImages } from './shared/dom';
-import { PAGE_LOAD_TIME_MS } from '../config/thresholds';
+import {
+  PAGE_LOAD_TIME_MS,
+  TAP_TARGET_MIN_SIZE_PX,
+  MAX_UNDERSIZED_TAP_TARGETS,
+  TAP_TARGET_MIN_SPACING_PX,
+  MAX_CLOSE_TAP_TARGET_PAIRS,
+  MOBILE_BODY_FONT_MIN_PX,
+  MOBILE_SMALL_FONT_MAX_PX,
+  MAX_SMALL_TEXT_ELEMENTS,
+  MOBILE_RESPONSIVE_IMAGES_MIN_COUNT,
+  MOBILE_REAL_CONTENT_MIN_LENGTH,
+} from '../config/thresholds';
 
 export class MobileUXChecker extends BaseChecker {
   protected checks() {
@@ -25,22 +36,32 @@ export class MobileUXChecker extends BaseChecker {
 
   private async checkTapTargetSize(): Promise<CheckOutcome> {
     try {
-      const tapData = await this.page.evaluate(() => {
+      const minSize = this.threshold('tap-target-size-adequate', 'minSizePx', TAP_TARGET_MIN_SIZE_PX);
+      const tapData = await this.page.evaluate((minSize) => {
         const interactive = Array.from(document.querySelectorAll('a, button, input[type="button"], input[type="submit"]'));
 
         const tooSmall = interactive.filter((el) => {
           const rect = el.getBoundingClientRect();
-          return (rect.width > 0 && rect.width < 44) || (rect.height > 0 && rect.height < 44);
+          return (rect.width > 0 && rect.width < minSize) || (rect.height > 0 && rect.height < minSize);
         });
 
         return {
           total: interactive.length,
           tooSmall: tooSmall.length,
         };
-      });
+      }, minSize);
 
-      if (tapData.tooSmall > 5) {
-        return this.fail(`${tapData.tooSmall} tap targets smaller than 44x44px (mobile usability issue)`, tapData);
+      const maxTooSmall = this.threshold(
+        'tap-target-size-adequate',
+        'maxTooSmall',
+        MAX_UNDERSIZED_TAP_TARGETS
+      );
+
+      if (tapData.tooSmall > maxTooSmall) {
+        return this.fail(
+          `${tapData.tooSmall} tap targets smaller than ${minSize}x${minSize}px (mobile usability issue)`,
+          tapData
+        );
       }
 
       return this.pass('Tap targets meet minimum size requirements', tapData);
@@ -96,7 +117,12 @@ export class MobileUXChecker extends BaseChecker {
 
   private async checkTouchFriendlySpacing(): Promise<CheckOutcome> {
     try {
-      const spacingData = await this.page.evaluate(() => {
+      const minSpacing = this.threshold(
+        'touch-friendly-spacing',
+        'minSpacingPx',
+        TAP_TARGET_MIN_SPACING_PX
+      );
+      const spacingData = await this.page.evaluate((minSpacing) => {
         const links = Array.from(document.querySelectorAll('a'));
 
         const closeLinks = links.filter((link, index) => {
@@ -107,17 +133,23 @@ export class MobileUXChecker extends BaseChecker {
           const verticalDistance = Math.abs(rect.top - prevRect.bottom);
           const horizontalDistance = Math.abs(rect.left - prevRect.right);
 
-          return (verticalDistance > 0 && verticalDistance < 8) ||
-                 (horizontalDistance > 0 && horizontalDistance < 8);
+          return (verticalDistance > 0 && verticalDistance < minSpacing) ||
+                 (horizontalDistance > 0 && horizontalDistance < minSpacing);
         });
 
         return {
           totalLinks: links.length,
           closeTogether: closeLinks.length,
         };
-      });
+      }, minSpacing);
 
-      if (spacingData.closeTogether > 10) {
+      const maxClosePairs = this.threshold(
+        'touch-friendly-spacing',
+        'maxClosePairs',
+        MAX_CLOSE_TAP_TARGET_PAIRS
+      );
+
+      if (spacingData.closeTogether > maxClosePairs) {
         return this.fail(`${spacingData.closeTogether} elements too close together for touch`, spacingData);
       }
 
@@ -196,29 +228,59 @@ export class MobileUXChecker extends BaseChecker {
 
   private async checkMobileReadability(): Promise<CheckOutcome> {
     try {
-      const readabilityData = await this.page.evaluate(() => {
-        const bodyStyle = window.getComputedStyle(document.body);
-        const fontSize = parseInt(bodyStyle.fontSize);
+      const realContentMinLength = this.threshold(
+        'mobile-readability-acceptable',
+        'realContentMinLength',
+        MOBILE_REAL_CONTENT_MIN_LENGTH
+      );
+      const smallFontMax = this.threshold(
+        'mobile-readability-acceptable',
+        'smallFontMaxPx',
+        MOBILE_SMALL_FONT_MAX_PX
+      );
+      const readabilityData = await this.page.evaluate(
+        ({ realContentMinLength, smallFontMax }) => {
+          const bodyStyle = window.getComputedStyle(document.body);
+          const fontSize = parseInt(bodyStyle.fontSize);
 
-        const smallText = Array.from(document.querySelectorAll('p, li, span, div')).filter((el) => {
-          const style = window.getComputedStyle(el);
-          const size = parseInt(style.fontSize);
-          const hasText = (el.textContent?.trim().length || 0) > 20;
-          return hasText && size < 14;
-        });
+          const smallText = Array.from(document.querySelectorAll('p, li, span, div')).filter((el) => {
+            const style = window.getComputedStyle(el);
+            const size = parseInt(style.fontSize);
+            const hasText = (el.textContent?.trim().length || 0) > realContentMinLength;
+            return hasText && size < smallFontMax;
+          });
 
-        return {
-          bodyFontSize: fontSize,
-          smallTextElements: smallText.length,
-        };
-      });
+          return {
+            bodyFontSize: fontSize,
+            smallTextElements: smallText.length,
+          };
+        },
+        { realContentMinLength, smallFontMax }
+      );
 
-      if (readabilityData.bodyFontSize < 16) {
-        return this.fail(`Base font size too small (${readabilityData.bodyFontSize}px). Recommended: 16px+`, readabilityData);
+      const bodyFontMin = this.threshold(
+        'mobile-readability-acceptable',
+        'bodyFontMinPx',
+        MOBILE_BODY_FONT_MIN_PX
+      );
+      const maxSmallTextElements = this.threshold(
+        'mobile-readability-acceptable',
+        'maxSmallTextElements',
+        MAX_SMALL_TEXT_ELEMENTS
+      );
+
+      if (readabilityData.bodyFontSize < bodyFontMin) {
+        return this.fail(
+          `Base font size too small (${readabilityData.bodyFontSize}px). Recommended: ${bodyFontMin}px+`,
+          readabilityData
+        );
       }
 
-      if (readabilityData.smallTextElements > 10) {
-        return this.fail(`${readabilityData.smallTextElements} elements with small text (< 14px)`, readabilityData);
+      if (readabilityData.smallTextElements > maxSmallTextElements) {
+        return this.fail(
+          `${readabilityData.smallTextElements} elements with small text (< ${smallFontMax}px)`,
+          readabilityData
+        );
       }
 
       return this.pass('Mobile readability is good', readabilityData);
@@ -242,7 +304,13 @@ export class MobileUXChecker extends BaseChecker {
         responsive: withSrcset.length + inPicture.length,
       };
 
-      if (imageData.total > 5 && imageData.responsive === 0) {
+      const minCount = this.threshold(
+        'mobile-image-optimization',
+        'minImageCount',
+        MOBILE_RESPONSIVE_IMAGES_MIN_COUNT
+      );
+
+      if (imageData.total > minCount && imageData.responsive === 0) {
         return this.fail('Images not optimized for mobile (use srcset or picture)', imageData);
       }
 
@@ -434,8 +502,13 @@ export class MobileUXChecker extends BaseChecker {
         };
       });
 
-      if (perfData.loadTime > PAGE_LOAD_TIME_MS) {
-        return this.fail(`Mobile load time is slow (${perfData.loadTimeSeconds}s). Target: < 3s`, perfData);
+      const maxLoadTimeMs = this.threshold('mobile-performance-acceptable', 'maxLoadTimeMs', PAGE_LOAD_TIME_MS);
+
+      if (perfData.loadTime > maxLoadTimeMs) {
+        return this.fail(
+          `Mobile load time is slow (${perfData.loadTimeSeconds}s). Target: < ${maxLoadTimeMs / 1000}s`,
+          perfData
+        );
       }
 
       return this.pass(`Mobile performance acceptable (${perfData.loadTimeSeconds}s load)`, perfData);

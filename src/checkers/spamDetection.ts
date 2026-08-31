@@ -1,5 +1,25 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { tokenize } from './shared/text';
+import {
+  HIDDEN_TEXT_MIN_LENGTH,
+  KEYWORD_STUFFING_MIN_COUNT,
+  KEYWORD_STUFFING_MIN_DENSITY,
+  MAX_LINK_COUNT,
+  MAX_LINK_TO_WORD_RATIO,
+  TINY_IFRAME_DIMENSION_PX,
+  MAX_IFRAME_COUNT,
+  INVISIBLE_ELEMENT_MIN_TEXT_LENGTH,
+  MAX_INVISIBLE_ELEMENTS,
+  MAX_TEXT_TO_LINK_RATIO,
+  DUPLICATE_CONTENT_MIN_LENGTH,
+  MAX_DUPLICATE_PARAGRAPHS,
+  MAX_ADULT_KEYWORD_MATCHES,
+  SPAM_KEYWORD_MIN_OCCURRENCES,
+  MAX_SPAM_KEYWORD_TYPES,
+  MIN_META_REFRESH_DELAY_SECONDS,
+  TINY_TEXT_MAX_FONT_SIZE_PX,
+  TINY_TEXT_MIN_TEXT_LENGTH,
+} from '../config/thresholds';
 
 export class SpamDetectionChecker extends BaseChecker {
   protected checks() {
@@ -24,11 +44,12 @@ export class SpamDetectionChecker extends BaseChecker {
 
   private async checkHiddenText(): Promise<CheckOutcome> {
     try {
-      const hiddenTextData = await this.page.evaluate(() => {
+      const minLength = this.threshold('hidden-text-absent', 'minLength', HIDDEN_TEXT_MIN_LENGTH);
+      const hiddenTextData = await this.page.evaluate((minLength) => {
         const allElements = Array.from(document.body.querySelectorAll('*'));
         const hiddenElements = allElements.filter((el) => {
           const style = window.getComputedStyle(el);
-          const hasText = (el.textContent?.trim().length || 0) > 20;
+          const hasText = (el.textContent?.trim().length || 0) > minLength;
 
           if (!hasText) return false;
 
@@ -111,7 +132,7 @@ export class SpamDetectionChecker extends BaseChecker {
           count: hiddenElements.length,
           samples: hiddenTextContent.slice(0, 3),
         };
-      });
+      }, minLength);
 
       if (hiddenTextData.count > 0) {
         return this.fail(`Found ${hiddenTextData.count} elements with hidden text (potential spam technique)`, hiddenTextData);
@@ -137,8 +158,14 @@ export class SpamDetectionChecker extends BaseChecker {
       });
 
       const totalWords = words.length;
+      const minCount = this.threshold('keyword-stuffing-absent', 'minCount', KEYWORD_STUFFING_MIN_COUNT);
+      const minDensity = this.threshold(
+        'keyword-stuffing-absent',
+        'minDensity',
+        KEYWORD_STUFFING_MIN_DENSITY
+      );
       const stuffedWords = Object.entries(wordCounts)
-        .filter(([_, count]) => count > 15 && (count / totalWords) > 0.03)
+        .filter(([_, count]) => count > minCount && (count / totalWords) > minDensity)
         .map(([word, count]) => ({ word, count, percentage: ((count / totalWords) * 100).toFixed(2) }));
 
       if (stuffedWords.length > 0) {
@@ -168,13 +195,16 @@ export class SpamDetectionChecker extends BaseChecker {
         };
       });
 
-      // Google recommends fewer than 100 links per page
-      if (linkData.linkCount > 100) {
-        return this.fail(`Excessive links detected (${linkData.linkCount}). Recommended: under 100`, linkData);
+      const maxLinks = this.threshold('excessive-links-absent', 'maxLinks', MAX_LINK_COUNT);
+      const maxRatio = this.threshold('excessive-links-absent', 'maxRatio', MAX_LINK_TO_WORD_RATIO);
+
+      // Google recommends fewer than maxLinks links per page
+      if (linkData.linkCount > maxLinks) {
+        return this.fail(`Excessive links detected (${linkData.linkCount}). Recommended: under ${maxLinks}`, linkData);
       }
 
       // Check if too many links relative to content
-      if (linkData.ratio > 0.1) {
+      if (linkData.ratio > maxRatio) {
         return this.fail(`High link-to-content ratio (${(linkData.ratio * 100).toFixed(1)}%)`, linkData);
       }
 
@@ -220,15 +250,20 @@ export class SpamDetectionChecker extends BaseChecker {
 
   private async checkIframes(): Promise<CheckOutcome> {
     try {
-      const iframeData = await this.page.evaluate(() => {
+      const tinyDimension = this.threshold(
+        'iframes-acceptable',
+        'tinyDimensionPx',
+        TINY_IFRAME_DIMENSION_PX
+      );
+      const iframeData = await this.page.evaluate((tinyDimension) => {
         const iframes = Array.from(document.querySelectorAll('iframe'));
         const hidden = iframes.filter((iframe) => {
           const style = window.getComputedStyle(iframe);
           return (
             style.display === 'none' ||
             style.visibility === 'hidden' ||
-            parseInt(style.width) < 10 ||
-            parseInt(style.height) < 10
+            parseInt(style.width) < tinyDimension ||
+            parseInt(style.height) < tinyDimension
           );
         });
 
@@ -237,13 +272,15 @@ export class SpamDetectionChecker extends BaseChecker {
           hiddenIframes: hidden.length,
           sources: iframes.map((i) => i.src).filter((s) => s),
         };
-      });
+      }, tinyDimension);
 
       if (iframeData.hiddenIframes > 0) {
         return this.fail(`Found ${iframeData.hiddenIframes} hidden iframes (spam technique)`, iframeData);
       }
 
-      if (iframeData.totalIframes > 5) {
+      const maxIframes = this.threshold('iframes-acceptable', 'maxIframes', MAX_IFRAME_COUNT);
+
+      if (iframeData.totalIframes > maxIframes) {
         return this.fail(`Many iframes detected (${iframeData.totalIframes}). Review for necessity`, iframeData);
       }
 
@@ -258,23 +295,34 @@ export class SpamDetectionChecker extends BaseChecker {
 
   private async checkInvisibleElements(): Promise<CheckOutcome> {
     try {
-      const invisibleData = await this.page.evaluate(() => {
+      const minTextLength = this.threshold(
+        'invisible-elements-absent',
+        'minTextLength',
+        INVISIBLE_ELEMENT_MIN_TEXT_LENGTH
+      );
+      const invisibleData = await this.page.evaluate((minTextLength) => {
         const elements = Array.from(document.querySelectorAll('div, span, p'));
         const invisible = elements.filter((el) => {
           const rect = el.getBoundingClientRect();
 
           return (
             (rect.width < 1 || rect.height < 1) &&
-            (el.textContent?.trim().length || 0) > 50
+            (el.textContent?.trim().length || 0) > minTextLength
           );
         });
 
         return {
           count: invisible.length,
         };
-      });
+      }, minTextLength);
 
-      if (invisibleData.count > 3) {
+      const maxInvisible = this.threshold(
+        'invisible-elements-absent',
+        'maxCount',
+        MAX_INVISIBLE_ELEMENTS
+      );
+
+      if (invisibleData.count > maxInvisible) {
         return this.fail(`Found ${invisibleData.count} invisible elements with content`, invisibleData);
       }
 
@@ -298,7 +346,9 @@ export class SpamDetectionChecker extends BaseChecker {
         };
       });
 
-      if (ratio.ratio > 0.6) {
+      const maxRatio = this.threshold('text-to-link-ratio-healthy', 'maxRatio', MAX_TEXT_TO_LINK_RATIO);
+
+      if (ratio.ratio > maxRatio) {
         return this.fail(`Very high link text ratio (${(ratio.ratio * 100).toFixed(1)}%)`, ratio);
       }
 
@@ -310,10 +360,15 @@ export class SpamDetectionChecker extends BaseChecker {
 
   private async checkRepetitiveContent(): Promise<CheckOutcome> {
     try {
-      const repetition = await this.page.evaluate(() => {
+      const minLength = this.threshold(
+        'repetitive-content-absent',
+        'minLength',
+        DUPLICATE_CONTENT_MIN_LENGTH
+      );
+      const repetition = await this.page.evaluate((minLength) => {
         const paragraphs = Array.from(document.querySelectorAll('p'))
           .map((p) => p.textContent?.trim())
-          .filter((text) => text && text.length > 50);
+          .filter((text) => text && text.length > minLength);
 
         const duplicates = paragraphs.filter(
           (text, index, self) => text && self.indexOf(text) !== index
@@ -323,9 +378,15 @@ export class SpamDetectionChecker extends BaseChecker {
           totalParagraphs: paragraphs.length,
           duplicates: duplicates.length,
         };
-      });
+      }, minLength);
 
-      if (repetition.duplicates > 2) {
+      const maxDuplicates = this.threshold(
+        'repetitive-content-absent',
+        'maxDuplicates',
+        MAX_DUPLICATE_PARAGRAPHS
+      );
+
+      if (repetition.duplicates > maxDuplicates) {
         return this.fail(`Found ${repetition.duplicates} duplicate paragraphs`, repetition);
       }
 
@@ -410,8 +471,9 @@ export class SpamDetectionChecker extends BaseChecker {
       // Basic check for adult keywords (simplified)
       const adultKeywords = ['xxx', 'porn', 'sex', 'adult', 'casino', 'viagra', 'cialis'];
       const foundKeywords = adultKeywords.filter((keyword: string) => content.includes(keyword));
+      const maxMatches = this.threshold('adult-content-absent', 'maxMatches', MAX_ADULT_KEYWORD_MATCHES);
 
-      if (foundKeywords.length > 2) {
+      if (foundKeywords.length > maxMatches) {
         return this.fail(`Potential adult content keywords detected (${foundKeywords.length} keywords)`, {
           foundKeywords,
         });
@@ -430,12 +492,19 @@ export class SpamDetectionChecker extends BaseChecker {
       });
 
       const spamKeywords = ['click here', 'buy now', 'limited time', 'act now', 'order now', 'free money', 'get paid', 'work from home', 'weight loss'];
+      const minOccurrences = this.threshold(
+        'spam-keywords-absent',
+        'minOccurrences',
+        SPAM_KEYWORD_MIN_OCCURRENCES
+      );
       const foundKeywords = spamKeywords.filter((keyword: string) => {
         const count = (content.match(new RegExp(keyword, 'g')) || []).length;
-        return count > 3;
+        return count > minOccurrences;
       });
 
-      if (foundKeywords.length > 3) {
+      const maxTypes = this.threshold('spam-keywords-absent', 'maxTypes', MAX_SPAM_KEYWORD_TYPES);
+
+      if (foundKeywords.length > maxTypes) {
         return this.fail(`Multiple spam keywords detected (${foundKeywords.length} types)`, { foundKeywords });
       }
 
@@ -497,7 +566,13 @@ export class SpamDetectionChecker extends BaseChecker {
         };
       });
 
-      if (metaRefresh.hasMetaRefresh && metaRefresh.delay < 3) {
+      const minDelaySeconds = this.threshold(
+        'meta-refresh-safe',
+        'minDelaySeconds',
+        MIN_META_REFRESH_DELAY_SECONDS
+      );
+
+      if (metaRefresh.hasMetaRefresh && metaRefresh.delay < minDelaySeconds) {
         return this.fail(`Fast meta refresh detected (${metaRefresh.delay}s) - spam technique`, metaRefresh);
       }
 
@@ -509,20 +584,33 @@ export class SpamDetectionChecker extends BaseChecker {
 
   private async checkTinyText(): Promise<CheckOutcome> {
     try {
-      const tinyText = await this.page.evaluate(() => {
+      const maxFontSize = this.threshold(
+        'tiny-text-absent',
+        'maxFontSizePx',
+        TINY_TEXT_MAX_FONT_SIZE_PX
+      );
+      const minTextLength = this.threshold(
+        'tiny-text-absent',
+        'minTextLength',
+        TINY_TEXT_MIN_TEXT_LENGTH
+      );
+      const tinyText = await this.page.evaluate(
+        ({ maxFontSize, minTextLength }) => {
         const elements = Array.from(document.querySelectorAll('*'));
         const tiny = elements.filter((el) => {
           const style = window.getComputedStyle(el);
           const fontSize = parseInt(style.fontSize);
-          const hasText = (el.textContent?.trim().length || 0) > 20;
+          const hasText = (el.textContent?.trim().length || 0) > minTextLength;
 
-          return hasText && fontSize < 5 && fontSize > 0;
+          return hasText && fontSize < maxFontSize && fontSize > 0;
         });
 
         return {
           count: tiny.length,
         };
-      });
+        },
+        { maxFontSize, minTextLength }
+      );
 
       if (tinyText.count > 0) {
         return this.fail(`Found ${tinyText.count} elements with tiny text (potential spam)`, tinyText);

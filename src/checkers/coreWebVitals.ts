@@ -1,7 +1,26 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractImages, extractResourceTimings, ResourceTimingEntry } from './shared/dom';
 import { formatBytes } from './shared/format';
-import { PAGE_LOAD_TIME_MS } from '../config/thresholds';
+import {
+  PAGE_LOAD_TIME_MS,
+  CWV_PAGE_LOAD_WARN_MS,
+  CWV_DOM_LOAD_TIME_FAIL_MS,
+  CWV_MAX_HTTP_REQUESTS,
+  CWV_WARN_HTTP_REQUESTS,
+  CWV_PAGE_SIZE_FAIL_BYTES,
+  CWV_PAGE_SIZE_WARN_BYTES,
+  CWV_JS_SIZE_FAIL_BYTES,
+  CWV_CSS_SIZE_FAIL_BYTES,
+  CWV_IMAGE_SIZE_FAIL_BYTES,
+  CWV_MAX_FONT_FILES,
+  CWV_MAX_RENDER_BLOCKING_SCRIPTS,
+  CWV_MAX_RENDER_BLOCKING_STYLES,
+  CWV_LAZY_LOAD_MIN_MEDIA_COUNT,
+  INLINE_CONTENT_NONTRIVIAL_LENGTH,
+  CWV_MAX_BLOCKING_SCRIPTS,
+  CWV_TTFB_FAIL_MS,
+  CWV_TTFB_WARN_MS,
+} from '../config/thresholds';
 
 export class CoreWebVitalsChecker extends BaseChecker {
   private resourceTimingsPromise?: Promise<ResourceTimingEntry[]>;
@@ -49,9 +68,12 @@ export class CoreWebVitalsChecker extends BaseChecker {
         return this.pass('Page load time check skipped (navigation timing unavailable)');
       }
 
-      if (timing.loadTime > PAGE_LOAD_TIME_MS) {
-        return this.fail(`Page load time is slow (${timing.loadTimeSeconds}s). Target: < 3s`, timing);
-      } else if (timing.loadTime > 2000) {
+      const failMs = this.threshold('page-load-time-acceptable', 'failMs', PAGE_LOAD_TIME_MS);
+      const warnMs = this.threshold('page-load-time-acceptable', 'warnMs', CWV_PAGE_LOAD_WARN_MS);
+
+      if (timing.loadTime > failMs) {
+        return this.fail(`Page load time is slow (${timing.loadTimeSeconds}s). Target: < ${failMs / 1000}s`, timing);
+      } else if (timing.loadTime > warnMs) {
         return this.pass(`Page load time is acceptable (${timing.loadTimeSeconds}s)`, timing);
       }
 
@@ -76,8 +98,17 @@ export class CoreWebVitalsChecker extends BaseChecker {
       if (!domTiming) {
         return this.pass('DOM load time check skipped (navigation timing unavailable)');
       }
-      if (domTiming.domLoadTime > 1500) {
-        return this.fail(`DOM load time is slow (${domTiming.domLoadTimeSeconds}s). Target: < 1.5s`, domTiming);
+      const failMs = this.threshold(
+        'dom-content-loaded-acceptable',
+        'failMs',
+        CWV_DOM_LOAD_TIME_FAIL_MS
+      );
+
+      if (domTiming.domLoadTime > failMs) {
+        return this.fail(
+          `DOM load time is slow (${domTiming.domLoadTimeSeconds}s). Target: < ${failMs / 1000}s`,
+          domTiming
+        );
       }
 
       return this.pass(`DOM load time is good (${domTiming.domLoadTimeSeconds}s)`, domTiming);
@@ -101,9 +132,16 @@ export class CoreWebVitalsChecker extends BaseChecker {
         byType,
       };
 
-      if (resources.total > 100) {
-        return this.fail(`Too many HTTP requests (${resources.total}). Target: < 50`, resources);
-      } else if (resources.total > 50) {
+      const maxRequests = this.threshold('resource-count-acceptable', 'maxRequests', CWV_MAX_HTTP_REQUESTS);
+      const warnRequests = this.threshold(
+        'resource-count-acceptable',
+        'warnRequests',
+        CWV_WARN_HTTP_REQUESTS
+      );
+
+      if (resources.total > maxRequests) {
+        return this.fail(`Too many HTTP requests (${resources.total}). Target: < ${warnRequests}`, resources);
+      } else if (resources.total > warnRequests) {
         return this.pass(`HTTP requests acceptable (${resources.total})`, resources);
       }
 
@@ -119,9 +157,12 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalSize = entries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const pageSize = { ...formatBytes(totalSize) };
 
-      if (pageSize.bytes > 3 * 1024 * 1024) { // > 3MB
-        return this.fail(`Page size is large (${pageSize.mb}MB). Target: < 1MB`, pageSize);
-      } else if (pageSize.bytes > 1 * 1024 * 1024) { // > 1MB
+      const failBytes = this.threshold('page-size-acceptable', 'failBytes', CWV_PAGE_SIZE_FAIL_BYTES);
+      const warnBytes = this.threshold('page-size-acceptable', 'warnBytes', CWV_PAGE_SIZE_WARN_BYTES);
+
+      if (pageSize.bytes > failBytes) {
+        return this.fail(`Page size is large (${pageSize.mb}MB). Target: < ${Math.round(warnBytes / 1024 / 1024)}MB`, pageSize);
+      } else if (pageSize.bytes > warnBytes) {
         return this.pass(`Page size is acceptable (${pageSize.mb}MB)`, pageSize);
       }
 
@@ -138,7 +179,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalSize = jsEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const jsSize = { count: jsEntries.length, ...formatBytes(totalSize) };
 
-      if (jsSize.bytes > 500 * 1024) { // > 500KB
+      const failBytes = this.threshold('javascript-size-acceptable', 'failBytes', CWV_JS_SIZE_FAIL_BYTES);
+
+      if (jsSize.bytes > failBytes) {
         return this.fail(`JavaScript size is large (${jsSize.kb}KB, ${jsSize.count} files). Consider code splitting`, jsSize);
       }
 
@@ -155,7 +198,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalSize = cssEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const cssSize = { count: cssEntries.length, ...formatBytes(totalSize) };
 
-      if (cssSize.bytes > 100 * 1024) { // > 100KB
+      const failBytes = this.threshold('css-size-acceptable', 'failBytes', CWV_CSS_SIZE_FAIL_BYTES);
+
+      if (cssSize.bytes > failBytes) {
         return this.fail(`CSS size is large (${cssSize.kb}KB, ${cssSize.count} files). Consider minification`, cssSize);
       }
 
@@ -175,7 +220,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalSize = imageEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const imageSize = { count: imageEntries.length, ...formatBytes(totalSize) };
 
-      if (imageSize.bytes > 2 * 1024 * 1024) { // > 2MB
+      const failBytes = this.threshold('image-size-acceptable', 'failBytes', CWV_IMAGE_SIZE_FAIL_BYTES);
+
+      if (imageSize.bytes > failBytes) {
         return this.fail(`Images size is large (${imageSize.mb}MB, ${imageSize.count} images). Optimize images`, imageSize);
       }
 
@@ -202,7 +249,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
         hasPreload: preloadedFonts > 0,
       };
 
-      if (fontData.fontCount > 5) {
+      const maxFonts = this.threshold('font-loading-optimized', 'maxFonts', CWV_MAX_FONT_FILES);
+
+      if (fontData.fontCount > maxFonts) {
         return this.fail(`Too many font files (${fontData.fontCount}). Consider limiting to 2-3`, fontData);
       }
 
@@ -248,12 +297,22 @@ export class CoreWebVitalsChecker extends BaseChecker {
       });
 
       const issues: string[] = [];
+      const maxBlockingScripts = this.threshold(
+        'render-blocking-resources-minimal',
+        'maxBlockingScripts',
+        CWV_MAX_RENDER_BLOCKING_SCRIPTS
+      );
+      const maxBlockingStyles = this.threshold(
+        'render-blocking-resources-minimal',
+        'maxBlockingStyles',
+        CWV_MAX_RENDER_BLOCKING_STYLES
+      );
 
-      if (blockingData.blockingScripts > 3) {
+      if (blockingData.blockingScripts > maxBlockingScripts) {
         issues.push(`${blockingData.blockingScripts} render-blocking scripts`);
       }
 
-      if (blockingData.blockingStyles > 2) {
+      if (blockingData.blockingStyles > maxBlockingStyles) {
         issues.push(`${blockingData.blockingStyles} render-blocking stylesheets`);
       }
 
@@ -287,7 +346,13 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalMedia = lazyData.totalImages + lazyData.totalIframes;
       const lazyMedia = lazyData.lazyImages + lazyData.lazyIframes;
 
-      if (totalMedia > 10 && lazyMedia === 0) {
+      const minMediaCount = this.threshold(
+        'lazy-load-implemented',
+        'minMediaCount',
+        CWV_LAZY_LOAD_MIN_MEDIA_COUNT
+      );
+
+      if (totalMedia > minMediaCount && lazyMedia === 0) {
         return this.fail('No lazy loading implemented despite many images/iframes', lazyData);
       }
 
@@ -304,12 +369,17 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
   private async checkCriticalCSS(): Promise<CheckOutcome> {
     try {
-      const cssData = await this.page.evaluate(() => {
+      const minLength = this.threshold(
+        'critical-css-present',
+        'minInlineLength',
+        INLINE_CONTENT_NONTRIVIAL_LENGTH
+      );
+      const cssData = await this.page.evaluate((minLength) => {
         const inlineStyles = Array.from(document.querySelectorAll('style'));
         const externalStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
 
         const hasInlineCritical = inlineStyles.some((style) =>
-          (style.textContent?.length || 0) > 100
+          (style.textContent?.length || 0) > minLength
         );
 
         return {
@@ -317,7 +387,7 @@ export class CoreWebVitalsChecker extends BaseChecker {
           externalStyles: externalStyles.length,
           hasInlineCritical,
         };
-      });
+      }, minLength);
 
       return this.pass(
         cssData.hasInlineCritical
@@ -351,7 +421,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
         };
       });
 
-      if (scriptData.blocking > 3) {
+      const maxBlocking = this.threshold('async-scripts-used', 'maxBlocking', CWV_MAX_BLOCKING_SCRIPTS);
+
+      if (scriptData.blocking > maxBlocking) {
         return this.fail(`${scriptData.blocking} scripts without async/defer (use async or defer)`, scriptData);
       }
 
@@ -423,9 +495,15 @@ export class CoreWebVitalsChecker extends BaseChecker {
         };
       });
 
-      if (responseTime.ttfb > 600) {
-        return this.fail(`Server response time is slow (${responseTime.ttfbSeconds}s TTFB). Target: < 200ms`, responseTime);
-      } else if (responseTime.ttfb > 200) {
+      const failMs = this.threshold('server-response-time-acceptable', 'failMs', CWV_TTFB_FAIL_MS);
+      const warnMs = this.threshold('server-response-time-acceptable', 'warnMs', CWV_TTFB_WARN_MS);
+
+      if (responseTime.ttfb > failMs) {
+        return this.fail(
+          `Server response time is slow (${responseTime.ttfbSeconds}s TTFB). Target: < ${warnMs}ms`,
+          responseTime
+        );
+      } else if (responseTime.ttfb > warnMs) {
         return this.pass(`Server response time is acceptable (${responseTime.ttfbSeconds}s TTFB)`, responseTime);
       }
 

@@ -1,6 +1,7 @@
 import { ImageInfo } from '../types';
 import { BaseChecker, CheckOutcome } from './base';
 import { extractImages } from './shared/dom';
+import { IMAGE_MAX_COUNT } from '../config/thresholds';
 
 export class ImagesChecker extends BaseChecker {
   protected checks() {
@@ -50,7 +51,9 @@ export class ImagesChecker extends BaseChecker {
       return this.pass('No images found on the page');
     }
 
-    if (images.length > 50) {
+    const maxCount = this.threshold('image-count-reasonable', 'maxCount', IMAGE_MAX_COUNT);
+
+    if (images.length > maxCount) {
       return this.fail(`High number of images (${images.length}). Consider optimization for performance`, {
         imageCount: images.length,
       });

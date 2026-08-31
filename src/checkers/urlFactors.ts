@@ -1,5 +1,14 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { tokenize } from './shared/text';
+import {
+  URL_MAX_LENGTH,
+  URL_WARN_LENGTH,
+  URL_MIN_SEGMENT_LENGTH,
+  URL_KEYWORD_MIN_LENGTH,
+  URL_MAX_QUERY_PARAMS,
+  URL_MAX_DEPTH,
+  URL_WARN_DEPTH,
+} from '../config/thresholds';
 
 export class URLFactorsChecker extends BaseChecker {
   protected checks() {
@@ -21,13 +30,15 @@ export class URLFactorsChecker extends BaseChecker {
     try {
       const url = this.page.url();
       const urlLength = url.length;
+      const maxLength = this.threshold('url-length-acceptable', 'maxLength', URL_MAX_LENGTH);
+      const warnLength = this.threshold('url-length-acceptable', 'warnLength', URL_WARN_LENGTH);
 
-      if (urlLength > 100) {
-        return this.fail(`URL is too long (${urlLength} characters). Recommended: under 75 characters`, {
+      if (urlLength > maxLength) {
+        return this.fail(`URL is too long (${urlLength} characters). Recommended: under ${warnLength} characters`, {
           url,
           length: urlLength,
         });
-      } else if (urlLength > 75) {
+      } else if (urlLength > warnLength) {
         return this.pass(`URL length is acceptable (${urlLength} characters) but could be shorter`, {
           url,
           length: urlLength,
@@ -100,7 +111,12 @@ export class URLFactorsChecker extends BaseChecker {
 
       // Check for logical hierarchy
       const segments = pathname.split('/').filter((s: string) => s.length > 0);
-      const hasLogicalHierarchy = segments.every((seg: string) => seg.length > 2);
+      const minSegmentLength = this.threshold(
+        'url-structure-logical',
+        'minSegmentLength',
+        URL_MIN_SEGMENT_LENGTH
+      );
+      const hasLogicalHierarchy = segments.every((seg: string) => seg.length > minSegmentLength);
 
       return {
         passed: hasLogicalHierarchy,
@@ -121,10 +137,15 @@ export class URLFactorsChecker extends BaseChecker {
       const title = await this.page.title();
 
       // Extract words from pathname
+      const keywordMinLength = this.threshold(
+        'url-keywords-match-title',
+        'minLength',
+        URL_KEYWORD_MIN_LENGTH
+      );
       const urlWords = pathname
         .toLowerCase()
         .split(/[\/-]/)
-        .filter((w: string) => w.length > 3);
+        .filter((w: string) => w.length > keywordMinLength);
 
       // Extract words from title
       const titleWords = tokenize(title);
@@ -209,7 +230,9 @@ export class URLFactorsChecker extends BaseChecker {
         });
       }
 
-      if (paramCount > 3 && !hasTrackingParams) {
+      const maxParams = this.threshold('url-parameters-clean', 'maxParams', URL_MAX_QUERY_PARAMS);
+
+      if (paramCount > maxParams && !hasTrackingParams) {
         return this.fail(`URL has many parameters (${paramCount}). Consider cleaner URLs`, { paramCount });
       }
 
@@ -227,10 +250,12 @@ export class URLFactorsChecker extends BaseChecker {
       const url = this.page.url();
       const pathname = new URL(url).pathname;
       const depth = pathname.split('/').filter((s: string) => s.length > 0).length;
+      const maxDepth = this.threshold('url-depth-acceptable', 'maxDepth', URL_MAX_DEPTH);
+      const warnDepth = this.threshold('url-depth-acceptable', 'warnDepth', URL_WARN_DEPTH);
 
-      if (depth > 4) {
-        return this.fail(`URL depth is too deep (${depth} levels). Recommended: 3 or fewer`, { depth, pathname });
-      } else if (depth > 3) {
+      if (depth > maxDepth) {
+        return this.fail(`URL depth is too deep (${depth} levels). Recommended: ${warnDepth} or fewer`, { depth, pathname });
+      } else if (depth > warnDepth) {
         return this.pass(`URL depth is acceptable (${depth} levels)`, { depth });
       }
 

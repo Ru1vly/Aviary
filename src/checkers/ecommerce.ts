@@ -1,5 +1,6 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractJsonLdBlocks } from './shared/dom';
+import { PRODUCT_DESCRIPTION_MIN_LENGTH } from '../config/thresholds';
 
 export class EcommerceChecker extends BaseChecker {
   protected checks() {
@@ -253,7 +254,12 @@ export class EcommerceChecker extends BaseChecker {
 
   private async checkProductDescription(): Promise<CheckOutcome> {
     try {
-      const descriptionData = await this.page.evaluate(() => {
+      const minLength = this.threshold(
+        'product-description-present',
+        'minLength',
+        PRODUCT_DESCRIPTION_MIN_LENGTH
+      );
+      const descriptionData = await this.page.evaluate((minLength) => {
         const descriptionSelectors = [
           '[class*="description"]', '[id*="description"]',
           '[itemprop="description"]', '.product-description',
@@ -267,7 +273,7 @@ export class EcommerceChecker extends BaseChecker {
           return sum + (el.textContent?.length || 0);
         }, 0);
 
-        const hasLongDescription = totalDescriptionLength > 100;
+        const hasLongDescription = totalDescriptionLength > minLength;
         const hasFeaturesList = document.querySelectorAll('[class*="feature"], [class*="specification"]').length > 0;
 
         return {
@@ -276,14 +282,14 @@ export class EcommerceChecker extends BaseChecker {
           hasLongDescription,
           hasFeaturesList,
         };
-      });
+      }, minLength);
 
       if (descriptionData.descriptions === 0) {
         return this.fail('No product description found (required for SEO)');
       }
 
       if (!descriptionData.hasLongDescription) {
-        return this.fail(`Product description too short (${descriptionData.totalLength} chars, recommended: 200+)`, descriptionData);
+        return this.fail(`Product description too short (${descriptionData.totalLength} chars, recommended: ${minLength}+)`, descriptionData);
       }
 
       return this.pass(`Product description present (${descriptionData.totalLength} chars)`, descriptionData);

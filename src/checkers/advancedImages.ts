@@ -1,5 +1,13 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractImages, ImageData } from './shared/dom';
+import {
+  IMAGE_EXTENSION_MIN_LENGTH,
+  IMAGE_EXTENSION_MAX_LENGTH,
+  RESPONSIVE_IMAGES_MIN_COUNT,
+  RESPONSIVE_IMAGES_MIN_PERCENT,
+  LAZY_LOAD_MIN_IMAGE_COUNT,
+  MAX_IMAGES_WITHOUT_DIMENSIONS,
+} from '../config/thresholds';
 
 export class AdvancedImagesChecker extends BaseChecker {
   private imagesPromise?: Promise<ImageData[]>;
@@ -30,6 +38,8 @@ export class AdvancedImagesChecker extends BaseChecker {
     try {
       const images = await this.getImages();
       const formats: Record<string, number> = {};
+      const extMinLength = this.threshold('image-formats-modern', 'extMinLength', IMAGE_EXTENSION_MIN_LENGTH);
+      const extMaxLength = this.threshold('image-formats-modern', 'extMaxLength', IMAGE_EXTENSION_MAX_LENGTH);
 
       images.forEach((img) => {
         const src = img.src || '';
@@ -59,8 +69,13 @@ export class AdvancedImagesChecker extends BaseChecker {
             if (parts.length > 1) {
               // Get the last part and remove any query parameters
               const lastPart = parts[parts.length - 1].split('?')[0].split('#')[0];
-              // Only use if it looks like a valid extension (2-4 characters)
-              if (lastPart && lastPart.length >= 2 && lastPart.length <= 4 && /^[a-z0-9]+$/i.test(lastPart)) {
+              // Only use if it looks like a valid extension
+              if (
+                lastPart &&
+                lastPart.length >= extMinLength &&
+                lastPart.length <= extMaxLength &&
+                /^[a-z0-9]+$/i.test(lastPart)
+              ) {
                 ext = lastPart.toLowerCase();
               }
             }
@@ -111,8 +126,10 @@ export class AdvancedImagesChecker extends BaseChecker {
       const responsivePercentage = responsiveData.totalImages > 0
         ? (responsiveData.responsiveCount / responsiveData.totalImages) * 100
         : 0;
+      const minCount = this.threshold('responsive-images-adequate', 'minCount', RESPONSIVE_IMAGES_MIN_COUNT);
+      const minPercent = this.threshold('responsive-images-adequate', 'minPercent', RESPONSIVE_IMAGES_MIN_PERCENT);
 
-      if (responsiveData.totalImages > 5 && responsivePercentage < 50) {
+      if (responsiveData.totalImages > minCount && responsivePercentage < minPercent) {
         return this.fail(
           `Only ${responsivePercentage.toFixed(0)}% of images are responsive (use srcset or picture)`,
           responsiveData
@@ -142,7 +159,13 @@ export class AdvancedImagesChecker extends BaseChecker {
         lazyLoaded: lazyLoaded.length,
       };
 
-      if (lazyData.totalImages > 10 && lazyData.lazyLoaded === 0) {
+      const lazyLoadMinCount = this.threshold(
+        'lazy-loading-present',
+        'minImageCount',
+        LAZY_LOAD_MIN_IMAGE_COUNT
+      );
+
+      if (lazyData.totalImages > lazyLoadMinCount && lazyData.lazyLoaded === 0) {
         return this.fail('No lazy loading on images (consider adding loading="lazy" for performance)', lazyData);
       }
 
@@ -167,7 +190,13 @@ export class AdvancedImagesChecker extends BaseChecker {
         withoutDimensions: withoutDimensions.length,
       };
 
-      if (dimensionData.withoutDimensions > 3) {
+      const maxWithoutDimensions = this.threshold(
+        'image-dimensions-explicit',
+        'maxWithoutDimensions',
+        MAX_IMAGES_WITHOUT_DIMENSIONS
+      );
+
+      if (dimensionData.withoutDimensions > maxWithoutDimensions) {
         return this.fail(
           `${dimensionData.withoutDimensions} images missing width/height attributes (causes layout shift)`,
           dimensionData

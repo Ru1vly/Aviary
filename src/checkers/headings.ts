@@ -1,5 +1,6 @@
 import { HeadingStructure } from '../types';
 import { BaseChecker, CheckOutcome } from './base';
+import { HEADING_MAX_LENGTH } from '../config/thresholds';
 
 export class HeadingsChecker extends BaseChecker {
   protected checks() {
@@ -90,10 +91,11 @@ export class HeadingsChecker extends BaseChecker {
 
   private async checkHeadingLength(): Promise<CheckOutcome> {
     const headings = await this.getHeadings();
-    const longHeadings = headings.filter((h) => h.text.length > 70);
+    const maxLength = this.threshold('heading-length-acceptable', 'maxLength', HEADING_MAX_LENGTH);
+    const longHeadings = headings.filter((h) => h.text.length > maxLength);
 
     if (longHeadings.length > 0) {
-      return this.fail(`${longHeadings.length} heading(s) are too long (>70 characters)`, { longHeadings });
+      return this.fail(`${longHeadings.length} heading(s) are too long (>${maxLength} characters)`, { longHeadings });
     }
 
     return this.pass('All headings are of appropriate length');

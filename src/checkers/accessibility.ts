@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { MAX_NEGATIVE_TABINDEX_ELEMENTS } from '../config/thresholds';
 
 export class AccessibilityChecker extends BaseChecker {
   protected checks() {
@@ -142,8 +143,13 @@ export class AccessibilityChecker extends BaseChecker {
       });
 
       const issues: string[] = [];
+      const maxNegativeTabIndex = this.threshold(
+        'tab-order-natural',
+        'maxNegativeTabIndex',
+        MAX_NEGATIVE_TABINDEX_ELEMENTS
+      );
 
-      if (tabIndexData.negativeTabIndexCount > 5) {
+      if (tabIndexData.negativeTabIndexCount > maxNegativeTabIndex) {
         issues.push(`${tabIndexData.negativeTabIndexCount} elements with negative tabindex (removes from tab order)`);
       }
 
