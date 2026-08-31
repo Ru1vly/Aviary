@@ -1,12 +1,13 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractJsonLdBlocks } from './shared/dom';
+import { JsonLdBlock } from './shared/schemaTypes';
 
 export class StructuredDataChecker extends BaseChecker {
-  private jsonLdPromise?: Promise<unknown[]>;
+  private jsonLdPromise?: Promise<JsonLdBlock[]>;
 
-  private getJsonLd(): Promise<unknown[]> {
+  private getJsonLd(): Promise<JsonLdBlock[]> {
     if (!this.jsonLdPromise) {
-      this.jsonLdPromise = this.page.evaluate(extractJsonLdBlocks);
+      this.jsonLdPromise = this.page.evaluate(extractJsonLdBlocks) as Promise<JsonLdBlock[]>;
     }
     return this.jsonLdPromise;
   }
@@ -28,7 +29,7 @@ export class StructuredDataChecker extends BaseChecker {
       }
 
       // Extract schema types
-      const schemaTypes = jsonLdScripts.map((data: any) => {
+      const schemaTypes = jsonLdScripts.map((data) => {
         if (data['@type']) {
           return Array.isArray(data['@type']) ? data['@type'] : [data['@type']];
         }
@@ -60,9 +61,9 @@ export class StructuredDataChecker extends BaseChecker {
       }
 
       const itemTypes = microdataElements
-        .map((el: any) => el.itemType)
-        .filter((type: any) => type)
-        .filter((value: any, index: any, self: any) => self.indexOf(value) === index);
+        .map((el) => el.itemType)
+        .filter((type) => type)
+        .filter((value, index, self) => self.indexOf(value) === index);
 
       return this.pass(`Found ${microdataElements.length} Microdata elements`, {
         count: microdataElements.length,
@@ -84,7 +85,7 @@ export class StructuredDataChecker extends BaseChecker {
       const schemaTypes: string[] = [];
       const recommendations: string[] = [];
 
-      jsonLdScripts.forEach((data: any) => {
+      jsonLdScripts.forEach((data) => {
         if (data['@type']) {
           const types = Array.isArray(data['@type']) ? data['@type'] : [data['@type']];
           schemaTypes.push(...types);

@@ -1,17 +1,34 @@
 import { BaseChecker, CheckOutcome } from './base';
 import { extractJsonLdBlocks } from './shared/dom';
+import {
+  JsonLdBlock,
+  OrganizationSchema,
+  PersonSchema,
+  ProductSchema,
+  ArticleSchema,
+  BreadcrumbListSchema,
+  FAQPageSchema,
+  HowToSchema,
+  ReviewSchema,
+  EventSchema,
+  LocalBusinessSchema,
+  WebPageSchema,
+  WebSiteSchema,
+  ImageObjectSchema,
+  isSchemaType,
+} from './shared/schemaTypes';
 
 export class SchemaValidationChecker extends BaseChecker {
-  private jsonLdPromise?: Promise<unknown[]>;
+  private jsonLdPromise?: Promise<JsonLdBlock[]>;
 
   /**
    * All 15 checks below used to independently re-run page.evaluate() + JSON.parse
    * over every JSON-LD block on the page. Extracted once here and filtered in
    * memory per check instead.
    */
-  private getJsonLd(): Promise<unknown[]> {
+  private getJsonLd(): Promise<JsonLdBlock[]> {
     if (!this.jsonLdPromise) {
-      this.jsonLdPromise = this.page.evaluate(extractJsonLdBlocks);
+      this.jsonLdPromise = this.page.evaluate(extractJsonLdBlocks) as Promise<JsonLdBlock[]>;
     }
     return this.jsonLdPromise;
   }
@@ -39,9 +56,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkOrganizationSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const orgSchemas = schemas.filter(
-        (data: any) => data && (data['@type'] === 'Organization' || data['@type']?.includes('Organization'))
-      ) as any[];
+      const orgSchemas = schemas.filter((data): data is OrganizationSchema =>
+        isSchemaType<OrganizationSchema>(data, 'Organization', { includes: true })
+      );
 
       if (orgSchemas.length === 0) {
         return this.pass('No Organization schema (optional but recommended for businesses)');
@@ -75,7 +92,7 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkPersonSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const personSchemas = schemas.filter((data: any) => data && data['@type'] === 'Person') as any[];
+      const personSchemas = schemas.filter((data): data is PersonSchema => isSchemaType<PersonSchema>(data, 'Person'));
 
       if (personSchemas.length === 0) {
         return this.pass('No Person schema (optional, useful for personal brands)');
@@ -106,7 +123,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkProductSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const productSchemas = schemas.filter((data: any) => data && data['@type'] === 'Product') as any[];
+      const productSchemas = schemas.filter((data): data is ProductSchema =>
+        isSchemaType<ProductSchema>(data, 'Product')
+      );
 
       if (productSchemas.length === 0) {
         return this.pass('No Product schema (required for e-commerce pages)');
@@ -142,10 +161,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkArticleSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const articleSchemas = schemas.filter(
-        (data: any) =>
-          data && (data['@type'] === 'Article' || data['@type'] === 'NewsArticle' || data['@type'] === 'BlogPosting')
-      ) as any[];
+      const articleSchemas = schemas.filter((data): data is ArticleSchema =>
+        isSchemaType<ArticleSchema>(data, ['Article', 'NewsArticle', 'BlogPosting'])
+      );
 
       if (articleSchemas.length === 0) {
         return this.pass('No Article schema (recommended for blog posts and articles)');
@@ -181,7 +199,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkBreadcrumbSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const breadcrumbSchemas = schemas.filter((data: any) => data && data['@type'] === 'BreadcrumbList') as any[];
+      const breadcrumbSchemas = schemas.filter((data): data is BreadcrumbListSchema =>
+        isSchemaType<BreadcrumbListSchema>(data, 'BreadcrumbList')
+      );
 
       if (breadcrumbSchemas.length === 0) {
         return this.pass('No BreadcrumbList schema (recommended for better navigation)');
@@ -207,7 +227,7 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkFAQSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const faqSchemas = schemas.filter((data: any) => data && data['@type'] === 'FAQPage') as any[];
+      const faqSchemas = schemas.filter((data): data is FAQPageSchema => isSchemaType<FAQPageSchema>(data, 'FAQPage'));
 
       if (faqSchemas.length === 0) {
         return this.pass('No FAQPage schema (use for FAQ pages to get rich results)');
@@ -233,7 +253,7 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkHowToSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const howToSchemas = schemas.filter((data: any) => data && data['@type'] === 'HowTo') as any[];
+      const howToSchemas = schemas.filter((data): data is HowToSchema => isSchemaType<HowToSchema>(data, 'HowTo'));
 
       if (howToSchemas.length === 0) {
         return this.pass('No HowTo schema (use for tutorial/how-to content)');
@@ -264,9 +284,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkReviewSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const reviewSchemas = schemas.filter(
-        (data: any) => data && (data['@type'] === 'Review' || data['@type'] === 'AggregateRating')
-      ) as any[];
+      const reviewSchemas = schemas.filter((data): data is ReviewSchema =>
+        isSchemaType<ReviewSchema>(data, ['Review', 'AggregateRating'])
+      );
 
       if (reviewSchemas.length === 0) {
         return this.pass('No Review schema (use for product/business reviews)');
@@ -294,7 +314,7 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkEventSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const eventSchemas = schemas.filter((data: any) => data && data['@type'] === 'Event') as any[];
+      const eventSchemas = schemas.filter((data): data is EventSchema => isSchemaType<EventSchema>(data, 'Event'));
 
       if (eventSchemas.length === 0) {
         return this.pass('No Event schema (use for event pages)');
@@ -326,7 +346,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkLocalBusinessSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const businessSchemas = schemas.filter((data: any) => data && data['@type'] === 'LocalBusiness') as any[];
+      const businessSchemas = schemas.filter((data): data is LocalBusinessSchema =>
+        isSchemaType<LocalBusinessSchema>(data, 'LocalBusiness')
+      );
 
       if (businessSchemas.length === 0) {
         return this.pass('No LocalBusiness schema (use for local business pages)');
@@ -359,7 +381,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkWebPageSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const webPageSchemas = schemas.filter((data: any) => data && data['@type'] === 'WebPage') as any[];
+      const webPageSchemas = schemas.filter((data): data is WebPageSchema =>
+        isSchemaType<WebPageSchema>(data, 'WebPage')
+      );
 
       if (webPageSchemas.length === 0) {
         return this.pass('No WebPage schema (optional)');
@@ -382,7 +406,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkWebSiteSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const webSiteSchemas = schemas.filter((data: any) => data && data['@type'] === 'WebSite') as any[];
+      const webSiteSchemas = schemas.filter((data): data is WebSiteSchema =>
+        isSchemaType<WebSiteSchema>(data, 'WebSite')
+      );
 
       if (webSiteSchemas.length === 0) {
         return this.pass('No WebSite schema (recommended for homepage)');
@@ -408,7 +434,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkImageObjectSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const imageSchemas = schemas.filter((data: any) => data && data['@type'] === 'ImageObject');
+      const imageSchemas = schemas.filter((data): data is ImageObjectSchema =>
+        isSchemaType<ImageObjectSchema>(data, 'ImageObject')
+      );
 
       const schemaData = {
         found: imageSchemas.length > 0,
@@ -427,7 +455,7 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkSchemaRequiredFields(): Promise<CheckOutcome> {
     try {
-      const allSchemas = (await this.getJsonLd()) as any[];
+      const allSchemas = await this.getJsonLd();
 
       const missingContexts = allSchemas.filter((schema) => !schema['@context']);
       const missingTypes = allSchemas.filter((schema) => !schema['@type']);
@@ -462,9 +490,9 @@ export class SchemaValidationChecker extends BaseChecker {
 
   private async checkSchemaContext(): Promise<CheckOutcome> {
     try {
-      const allSchemas = (await this.getJsonLd()) as any[];
+      const allSchemas = await this.getJsonLd();
 
-      const contexts = allSchemas.map((schema) => schema['@context']).filter((ctx) => ctx);
+      const contexts = allSchemas.map((schema) => schema['@context']).filter((ctx): ctx is string => !!ctx);
 
       const validContexts = contexts.filter(
         (ctx: string) => ctx === 'https://schema.org' || ctx === 'http://schema.org'
