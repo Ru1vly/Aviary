@@ -180,7 +180,7 @@ Checks performed (235 checks across ${CHECKER_REGISTRY.length} categories):
   • Internationalization (hreflang, languages, localization, Unicode)
   • Heatmap & UX (predictive click maps, scroll depth, above-the-fold scoring)
 
-For more information, visit: https://github.com/Ru1vly/e2e-seo
+For more information, visit: https://github.com/Ru1vly/Aviary
   `);
 }
 

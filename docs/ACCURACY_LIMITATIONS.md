@@ -303,7 +303,7 @@ If you encounter false positives or inaccurate checks:
 1. **Verify:** Is this actually incorrect?
 2. **Report:** Create GitHub issue with tested URL, failed check, and expected behavior.
 
-**GitHub Issues:** [https://github.com/Ru1vly/e2e-seo/issues](https://github.com/Ru1vly/e2e-seo/issues)
+**GitHub Issues:** [https://github.com/Ru1vly/Aviary/issues](https://github.com/Ru1vly/Aviary/issues)
 
 ---
 

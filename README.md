@@ -167,8 +167,8 @@ To build and test the tool locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Ru1vly/e2e-seo.git
-cd e2e-seo
+git clone https://github.com/Ru1vly/Aviary.git
+cd Aviary
 
 # Install project dependencies
 pnpm install
