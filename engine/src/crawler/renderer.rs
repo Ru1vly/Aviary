@@ -12,12 +12,13 @@ use serde::{Deserialize, Serialize};
 use crate::context::PageContext;
 
 /// Detect whether the fast-path result looks like a SPA (minimal content, JS framework signals).
+///
+/// Word count alone is not a reliable signal — plenty of legitimate static
+/// pages (landing pages, example.com-style stubs) have well under 50 words
+/// of text. Low word count only means "render this" when paired with an
+/// actual SPA framework marker, or when the body is empty outright.
 pub fn looks_like_spa(ctx: &PageContext) -> bool {
     let word_count = ctx.text_content.split_whitespace().count();
-    if word_count < 50 {
-        return true;
-    }
-    // Check for common SPA root markers in the raw HTML.
     let html_lower = ctx.html.to_ascii_lowercase();
     let spa_markers = [
         "id=\"root\"",
@@ -27,7 +28,8 @@ pub fn looks_like_spa(ctx: &PageContext) -> bool {
         "ng-version",
         "data-server-rendered=\"false\"",
     ];
-    spa_markers.iter().any(|m| html_lower.contains(m))
+    let has_marker = spa_markers.iter().any(|m| html_lower.contains(m));
+    has_marker || word_count == 0
 }
 
 #[derive(Serialize)]
@@ -111,6 +113,12 @@ async fn worker_manager(node_worker_path: String, mut rx: mpsc::Receiver<(String
         let mut child = match Command::new("node")
             .arg(&node_worker_path)
             .arg(&socket_path)
+            // Without this, a worker survives its parent's exit whenever the
+            // host process is torn down without ever reaching the explicit
+            // `child.kill()` below (e.g. normal process exit while this task
+            // is still in its steady-state select loop) — it gets reparented
+            // to init and keeps running, along with its inherited stdio fds.
+            .kill_on_drop(true)
             .spawn() {
                 Ok(c) => c,
                 Err(e) => {

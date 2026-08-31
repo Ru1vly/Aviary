@@ -20,6 +20,24 @@ use std::{
 use tokio::sync::mpsc;
 use tokio::process::Command;
 
+/// The "TARGET URL" field starts pre-filled with a literal, editable
+/// `https://` (see `url_input` init below) rather than a placeholder, so
+/// typing a full URL — the same way the CLI's own `--help` examples show it
+/// — produces a doubled scheme (`https://https://example.com`). Strip the
+/// pre-filled prefix back off if the user typed their own scheme on top of
+/// it, so both "example.com" and "https://example.com" submit correctly.
+fn normalize_url(input: &str) -> String {
+    let trimmed = input.trim();
+    for prefix in ["https://", "http://"] {
+        if let Some(rest) = trimmed.strip_prefix(prefix)
+            && (rest.starts_with("http://") || rest.starts_with("https://"))
+        {
+            return rest.to_string();
+        }
+    }
+    trimmed.to_string()
+}
+
 // ─── SEO Report Structs ───────────────────────────────────────────────────────
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -553,7 +571,7 @@ async fn handle_setup_input(
         KeyCode::Enter => {
             app.active_screen = ActiveScreen::Loading;
 
-            let url = app.url_input.clone();
+            let url = normalize_url(&app.url_input);
             let preset = match app.preset_index {
                 0 => "basic",
                 1 => "advanced",
@@ -644,7 +662,7 @@ fn handle_dashboard_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<
                 app.active_screen = ActiveScreen::Loading;
                 app.loading_status = "Launching Playwright browser engine (full audit)...".to_string();
 
-                let url = app.url_input.clone();
+                let url = normalize_url(&app.url_input);
                 let preset = match app.preset_index {
                     0 => "basic",
                     1 => "advanced",
@@ -1492,4 +1510,41 @@ fn draw_detail_pane(f: &mut Frame, area: Rect, app: &App) {
         .style(Style::default().bg(BG).fg(FG));
 
     f.render_widget(detail_widget, area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_url_leaves_bare_host_on_default_prefix_alone() {
+        // The field starts pre-filled with "https://"; typing just the host
+        // on top of it is the expected/working usage pattern.
+        assert_eq!(normalize_url("https://example.com"), "https://example.com");
+    }
+
+    #[test]
+    fn normalize_url_strips_doubled_https_scheme() {
+        // Typing a full https:// URL on top of the pre-filled "https://"
+        // used to produce "https://https://example.com" and fail DNS.
+        assert_eq!(normalize_url("https://https://example.com"), "https://example.com");
+    }
+
+    #[test]
+    fn normalize_url_strips_doubled_scheme_with_mismatched_prefix() {
+        // Typing an http:// URL on top of the pre-filled "https://".
+        assert_eq!(normalize_url("https://http://example.com"), "http://example.com");
+    }
+
+    #[test]
+    fn normalize_url_leaves_single_scheme_untouched_when_default_was_cleared() {
+        // If the user backspaces the default away first, the result is a
+        // normal single-scheme URL and must not be touched.
+        assert_eq!(normalize_url("http://example.com"), "http://example.com");
+    }
+
+    #[test]
+    fn normalize_url_trims_whitespace() {
+        assert_eq!(normalize_url("  https://example.com  "), "https://example.com");
+    }
 }

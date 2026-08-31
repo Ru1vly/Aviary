@@ -5,6 +5,7 @@ import { generateHtmlReport } from './reporter';
 import { CHECKER_REGISTRY } from './checkers/registry';
 import * as fs from 'fs';
 import { loadEnvConfig } from './config/env';
+import { categorizeError, ErrorCategory } from './errors/types';
 import { createLogger } from './config/logger';
 import * as http from 'http';
 import * as client from 'prom-client';
@@ -265,6 +266,9 @@ async function main() {
   // Resolve preset: CLI --preset > ENV AVIARY_PRESET > undefined
   const effectivePreset = args.preset || envConfig.preset;
 
+  // Resolve timeout: ENV AVIARY_TIMEOUT > default (no CLI flag for this yet, per --help)
+  const effectiveTimeout = envConfig.timeout;
+
   // Resolve headless: CLI --headed (args.headless=false) > ENV AVIARY_HEADLESS > default (true)
   let effectiveHeadless = true;
   if (args.headless === false) {
@@ -291,6 +295,7 @@ async function main() {
     url: effectiveUrl,
     headless: effectiveHeadless,
     viewport,
+    timeout: effectiveTimeout,
     configFile: args.config,
     config,
   });
@@ -368,7 +373,18 @@ async function main() {
     // Exit with success code - tool ran successfully regardless of SEO score
     return;
   } catch (error) {
-    logger.error('Audit failed', { message: (error as Error).message });
+    const categorized = categorizeError(error);
+    logger.debug('Audit failed (raw)', {
+      message: categorized.message,
+      category: categorized.context.category,
+    });
+    const friendly: Partial<Record<ErrorCategory, string>> = {
+      [ErrorCategory.NETWORK]: `❌ Could not reach ${effectiveUrl}. Check the domain and your network connection.`,
+      [ErrorCategory.TIMEOUT]: `❌ Timed out waiting for ${effectiveUrl} to load.`,
+    };
+    process.stderr.write(
+      (friendly[categorized.context.category] ?? `❌ Audit failed: ${categorized.message}`) + '\n'
+    );
     process.exit(1);
   }
 }

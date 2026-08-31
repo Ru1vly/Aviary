@@ -127,9 +127,12 @@ export function categorizeError(error: unknown): SEOCheckerError {
 
   const errorMessage = error instanceof Error ? error.message : String(error);
   const originalError = error instanceof Error ? error : undefined;
+  // Real Playwright errors are capitalized (e.g. "Timeout 30000ms exceeded"),
+  // which the plain-lowercase 'timeout' check below misses.
+  const errorMessageLower = errorMessage.toLowerCase();
 
   // Categorize based on error message patterns
-  if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+  if (errorMessageLower.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
     return new TimeoutError(errorMessage, { originalError });
   }
 
@@ -138,7 +141,8 @@ export function categorizeError(error: unknown): SEOCheckerError {
     errorMessage.includes('ECONNREFUSED') ||
     errorMessage.includes('ENOTFOUND') ||
     errorMessage.includes('fetch failed') ||
-    errorMessage.includes('ERR_CONNECTION')
+    errorMessage.includes('ERR_CONNECTION') ||
+    errorMessage.includes('ERR_NAME_NOT_RESOLVED')
   ) {
     return new NetworkError(errorMessage, { originalError });
   }

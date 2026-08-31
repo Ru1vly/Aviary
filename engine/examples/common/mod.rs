@@ -10,8 +10,9 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
-// Body text is deliberately kept above 50 words: renderer::looks_like_spa
-// treats a page with fewer than 50 words as SPA-shaped and triggers the
+// Body text is deliberately kept non-empty and free of SPA framework
+// markers (id="root"/id="app"/etc.): renderer::looks_like_spa treats an
+// empty body, or a marker's presence, as SPA-shaped and triggers the
 // Node-renderer fallback, which isn't built in this example's environment.
 // These examples are meant to exercise the fast path; the fallback path
 // gets its own dedicated hardening/tests rather than incidental exercise
