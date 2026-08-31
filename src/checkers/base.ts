@@ -61,6 +61,18 @@ export abstract class BaseChecker {
     return { passed: false, message, details };
   }
 
+  /**
+   * Resolves a tunable threshold for one rule: a rule-level config override
+   * (`options[key]`) if present, otherwise the checker's own default constant.
+   * Lets `src/config/thresholds.ts`'s named constants stay overridable per rule
+   * without changing `checks()`'s `{id, run}` shape — `config`/`checkerKey` are
+   * already available on `this`.
+   */
+  protected threshold<T>(ruleId: string, key: string, defaultValue: T): T {
+    const resolved = ConfigLoader.getRuleConfig(this.config, this.checkerKey, ruleId);
+    return (resolved.options?.[key] as T) ?? defaultValue;
+  }
+
   /** The named checks this checker runs. Each `id` should match a rule name used in presets.ts. */
   protected abstract checks(): Array<{ id: string; run: () => Promise<CheckOutcome> }>;
 
