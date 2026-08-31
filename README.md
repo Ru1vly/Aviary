@@ -124,6 +124,8 @@ You can customize which audits to run and modify their rules via custom config f
 > - **advanced**: Comprehensive analysis covering heatmap simulations (default)
 > - **strict**: Full checks with stricter scoring rules
 
+Beyond enabling/disabling rules and setting severity, individual checks' numeric thresholds (minimum word count, title length bounds, image count ceilings, and so on) can be overridden per rule via an `options` object in the config file — see [`examples/CONFIG.md`](examples/CONFIG.md) for the full schema and available checkers.
+
 To write an HTML report programmatically:
 
 ```typescript

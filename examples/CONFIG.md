@@ -145,6 +145,25 @@ Each check can have one of three severity levels:
 }
 ```
 
+## Overriding Thresholds
+
+Many checks compare against a built-in numeric threshold (minimum word count, title length bounds, image count ceilings, tap-target sizes, and so on — see `src/config/thresholds.ts` for the full list of named defaults). Any of these can be overridden per rule via an `options` object, without forking the checker's source:
+
+```json
+{
+  "rules": {
+    "content": {
+      "word-count-adequate": {
+        "enabled": true,
+        "options": { "minWords": 500, "excellentWords": 1500 }
+      }
+    }
+  }
+}
+```
+
+The option keys are checker-specific (they match the argument names each checker passes to its internal `threshold()` calls — `minWords`/`excellentWords` for `content`'s `word-count-adequate`, `minLength`/`maxLength` for `metaTags`'s `title-length-valid`, and so on). An option you don't set keeps its built-in default; there's no need to repeat every threshold to override one.
+
 ## Available Checkers
 
 The following checkers are available:
@@ -176,6 +195,7 @@ The following checkers are available:
 - `legalCompliance` - Legal compliance
 - `ecommerce` - E-commerce specific checks
 - `internationalization` - Internationalization
+- `heatmap` - Predictive click/scroll/attention heatmap heuristics
 
 ## Example Configurations
 
