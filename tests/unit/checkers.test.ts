@@ -100,6 +100,54 @@ describe('AccessibilityChecker', () => {
     const results = await checker.checkAll();
     expect(results[1].passed).toBe(true);
   });
+
+  it('fails when no skip links are present', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="/about">About</a></body></html>`);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
+    const results = await checker.checkAll();
+    expect(results[2].passed).toBe(false);
+  });
+
+  it('passes when a skip link is present', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="#main">Skip to content</a></body></html>`);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
+    const results = await checker.checkAll();
+    expect(results[2].passed).toBe(true);
+  });
+
+  it('flags elements with a positive tabindex', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="/" tabindex="3">Link</a></body></html>`);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
+    const results = await checker.checkAll();
+    expect(results[3].passed).toBe(false);
+    expect(results[3].message).toContain('positive tabindex');
+  });
+
+  it('passes tab order when there is no tabindex usage', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="/">Link</a></body></html>`);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
+    const results = await checker.checkAll();
+    expect(results[3].passed).toBe(true);
+  });
+
+  it('flags negative-tabindex elements beyond a lowered threshold', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="/" tabindex="-1">Link</a></body></html>`);
+    const checker = new AccessibilityChecker({
+      page: p as Page,
+      checkerKey: 'accessibility',
+      config: { rules: { accessibility: { 'tab-order-natural': { options: { maxNegativeTabIndex: 0 } } } } },
+    });
+    const results = await checker.checkAll();
+    expect(results[3].passed).toBe(false);
+    expect(results[3].message).toContain('negative tabindex');
+  });
+
+  it('passes form labels when an input has a placeholder instead of a <label>', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><input type="text" placeholder="Name"></body></html>`);
+    const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(true);
+  });
 });
 
 // ─── LinksChecker ────────────────────────────────────────────────────────────
@@ -150,6 +198,69 @@ describe('LinksChecker', () => {
     const results = await checker.checkAll();
     const externalResult = results[1];
     expect(externalResult.passed).toBe(true);
+  });
+
+  it('flags links with no descriptive text', async () => {
+    // Absolute URLs: page.setContent() leaves window.location at "about:blank",
+    // where relative hrefs can't be URL-resolved at all (throws, caught, and
+    // mis-classified as internal before the withoutText check ever runs) —
+    // absolute hrefs avoid that resolution step entirely.
+    const p = await withContent(`
+      <!DOCTYPE html><html><body>
+        <a href="https://external.example/about">About</a>
+        <a href="https://external.example/other"></a>
+      </body></html>
+    `);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
+    const results = await checker.checkAll();
+    expect(results[0].passed).toBe(false);
+    expect(results[0].message).toContain('without descriptive text');
+  });
+
+  it('fails internal-links-descriptive when there are no internal links at all', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html><body><a href="https://external.example/x">External only</a></body></html>
+    `);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
+    const results = await checker.checkAll();
+    const internalResult = results[2];
+    expect(internalResult.passed).toBe(false);
+    expect(internalResult.message).toContain('No internal links');
+  });
+
+  it('flags internal links missing descriptive text', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="/about"></a></body></html>`);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
+    const results = await checker.checkAll();
+    const internalResult = results[2];
+    expect(internalResult.passed).toBe(false);
+    expect(internalResult.message).toContain('missing descriptive text');
+  });
+
+  it('passes internal-links-descriptive when links have text', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="/about">About us</a></body></html>`);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
+    const results = await checker.checkAll();
+    expect(results[2].passed).toBe(true);
+  });
+
+  it('reports "no external links found" when every link is internal', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><a href="/about">About</a></body></html>`);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
+    const results = await checker.checkAll();
+    expect(results[1].message).toContain('No external links');
+  });
+
+  it('reports external links with nofollow in the properly-configured summary', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html><body>
+        <a href="https://external.example/x" rel="noopener nofollow">External</a>
+      </body></html>
+    `);
+    const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(true);
+    expect(results[1].message).toContain('properly configured');
   });
 });
 
@@ -254,6 +365,63 @@ describe('SocialMediaChecker', () => {
     expect(results.length).toBeGreaterThan(0);
     expect(results.every((r) => 'passed' in r)).toBe(true);
   });
+
+  it('fails Twitter Card when partially configured', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html><head><meta name="twitter:card" content="summary"></head><body></body></html>
+    `);
+    const checker = new SocialMediaChecker({ page: p as Page, checkerKey: 'socialMedia' });
+    const results = await checker.checkAll();
+    expect(results[0].passed).toBe(false);
+    expect(results[0].message).toContain('incomplete');
+  });
+
+  it('fails Open Graph when no tags are present, and when partially configured', async () => {
+    const none = await withContent(`<!DOCTYPE html><html><head></head><body></body></html>`);
+    const noneChecker = new SocialMediaChecker({ page: none as Page, checkerKey: 'socialMedia' });
+    const noneResults = await noneChecker.checkAll();
+    expect(noneResults[1].passed).toBe(false);
+    expect(noneResults[1].message).toContain('No Open Graph');
+
+    const p = await withContent(`
+      <!DOCTYPE html><html><head><meta property="og:title" content="Title"></head><body></body></html>
+    `);
+    const checker = new SocialMediaChecker({ page: p as Page, checkerKey: 'socialMedia' });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(false);
+    expect(results[1].message).toContain('incomplete');
+  });
+
+  it('passes Open Graph tags when fully configured', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html><head>
+        <meta property="og:title" content="Title">
+        <meta property="og:description" content="Description text">
+        <meta property="og:image" content="https://example.com/img.jpg">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:url" content="https://example.com">
+        <meta property="og:type" content="website">
+      </head><body></body></html>
+    `);
+    const checker = new SocialMediaChecker({ page: p as Page, checkerKey: 'socialMedia' });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(true);
+  });
+
+  it('detects Facebook-specific tags and their absence', async () => {
+    const none = await withContent(`<!DOCTYPE html><html><head></head><body></body></html>`);
+    const noneChecker = new SocialMediaChecker({ page: none as Page, checkerKey: 'socialMedia' });
+    const noneResults = await noneChecker.checkAll();
+    expect(noneResults[2].message).toContain('No Facebook-specific tags');
+
+    const p = await withContent(`
+      <!DOCTYPE html><html><head><meta property="fb:app_id" content="12345"></head><body></body></html>
+    `);
+    const checker = new SocialMediaChecker({ page: p as Page, checkerKey: 'socialMedia' });
+    const results = await checker.checkAll();
+    expect(results[2].passed).toBe(true);
+    expect(results[2].message).toContain('Facebook-specific tags found');
+  });
 });
 
 // ─── TechnicalChecker ────────────────────────────────────────────────────────
@@ -299,6 +467,54 @@ describe('TechnicalChecker', () => {
     const duplicateResult = results[3];
     expect(duplicateResult.passed).toBe(true);
   });
+
+  it('flags a missing H1', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><head><title>Test</title></head><body></body></html>`);
+    const checker = new TechnicalChecker({ page: p as Page, response: null, checkerKey: 'technical' });
+    const results = await checker.checkAll();
+    expect(results[3].passed).toBe(false);
+    expect(results[3].message).toContain('No H1');
+  });
+
+  it('marks H1/Title alignment as optimal when they match', async () => {
+    const p = await withContent(
+      `<!DOCTYPE html><html><head><title>Same Text</title></head><body><h1>Same Text</h1></body></html>`
+    );
+    const checker = new TechnicalChecker({ page: p as Page, response: null, checkerKey: 'technical' });
+    const results = await checker.checkAll();
+    expect(results[3].passed).toBe(true);
+    expect(results[3].message).toContain('optimally aligned');
+  });
+
+  it('flags a large HTML page size (via a lowered threshold) and passes a small one', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><p>${'x'.repeat(500)}</p></body></html>`);
+    const checker = new TechnicalChecker({
+      page: p as Page,
+      response: null,
+      checkerKey: 'technical',
+      config: { rules: { technical: { 'page-size-acceptable': { options: { failKB: 0.1, warnKB: 0.05 } } } } },
+    });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(false);
+    expect(results[1].message).toContain('large');
+
+    const smallChecker = new TechnicalChecker({ page: p as Page, response: null, checkerKey: 'technical' });
+    const smallResults = await smallChecker.checkAll();
+    expect(smallResults[1].passed).toBe(true);
+  });
+
+  it('marks page size as acceptable-but-optimizable between warnKB and failKB', async () => {
+    const p = await withContent(`<!DOCTYPE html><html><body><p>${'x'.repeat(500)}</p></body></html>`);
+    const checker = new TechnicalChecker({
+      page: p as Page,
+      response: null,
+      checkerKey: 'technical',
+      config: { rules: { technical: { 'page-size-acceptable': { options: { failKB: 1000, warnKB: 0.05 } } } } },
+    });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(true);
+    expect(results[1].message).toContain('could be optimized');
+  });
 });
 
 // ─── UIElementsChecker ───────────────────────────────────────────────────────
@@ -328,6 +544,85 @@ describe('UIElementsChecker', () => {
     const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
     const results = await checker.checkAll();
     expect(results[0].passed).toBe(true);
+  });
+
+  it('flags breadcrumb HTML present without structured data', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html><body><nav class="breadcrumb"><a href="/">Home</a></nav></body></html>
+    `);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(false);
+    expect(results[1].message).toContain('missing structured data');
+  });
+
+  it('passes breadcrumbs when JSON-LD BreadcrumbList is present', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html><head>
+        <script type="application/ld+json">{"@type":"BreadcrumbList","itemListElement":[]}</script>
+      </head><body></body></html>
+    `);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
+    const results = await checker.checkAll();
+    expect(results[1].passed).toBe(true);
+  });
+
+  it('flags a missing lang attribute, and hreflang without x-default', async () => {
+    const noLang = await withContent(`<!DOCTYPE html><html><body></body></html>`);
+    const noLangChecker = new UIElementsChecker({ page: noLang as Page, checkerKey: 'uiElements' });
+    const noLangResults = await noLangChecker.checkAll();
+    expect(noLangResults[2].passed).toBe(false);
+
+    const p = await withContent(`
+      <!DOCTYPE html><html lang="en"><head>
+        <link rel="alternate" hreflang="fr" href="https://example.com/fr">
+      </head><body></body></html>
+    `);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
+    const results = await checker.checkAll();
+    expect(results[2].passed).toBe(false);
+    expect(results[2].message).toContain('x-default');
+  });
+
+  it('passes language tags with a proper x-default hreflang', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html lang="en"><head>
+        <link rel="alternate" hreflang="x-default" href="https://example.com/">
+      </head><body></body></html>
+    `);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
+    const results = await checker.checkAll();
+    expect(results[2].passed).toBe(true);
+    expect(results[2].message).toContain('hreflang tag');
+  });
+
+  it('flags a missing viewport, and warns when user-scalable=no', async () => {
+    const missing = await withContent(`<!DOCTYPE html><html><head></head><body></body></html>`);
+    const missingChecker = new UIElementsChecker({ page: missing as Page, checkerKey: 'uiElements' });
+    const missingResults = await missingChecker.checkAll();
+    expect(missingResults[3].passed).toBe(false);
+    expect(missingResults[3].message).toContain('Missing viewport');
+
+    const noZoom = await withContent(`
+      <!DOCTYPE html><html><head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+      </head><body></body></html>
+    `);
+    const noZoomChecker = new UIElementsChecker({ page: noZoom as Page, checkerKey: 'uiElements' });
+    const noZoomResults = await noZoomChecker.checkAll();
+    expect(noZoomResults[3].passed).toBe(false);
+    expect(noZoomResults[3].message).toContain('user-scalable=no');
+  });
+
+  it('passes a properly configured mobile viewport', async () => {
+    const p = await withContent(`
+      <!DOCTYPE html><html><head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+      </head><body></body></html>
+    `);
+    const checker = new UIElementsChecker({ page: p as Page, checkerKey: 'uiElements' });
+    const results = await checker.checkAll();
+    expect(results[3].passed).toBe(true);
   });
 });
 
