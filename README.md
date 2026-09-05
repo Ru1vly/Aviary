@@ -31,7 +31,7 @@ The library executes 235 individual checks across 28 categories (heatmap's click
 Install the package via npm:
 
 ```bash
-npm install aviary
+npm install @ru1vly/aviary
 ```
 
 To install globally as a command-line tool:

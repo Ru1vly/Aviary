@@ -80,6 +80,8 @@ jobs:
             fast_artifact_name: aviary-fast-windows-amd64.exe
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: '${{ matrix.target }}' }
       - uses: Swatinem/rust-cache@v2
@@ -87,6 +89,16 @@ jobs:
       - name: Install cross (for ARM builds)
         if: matrix.cross
         run: cargo install cross --git https://github.com/cross-rs/cross
+      # `cross build` runs the aarch64 binary *inside* its own Docker
+      # container via QEMU, but that container exits once the build is
+      # done -- registering binfmt_misc on the host here too is what lets
+      # the smoke-test step below actually execute the resulting aarch64
+      # binary directly on this x86_64 runner afterward.
+      - name: Install QEMU user-mode emulation (for cross-arch smoke test)
+        if: matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
       # --bin aviary-fast selects the binary *target* (engine/src/bin/aviary_fast.rs)
       # from the aviary-engine package — "aviary-fast" is a binary name, not
       # a package name, so `--package aviary-fast` alone wouldn't resolve.
@@ -108,6 +120,14 @@ jobs:
           cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "${{ matrix.artifact_name }}"
           cp "target/${{ matrix.target }}/release/${{ matrix.fast_binary_name }}" "${{ matrix.fast_artifact_name }}"
         shell: bash
+      # Runs the just-built binary once on its own native (or, for the
+      # cross target, QEMU-emulated) runner. CI has no real TTY so the TUI
+      # is expected to fail once it tries to open one -- this only checks
+      # that failure is the TUI's own runtime error, not the OS refusing
+      # to load the binary at all (wrong target, missing shared libs).
+      - name: Smoke test binary runs on this platform
+        run: node scripts/smoke-test-binary.js "./${{ matrix.artifact_name }}"
+        shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
@@ -117,11 +137,75 @@ jobs:
           name: ${{ matrix.fast_artifact_name }}
           path: ${{ matrix.fast_artifact_name }}
 
+  # ── Publish per-platform binary packages ────────────────────
+  # Each npm/<platform>/ package bundles just the `tui` + `aviary-fast`
+  # binaries for one os/cpu pair, restricted via package.json's "os"/"cpu"
+  # fields so npm only installs the one matching the current machine. The
+  # main package depends on all five as optionalDependencies (see below) —
+  # this has to publish first so that dependency resolves immediately for
+  # anyone installing the main package right after release.
+  publish-platform-packages:
+    name: Publish platform package (${{ matrix.dir }})
+    runs-on: ubuntu-latest
+    needs: [build-rust-matrix]
+    strategy:
+      matrix:
+        include:
+          - dir: linux-x64
+            artifact_name: tui-linux-amd64
+            fast_artifact_name: aviary-fast-linux-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: linux-arm64
+            artifact_name: tui-linux-arm64
+            fast_artifact_name: aviary-fast-linux-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: darwin-x64
+            artifact_name: tui-macos-amd64
+            fast_artifact_name: aviary-fast-macos-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: darwin-arm64
+            artifact_name: tui-macos-arm64
+            fast_artifact_name: aviary-fast-macos-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: win32-x64
+            artifact_name: tui-windows-amd64
+            fast_artifact_name: aviary-fast-windows-amd64.exe
+            binary_name: tui.exe
+            fast_binary_name: aviary-fast.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+          registry-url: 'https://registry.npmjs.org'
+      - uses: actions/download-artifact@v4
+        with: { name: '${{ matrix.artifact_name }}', path: 'npm/${{ matrix.dir }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: '${{ matrix.fast_artifact_name }}', path: 'npm/${{ matrix.dir }}' }
+      - name: Rename binaries and set executable bit
+        working-directory: npm/${{ matrix.dir }}
+        run: |
+          mv "${{ matrix.artifact_name }}" "${{ matrix.binary_name }}"
+          mv "${{ matrix.fast_artifact_name }}" "${{ matrix.fast_binary_name }}"
+          chmod +x "${{ matrix.binary_name }}" "${{ matrix.fast_binary_name }}" || true
+      - name: Set version from tag
+        working-directory: npm/${{ matrix.dir }}
+        run: npm version ${{ github.ref_name }} --no-git-tag-version
+      - name: Publish to npm
+        working-directory: npm/${{ matrix.dir }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
   # ── Build & Publish npm package ────────────────────────────
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, publish-platform-packages]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -131,15 +215,24 @@ jobs:
           node-version: '${{ env.NODE_VERSION }}'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
-      # `pnpm run build` also builds the Rust TUI bundled into the package
-      # (see scripts/build-tui.js) — this runner needs a Rust toolchain too.
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with: { workspaces: '. -> target' }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
+      # TS only — the native TUI binary now ships via the per-platform
+      # optionalDependencies published above, not bundled into dist/.
+      - run: pnpm run build:ts
       - name: Set version from tag
-        run: npm version ${{ github.ref_name }} --no-git-tag-version
+        run: |
+          npm version ${{ github.ref_name }} --no-git-tag-version
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const version = process.env.GITHUB_REF_NAME.replace(/^v/, '');
+            for (const dep of Object.keys(pkg.optionalDependencies || {})) {
+              pkg.optionalDependencies[dep] = version;
+            }
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
       - name: Verify package contents (dry run)
         run: pnpm publish --dry-run --access public --no-git-checks
       - name: Publish to npm
@@ -223,7 +316,7 @@ jobs:
 
             ## Installation
             ```bash
-            npm install -g aviary
+            npm install -g @ru1vly/aviary
             ```
 
             ## TUI Binaries

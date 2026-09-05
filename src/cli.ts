@@ -194,11 +194,14 @@ async function main() {
   if (hasNoArgs && !envConfig.url) {
     const path = await import('path');
     const { spawn } = await import('child_process');
-    const tuiPath = path.join(__dirname, 'tui');
+    const { resolveTuiBinary, supportedPlatforms } = await import('./tuiBinary');
+    const tuiPath = resolveTuiBinary();
 
-    if (!fs.existsSync(tuiPath)) {
-      process.stderr.write('❌ Error: TUI binary not found.\n');
-      process.stderr.write('   Please run "npm run build" to compile the TUI dashboard.\n');
+    if (!tuiPath) {
+      process.stderr.write('❌ Error: TUI binary not found for this platform.\n');
+      process.stderr.write(`   Supported platforms: ${supportedPlatforms().join(', ')}\n`);
+      process.stderr.write(`   Detected: ${process.platform}-${process.arch}\n`);
+      process.stderr.write('   If you are building from source, run "npm run build" first.\n');
       process.exit(1);
     }
 
@@ -303,6 +306,25 @@ async function main() {
   try {
     const report = await checker.check();
 
+    // Resolve output paths: CLI > ENV
+    const effectiveOutput = args.output || envConfig.output;
+    const effectiveHtmlOutput = args.html || envConfig.htmlOutput;
+
+    // Write requested report files before the --json early-return below --
+    // both flags are commonly passed together (e.g. the TUI always passes
+    // both --json, to parse results back, and --html), and used to silently
+    // skip --html/--output entirely because that write lived after this
+    // return.
+    if (effectiveOutput) {
+      fs.writeFileSync(effectiveOutput, JSON.stringify(report, null, 2));
+      logger.info('JSON report saved', { path: effectiveOutput });
+    }
+
+    if (effectiveHtmlOutput) {
+      generateHtmlReport(report, effectiveHtmlOutput);
+      logger.info('HTML report saved', { path: effectiveHtmlOutput });
+    }
+
     // If JSON output is requested, ONLY print JSON to stdout (12-Factor: clean stdout)
     if (args.json) {
       process.stdout.write(JSON.stringify(report, null, 2) + '\n');
@@ -355,20 +377,6 @@ async function main() {
       });
       process.stderr.write('\n');
     });
-
-    // Resolve output paths: CLI > ENV
-    const effectiveOutput = args.output || envConfig.output;
-    const effectiveHtmlOutput = args.html || envConfig.htmlOutput;
-
-    if (effectiveOutput) {
-      fs.writeFileSync(effectiveOutput, JSON.stringify(report, null, 2));
-      logger.info('JSON report saved', { path: effectiveOutput });
-    }
-
-    if (effectiveHtmlOutput) {
-      generateHtmlReport(report, effectiveHtmlOutput);
-      logger.info('HTML report saved', { path: effectiveHtmlOutput });
-    }
 
     // Exit with success code - tool ran successfully regardless of SEO score
     return;

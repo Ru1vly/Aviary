@@ -1,0 +1,9 @@
+{
+  "name": "@ru1vly/aviary-win32-x64",
+  "version": "1.0.0",
+  "description": "Prebuilt aviary TUI binary for win32/x64 -- internal optionalDependency of @ru1vly/aviary, not for direct use.",
+  "license": "MIT",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "files": ["tui.exe", "aviary-fast.exe"]
+}

@@ -27,6 +27,87 @@ function scoreGrade(score: number): string {
   return 'F';
 }
 
+// ─── Heatmap visualization ────────────────────────────────────────────────────
+// The heatmap checker (src/checkers/heatmap.ts) computes real click/attention
+// coordinates and a page screenshot, but until now they were only ever
+// summarized into a pass/fail message -- this renders the actual overlay so
+// a person can look at the page and judge attention flow themselves, not
+// just take the checker's verdict.
+
+interface HeatmapPointDetail {
+  x: number;
+  y: number;
+  value: number;
+  element?: string;
+}
+
+interface AttentionZoneDetail {
+  selector: string;
+  score: number;
+  zone: string;
+  bounds: { top: number; left: number; width: number; height: number };
+}
+
+/** Blue (cold/low value) to red (hot/high value), matching a conventional heatmap gradient. */
+function heatmapColor(value: number): string {
+  const clamped = Math.max(0, Math.min(100, value));
+  const hue = 240 - (240 * clamped) / 100;
+  return `hsl(${hue}, 90%, 50%)`;
+}
+
+function renderHeatmapVisualization(heatmapChecks: SEOCheckResult[]): string {
+  const clickCheck = heatmapChecks.find((c) => c.name === 'click-heatmap-generated');
+  const attentionCheck = heatmapChecks.find((c) => c.name === 'attention-zones-strong');
+
+  const screenshot = clickCheck?.details?.screenshot as string | undefined;
+  if (!screenshot) return '';
+
+  const pageWidth = (clickCheck?.details?.pageWidth as number) || 1;
+  const pageHeight = (clickCheck?.details?.pageHeight as number) || 1;
+  const points = (clickCheck?.details?.allPoints as HeatmapPointDetail[] | undefined) ?? [];
+  const zones = (attentionCheck?.details?.allAttentionElements as AttentionZoneDetail[] | undefined) ?? [];
+
+  const dots = points
+    .map((p) => {
+      const left = ((p.x / pageWidth) * 100).toFixed(2);
+      const top = ((p.y / pageHeight) * 100).toFixed(2);
+      const size = 14 + (p.value / 100) * 22;
+      const color = heatmapColor(p.value);
+      const title = escapeHtml(`${p.element ?? 'element'} (${Math.round(p.value)})`);
+      return `<div class="heatmap-dot" title="${title}" style="left:${left}%;top:${top}%;width:${size}px;height:${size}px;background:radial-gradient(circle, ${color}99 0%, ${color}00 70%);"></div>`;
+    })
+    .join('');
+
+  const zoneBoxes = zones
+    .map((z) => {
+      const left = ((z.bounds.left / pageWidth) * 100).toFixed(2);
+      const top = ((z.bounds.top / pageHeight) * 100).toFixed(2);
+      const width = ((z.bounds.width / pageWidth) * 100).toFixed(2);
+      const height = ((z.bounds.height / pageHeight) * 100).toFixed(2);
+      const color = heatmapColor(z.score);
+      const title = escapeHtml(`${z.selector} — attention score ${Math.round(z.score)} (${z.zone})`);
+      return `<div class="heatmap-zone" title="${title}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;border-color:${color};"></div>`;
+    })
+    .join('');
+
+  return `
+  <div class="issues-section" id="heatmap-visualization">
+    <h2 class="section-title">🔥 Heatmap Visualization</h2>
+    <p class="heatmap-caption">Predicted click attention (dots) and high-attention zones (boxes) overlaid on the actual page — hover a marker for details. Judge for yourself where a visitor's eye actually goes.</p>
+    <div class="heatmap-frame">
+      <img class="heatmap-screenshot" src="data:image/jpeg;base64,${screenshot}" alt="Page screenshot with heatmap overlay" />
+      <div class="heatmap-overlay">
+        ${zoneBoxes}
+        ${dots}
+      </div>
+    </div>
+    <div class="heatmap-legend">
+      <span class="heatmap-legend-swatch" style="background:${heatmapColor(10)}"></span> Low attention
+      <span class="heatmap-legend-swatch" style="background:${heatmapColor(90)}"></span> High attention
+    </div>
+  </div>`;
+}
+
 function severityBadge(severity?: string): string {
   if (!severity) return '';
   const map: Record<string, string> = {
@@ -128,6 +209,8 @@ function generateHtml(report: SEOReport): string {
     </tr>`).join('');
 
   const moreCount = allFailed.length - 20;
+
+  const heatmapVisualization = renderHeatmapVisualization(report.checks.heatmap ?? []);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -237,6 +320,47 @@ function generateHtml(report: SEOReport): string {
     .row-warn  td:first-child { border-left: 3px solid var(--amber); }
     .row-info  td:first-child { border-left: 3px solid var(--blue); }
     .more-row td { color: var(--text-muted); font-style: italic; padding: 0.5rem 1rem; }
+
+    /* ── Heatmap visualization ── */
+    .heatmap-caption { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; }
+    .heatmap-frame {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .heatmap-screenshot { display: block; max-width: 100%; height: auto; }
+    .heatmap-overlay { position: absolute; inset: 0; }
+    .heatmap-dot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      pointer-events: auto;
+    }
+    .heatmap-zone {
+      position: absolute;
+      border: 2px solid;
+      border-radius: 4px;
+      background: transparent;
+      pointer-events: auto;
+    }
+    .heatmap-legend {
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .heatmap-legend-swatch {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      margin-left: 0.75rem;
+    }
+    .heatmap-legend-swatch:first-child { margin-left: 0; }
 
     /* ── Category overview grid ── */
     .overview-grid {
@@ -388,6 +512,9 @@ function generateHtml(report: SEOReport): string {
   <div class="issues-section">
     <p style="color: var(--green); font-weight: 600; font-size: 1.1rem;">🎉 All checks passed!</p>
   </div>`}
+
+  <!-- ── Heatmap visualization ── -->
+  ${heatmapVisualization}
 
   <!-- ── Category overview grid ── -->
   <div class="issues-section">

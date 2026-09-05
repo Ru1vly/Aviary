@@ -1,12 +1,63 @@
 import { BaseChecker, CheckOutcome } from './base';
-import { extractJsonLdBlocks } from './shared/dom';
+import { extractJsonLdBlocks, isHttpsUrl, resolveDescriptiveText } from './shared/dom';
 import { PRODUCT_DESCRIPTION_MIN_LENGTH } from '../config/thresholds';
 import { JsonLdBlock, ProductSchema, isSchemaType } from './shared/schemaTypes';
 
 export class EcommerceChecker extends BaseChecker {
+  // Memoized within one checkAll() run -- checks execute sequentially (see
+  // BaseChecker.checkAll's for-await loop), so a plain field is safe here
+  // without a lock; this just avoids re-running the detection evaluate()
+  // calls for every one of the three checks that gate on it below.
+  private ecommerceSignalPromise?: Promise<boolean>;
+
+  /**
+   * Whether this page shows any signal of actually being a product/
+   * e-commerce page at all (Product schema, a price display, or an
+   * add-to-cart button). Gates the three checks below that assume
+   * e-commerce-specific content (a product description, brand info,
+   * "secure checkout" wording) is universally expected -- without this,
+   * every non-e-commerce page in an audit failed those checks and had its
+   * score dragged down for simply not being a storefront, the same way
+   * price/cart/availability/etc. above already pass gracefully when their
+   * own specific signal is absent. Redundant with the dedicated `security`
+   * checker's `https-enabled` check, so skipping HTTPS enforcement here for
+   * non-e-commerce pages doesn't lose real coverage.
+   */
+  private isLikelyEcommercePage(): Promise<boolean> {
+    if (!this.ecommerceSignalPromise) {
+      this.ecommerceSignalPromise = (async () => {
+        const jsonLdBlocks = await this.page.evaluate(extractJsonLdBlocks);
+        const hasProductSchema = jsonLdBlocks.some((data) => isSchemaType(data as JsonLdBlock, 'Product'));
+        if (hasProductSchema) return true;
+
+        return this.page.evaluate(() => {
+          const priceSelectors = [
+            '[class*="price"]', '[id*="price"]',
+            '[itemprop="price"]', '.product-price', '.price',
+          ];
+          const hasPriceElement = priceSelectors.some((selector) => document.querySelectorAll(selector).length > 0);
+          if (hasPriceElement) return true;
+
+          const cartButtons = Array.from(document.querySelectorAll('button, a, input[type="submit"]')).filter((el) => {
+            const text = el.textContent?.toLowerCase() || '';
+            const value = (el as HTMLInputElement).value?.toLowerCase() || '';
+            return text.includes('add to cart') || text.includes('buy now') || value.includes('add to cart');
+          });
+          return cartButtons.length > 0;
+        });
+      })();
+    }
+    return this.ecommerceSignalPromise;
+  }
+
   protected checks() {
     return [
-      { id: 'product-schema-complete', run: () => this.checkProductSchema() },
+      // Note: distinct from schemaValidation.ts's own 'product-schema-complete'
+      // id -- this check applies e-commerce-specific completeness criteria
+      // (description, sku, brand, price) on top of schemaValidation's more
+      // general one (name/image/offers), so the two ids must stay distinct to
+      // avoid conflating two different verdicts under one name in reports.
+      { id: 'ecommerce-product-schema-complete', run: () => this.checkProductSchema() },
       { id: 'price-display-clear', run: () => this.checkPriceDisplay() },
       { id: 'availability-info-present', run: () => this.checkAvailability() },
       { id: 'reviews-ratings-schema-present', run: () => this.checkReviewsRatings() },
@@ -255,35 +306,38 @@ export class EcommerceChecker extends BaseChecker {
 
   private async checkProductDescription(): Promise<CheckOutcome> {
     try {
+      if (!(await this.isLikelyEcommercePage())) {
+        return this.pass('Not an e-commerce page — product description not required');
+      }
+
       const minLength = this.threshold(
         'product-description-present',
         'minLength',
         PRODUCT_DESCRIPTION_MIN_LENGTH
       );
-      const descriptionData = await this.page.evaluate((minLength) => {
-        const descriptionSelectors = [
-          '[class*="description"]', '[id*="description"]',
-          '[itemprop="description"]', '.product-description',
-        ];
+      const descriptionSelectors = [
+        '[class*="description"]', '[id*="description"]',
+        '[itemprop="description"]', '.product-description',
+      ];
+      // Sums text "near" the matched containers, not just their own descendant
+      // text -- some sites (confirmed on books.toscrape.com) name only the
+      // *label* of the description section (e.g. a heading-only wrapper) and
+      // put the actual paragraph as a DOM sibling, which a plain
+      // textContent sum would silently undercount. See resolveDescriptiveText.
+      const resolved = await this.page.evaluate(resolveDescriptiveText, {
+        selectors: descriptionSelectors,
+        minLength,
+      });
+      const hasFeaturesList = await this.page.evaluate(
+        () => document.querySelectorAll('[class*="feature"], [class*="specification"]').length > 0
+      );
 
-        const descriptions = descriptionSelectors.flatMap((selector) =>
-          Array.from(document.querySelectorAll(selector))
-        );
-
-        const totalDescriptionLength = descriptions.reduce((sum, el) => {
-          return sum + (el.textContent?.length || 0);
-        }, 0);
-
-        const hasLongDescription = totalDescriptionLength > minLength;
-        const hasFeaturesList = document.querySelectorAll('[class*="feature"], [class*="specification"]').length > 0;
-
-        return {
-          descriptions: descriptions.length,
-          totalLength: totalDescriptionLength,
-          hasLongDescription,
-          hasFeaturesList,
-        };
-      }, minLength);
+      const descriptionData = {
+        descriptions: resolved.containerCount,
+        totalLength: resolved.length,
+        hasLongDescription: resolved.length > minLength,
+        hasFeaturesList,
+      };
 
       if (descriptionData.descriptions === 0) {
         return this.fail('No product description found (required for SEO)');
@@ -326,6 +380,10 @@ export class EcommerceChecker extends BaseChecker {
 
   private async checkBrandInformation(): Promise<CheckOutcome> {
     try {
+      if (!(await this.isLikelyEcommercePage())) {
+        return this.pass('Not an e-commerce page — brand information not required');
+      }
+
       const brandData = await this.page.evaluate(() => {
         const brandElements = Array.from(document.querySelectorAll('[class*="brand"], [id*="brand"], [itemprop="brand"]'));
 
@@ -437,7 +495,11 @@ export class EcommerceChecker extends BaseChecker {
 
   private async checkSecureCheckout(): Promise<CheckOutcome> {
     try {
-      const securityData = await this.page.evaluate(() => {
+      if (!(await this.isLikelyEcommercePage())) {
+        return this.pass('Not an e-commerce page — secure checkout indicators not required');
+      }
+
+      const rawSecurityData = await this.page.evaluate(() => {
         const securityKeywords = ['secure checkout', 'ssl', 'encrypted', 'secure payment'];
 
         const bodyText = document.body.textContent?.toLowerCase() || '';
@@ -445,14 +507,12 @@ export class EcommerceChecker extends BaseChecker {
 
         const securityBadges = document.querySelectorAll('[class*="secure"], [class*="ssl"], [alt*="secure"]');
 
-        const isHTTPS = window.location.protocol === 'https:';
-
         return {
           hasSecurityMention,
           securityBadges: securityBadges.length,
-          isHTTPS,
         };
       });
+      const securityData = { ...rawSecurityData, isHTTPS: isHttpsUrl(this.page.url()) };
 
       if (!securityData.isHTTPS) {
         return this.fail('Not using HTTPS (critical for e-commerce)', securityData);

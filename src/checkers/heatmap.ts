@@ -157,7 +157,8 @@ export class HeatmapChecker extends BaseChecker {
         points,
         totalInteractive: elements.length,
         viewportHeight: window.innerHeight,
-        pageHeight: document.documentElement.scrollHeight
+        pageHeight: document.documentElement.scrollHeight,
+        pageWidth: document.documentElement.scrollWidth,
       };
     }, { goodTargetWidth, goodTargetHeight });
 
@@ -170,20 +171,47 @@ export class HeatmapChecker extends BaseChecker {
     const aboveFoldPoints = heatmapData.points.filter(
       (p: HeatmapPoint) => p.y < heatmapData.viewportHeight
     );
+    const sortedPoints = [...heatmapData.points].sort(
+      (a: HeatmapPoint, b: HeatmapPoint) => b.value - a.value
+    );
+
+    // A full-page screenshot lets the HTML report overlay these points
+    // visually instead of just listing coordinates -- best-effort since the
+    // mock Page used by unit tests doesn't implement screenshot().
+    let screenshot: string | undefined;
+    if (typeof this.page.screenshot === 'function') {
+      try {
+        const buffer = await this.page.screenshot({ type: 'jpeg', quality: 40, fullPage: true });
+        screenshot = buffer.toString('base64');
+      } catch {
+        // Screenshot is a visualization nice-to-have, not a check result --
+        // never fail the check itself over it.
+      }
+    }
 
     return {
       passed: hasGoodDistribution && aboveFoldPoints.length > 0,
+      // "Predicted"/"estimated" throughout this checker is deliberate, not
+      // decorative: these scores are heuristic weightings (element type, size,
+      // position, color) with no ground truth available from a static crawl
+      // -- there's no real click/attention data to compare against here, so
+      // the wording should never imply a measured fact. See
+      // docs/ACCURACY_LIMITATIONS.md.
       message: hasGoodDistribution
-        ? `Click heatmap generated: ${heatmapData.points.length} interactive elements found (${aboveFoldPoints.length} above fold)`
+        ? `Predicted click heatmap generated: ${heatmapData.points.length} interactive elements found (${aboveFoldPoints.length} above fold)`
         : `Low interactive element count: ${heatmapData.points.length} elements found`,
       details: {
         totalPoints: heatmapData.points.length,
         aboveFoldPoints: aboveFoldPoints.length,
-        topElements: heatmapData.points
-          .sort((a: HeatmapPoint, b: HeatmapPoint) => b.value - a.value)
-          .slice(0, 10),
+        topElements: sortedPoints.slice(0, 10),
+        // Full point set + page screenshot for the HTML report's visual
+        // heatmap overlay and the TUI's heatmap canvas -- topElements above
+        // stays capped at 10 for the plain-text pass/fail message.
+        allPoints: sortedPoints.slice(0, 500),
         pageHeight: heatmapData.pageHeight,
+        pageWidth: heatmapData.pageWidth,
         viewportHeight: heatmapData.viewportHeight,
+        screenshot,
       },
     };
   }
@@ -202,25 +230,47 @@ export class HeatmapChecker extends BaseChecker {
       const viewportHeight = window.innerHeight;
       const folds = Math.ceil(pageHeight / viewportHeight);
 
-      // Analyze content at different scroll depths
+      // Analyze content at different scroll depths.
+      //
+      // This deliberately doesn't use document.elementsFromPoint(): that API
+      // takes viewport-relative coordinates and reports what's currently
+      // rendered on screen, but the page is never actually scrolled here --
+      // so any yPosition beyond one viewport height (i.e. most of a page
+      // taller than the fold) queried an off-screen point and silently
+      // returned an empty array, zeroing contentScore for nearly every depth
+      // band on a typical page (previously documented in
+      // docs/ACCURACY_LIMITATIONS.md as an inherent limitation; it's a fixable
+      // bug instead). Walking each candidate element's document-relative
+      // bounding box once and bucketing by overlap with a depth band avoids
+      // needing the browser to have actually scrolled there.
+      const candidateSelectors = 'h1, h2, h3, img, video, button, a, p';
+      const candidates = Array.from(document.querySelectorAll(candidateSelectors)).map((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          tagName: el.tagName,
+          top: rect.top + window.scrollY,
+          bottom: rect.bottom + window.scrollY,
+          textLength: el.tagName === 'P' ? (el.textContent || '').length : 0,
+        };
+      });
+
       const depthAnalysis: { depth: number; percentage: number; contentScore: number }[] = [];
 
       for (let i = 0; i <= 100; i += 25) {
         const yPosition = (pageHeight * i) / 100;
-
-        // Count visible elements at this depth
-        const elementsAtDepth = document.elementsFromPoint(
-          viewportHeight / 2,
-          Math.min(yPosition, pageHeight - 1)
-        );
+        const bandTop = Math.max(0, yPosition - viewportHeight / 2);
+        const bandBottom = Math.min(pageHeight, yPosition + viewportHeight / 2);
 
         // Calculate content score based on element types
         let contentScore = 0;
-        elementsAtDepth.forEach((el) => {
+        candidates.forEach((el) => {
+          const overlapsBand = el.bottom >= bandTop && el.top <= bandBottom;
+          if (!overlapsBand) return;
+
           if (['H1', 'H2', 'H3', 'IMG', 'VIDEO', 'BUTTON', 'A'].includes(el.tagName)) {
             contentScore += 10;
           }
-          if (el.tagName === 'P' && el.textContent && el.textContent.length > paragraphMinLength) {
+          if (el.tagName === 'P' && el.textLength > paragraphMinLength) {
             contentScore += 5;
           }
         });
@@ -382,10 +432,13 @@ export class HeatmapChecker extends BaseChecker {
     return {
       passed: hasStrongHeroContent,
       message: hasStrongHeroContent
-        ? `Strong attention zones: ${attentionData.fPatternCoverage} high-priority elements above fold`
-        : `Weak attention zones: Only ${attentionData.fPatternCoverage} high-priority elements above fold`,
+        ? `Strong estimated attention zones: ${attentionData.fPatternCoverage} high-priority elements above fold`
+        : `Weak estimated attention zones: Only ${attentionData.fPatternCoverage} high-priority elements above fold`,
       details: {
         topAttentionElements: attentionData.attentionElements.slice(0, 10),
+        // Already capped to 20 in-browser (see analyzeAttentionZones' own
+        // .slice(0, 20) above) -- the full set, for the visual heatmap.
+        allAttentionElements: attentionData.attentionElements,
         aboveFoldCount: attentionData.fPatternCoverage,
         totalAnalyzed: attentionData.totalElements,
         viewport: {

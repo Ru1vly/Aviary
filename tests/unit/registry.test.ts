@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Page, Response } from 'playwright';
 import { CHECKER_REGISTRY } from '../../src/checkers/registry';
+import { BaseChecker } from '../../src/checkers/base';
 
 describe('CHECKER_REGISTRY', () => {
   it('has exactly 28 entries', () => {
@@ -25,6 +26,38 @@ describe('CHECKER_REGISTRY', () => {
       const checker = create(ctx);
       expect(typeof checker.checkAll, `${key}.checkAll`).toBe('function');
     }
+  });
+
+  // Regression guard for the 'product-schema-complete' collision found
+  // between ecommerce.ts and schemaValidation.ts (fixed by renaming
+  // ecommerce.ts's id to 'ecommerce-product-schema-complete'): a rule id is
+  // what becomes a result's `name` (base.ts checkAll()), so two checkers
+  // sharing one id would conflate two different verdicts under one label in
+  // any flat, cross-checker view of a report (HTML report, MCP tool,
+  // downstream API consumers filtering by name). Only checks `checks()` --
+  // side-effect-free, since it just returns `{id, run}` closures without
+  // invoking `run` -- so this doesn't need a real page to execute against.
+  it('has no duplicate rule ids across checkers migrated onto BaseChecker', () => {
+    const ctx = { page: {} as Page, response: null as Response | null, config: {} };
+    const ownerOf = new Map<string, string>();
+    const duplicates: string[] = [];
+
+    for (const { key, create } of CHECKER_REGISTRY) {
+      const checker = create(ctx as never);
+      if (!(checker instanceof BaseChecker)) continue;
+
+      const ids = (checker as unknown as { checks(): Array<{ id: string }> }).checks().map((c) => c.id);
+      for (const id of ids) {
+        const owner = ownerOf.get(id);
+        if (owner && owner !== key) {
+          duplicates.push(`"${id}" used by both ${owner} and ${key}`);
+        } else {
+          ownerOf.set(id, key);
+        }
+      }
+    }
+
+    expect(duplicates).toEqual([]);
   });
 
   // Cross-language drift guard: tui/src/main.rs's populate_categories()

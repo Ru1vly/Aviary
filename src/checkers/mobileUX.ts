@@ -1,5 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
-import { extractImages } from './shared/dom';
+import { extractImages, parseViewportMeta } from './shared/dom';
 import {
   PAGE_LOAD_TIME_MS,
   TAP_TARGET_MIN_SIZE_PX,
@@ -72,22 +72,11 @@ export class MobileUXChecker extends BaseChecker {
 
   private async checkMobileViewportConfig(): Promise<CheckOutcome> {
     try {
-      const viewportData = await this.page.evaluate(() => {
+      const raw = await this.page.evaluate(() => {
         const viewport = document.querySelector('meta[name="viewport"]');
-        const content = viewport?.getAttribute('content') || '';
-
-        const config = {
-          hasViewport: !!viewport,
-          content,
-          hasDeviceWidth: content.includes('width=device-width'),
-          hasInitialScale: content.includes('initial-scale=1'),
-          hasUserScalable: content.includes('user-scalable'),
-          userScalableValue: content.match(/user-scalable=([^,\s]+)/)?.[1],
-          hasMaximumScale: content.includes('maximum-scale'),
-        };
-
-        return config;
+        return { hasViewport: !!viewport, content: viewport?.getAttribute('content') || '' };
       });
+      const viewportData = { ...raw, ...parseViewportMeta(raw.content) };
 
       const issues: string[] = [];
 

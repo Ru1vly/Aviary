@@ -77,6 +77,30 @@ export class MockServer {
       `);
     });
 
+    // Product page shaped like real sites found to break resolveDescriptiveText
+    // (shared/dom.ts) -- specifically to run it through a REAL Playwright
+    // page.evaluate() round trip, not the mock-DOM unit tests, since a bug
+    // where a function body doesn't survive Playwright's toString()
+    // serialization (e.g. a bundler-injected helper around a nested closure)
+    // is invisible to unit tests but breaks in exactly this real path.
+    this.app.get('/product-description-edge-cases', (req, res) => {
+      res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Product Description Edge Cases</title>
+        </head>
+        <body>
+          <span class="price">$9.99</span>
+          <!-- books.toscrape.com shape: label-only container, real text is a sibling -->
+          <div id="product_description"><h2>Product Description</h2></div>
+          <p>${'Real descriptive prose that should be rescued from being a sibling. '.repeat(5)}</p>
+        </body>
+        </html>
+      `);
+    });
+
     // robots.txt
     this.app.get('/robots.txt', (req, res) => {
       res.type('text/plain');

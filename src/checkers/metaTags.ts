@@ -1,5 +1,5 @@
-import { MetaTag } from '../types';
 import { BaseChecker, CheckOutcome } from './base';
+import { extractOgTags } from './shared/dom';
 import {
   TITLE_MIN_LENGTH,
   TITLE_MAX_LENGTH,
@@ -105,23 +105,16 @@ export class MetaTagsChecker extends BaseChecker {
   }
 
   private async checkOpenGraphTags(): Promise<CheckOutcome> {
-    const ogTags: MetaTag[] = await this.page.evaluate(() => {
-      const tags = Array.from(document.querySelectorAll('meta[property^="og:"]'));
-      return tags.map((tag) => ({
-        property: tag.getAttribute('property') || undefined,
-        content: tag.getAttribute('content') || '',
-      }));
-    });
+    const ogTags = await this.page.evaluate(extractOgTags);
 
-    const hasOgTitle = ogTags.some((tag) => tag.property === 'og:title');
-    const hasOgDescription = ogTags.some((tag) => tag.property === 'og:description');
-    const hasOgImage = ogTags.some((tag) => tag.property === 'og:image');
-    const hasOgType = ogTags.some((tag) => tag.property === 'og:type');
-    const hasOgUrl = ogTags.some((tag) => tag.property === 'og:url');
+    const hasOgTitle = !!ogTags['og:title'];
+    const hasOgDescription = !!ogTags['og:description'];
+    const hasOgImage = !!ogTags['og:image'];
+    const hasOgType = !!ogTags['og:type'];
+    const hasOgUrl = !!ogTags['og:url'];
 
-    const ogImageTag = ogTags.find((tag) => tag.property === 'og:image');
-    const ogImageIsAbsolute = ogImageTag
-      ? /^https?:\/\//.test(ogImageTag.content)
+    const ogImageIsAbsolute = hasOgImage
+      ? /^https?:\/\//.test(ogTags['og:image'])
       : true; // no image = separate issue
 
     const missingTags: string[] = [];
@@ -160,7 +153,7 @@ export class MetaTagsChecker extends BaseChecker {
       });
     }
 
-    return this.pass(`Open Graph tags properly configured (${ogTags.length} tags found)`, { ogTags });
+    return this.pass(`Open Graph tags properly configured (${Object.keys(ogTags).length} tags found)`, { ogTags });
   }
 
   private async checkCanonicalUrl(): Promise<CheckOutcome> {

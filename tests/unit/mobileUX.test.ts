@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Page } from 'playwright';
 import { MobileUXChecker } from '../../src/checkers/mobileUX';
+import { UIElementsChecker } from '../../src/checkers/uiElements';
 import { createMockPage, MockPageOptions, MockElementGeometry } from '../mocks/mockPage';
 import { SEOConfig } from '../../src/config';
 
@@ -58,6 +59,30 @@ describe('MobileUXChecker', () => {
       prepare: perfPrepare(1000),
     }).checkAll();
     expect(byName(good, 'mobile-viewport-config-valid').passed).toBe(true);
+  });
+
+  // Regression test: mobileUX and uiElements independently re-derived
+  // viewport-directive facts by hand, and uiElements never checked for
+  // maximum-scale at all -- so `maximum-scale=1` made mobileUX fail ("zoom
+  // disabled") while uiElements silently passed the same tag. Both now parse
+  // the tag through shared/dom.ts's parseViewportMeta, so uiElements can no
+  // longer be unaware the directive exists, even though it still doesn't
+  // act on it (each checker keeps its own pass/fail policy by design).
+  it('surfaces maximum-scale to uiElements too, even though only mobileUX currently fails on it', async () => {
+    const opts: MockPageOptions = {
+      headHtml: '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">',
+    };
+    const mobileUxResults = await checkerFor({ ...opts, prepare: perfPrepare(1000) }).checkAll();
+    const uiElementsResults = await new UIElementsChecker({
+      page: createMockPage(opts) as Page,
+      checkerKey: 'uiElements',
+    }).checkAll();
+
+    expect(byName(mobileUxResults, 'mobile-viewport-config-valid').passed).toBe(false);
+    expect(byName(mobileUxResults, 'mobile-viewport-config-valid').message).toMatch(/zoom disabled/i);
+
+    const uiElementsViewport = uiElementsResults.find((r) => r.name === 'mobile-viewport-configured');
+    expect(uiElementsViewport?.details?.hasMaximumScale).toBe(true);
   });
 
   it('flags tap targets placed too close together (via a lowered threshold)', async () => {

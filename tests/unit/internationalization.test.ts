@@ -70,6 +70,21 @@ describe('InternationalizationChecker', () => {
     );
   });
 
+  // Regression test: charset-utf8 and unicode-support-utf8 used to disagree
+  // on the older http-equiv charset declaration -- charset-utf8 handled it
+  // correctly, but unicode-support-utf8 only checked `meta[charset]` and
+  // false-failed real pages (confirmed on books.toscrape.com) that only
+  // declare charset this way. Both now share shared/dom.ts's getCharset().
+  it('agrees with charset-utf8 on the older http-equiv charset declaration', async () => {
+    const results = await checkerFor({
+      headHtml: '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">',
+      html: '<p>café</p>', // non-ASCII, to exercise unicode-support-utf8's charset branch
+    }).checkAll();
+
+    expect(byName(results, 'charset-utf8').passed).toBe(true);
+    expect(byName(results, 'unicode-support-utf8').passed).toBe(true);
+  });
+
   it('requires a language switcher when multiple hreflang languages are declared', async () => {
     const noSwitcher = await checkerFor({
       headHtml:

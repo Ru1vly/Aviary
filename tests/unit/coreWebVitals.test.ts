@@ -56,13 +56,13 @@ describe('CoreWebVitalsChecker — resource-heuristic checks (mock-DOM)', () => 
   it('skips navigation-timing checks gracefully when no navigation entry exists', async () => {
     const results = await checkerFor({ html: '<p>x</p>' }).checkAll();
     expect(byName(results, 'page-load-time-acceptable').message).toContain('skipped');
-    expect(byName(results, 'dom-content-loaded-acceptable').message).toContain('skipped');
+    expect(byName(results, 'cwv-dom-content-loaded-acceptable').message).toContain('skipped');
   });
 
   it('flags a slow page load and DOM load time, passes a fast one', async () => {
     const slow = await checkerFor({ prepare: navigationPrepare({ loadEventEnd: 10000, domContentLoadedEventEnd: 9000 }) }).checkAll();
     expect(byName(slow, 'page-load-time-acceptable').passed).toBe(false);
-    expect(byName(slow, 'dom-content-loaded-acceptable').passed).toBe(false);
+    expect(byName(slow, 'cwv-dom-content-loaded-acceptable').passed).toBe(false);
 
     const fast = await checkerFor({ prepare: navigationPrepare({ loadEventEnd: 500, domContentLoadedEventEnd: 300 }) }).checkAll();
     expect(byName(fast, 'page-load-time-acceptable').message).toContain('excellent');
@@ -93,11 +93,11 @@ describe('CoreWebVitalsChecker — resource-heuristic checks (mock-DOM)', () => 
     const bigJs = [{ name: '/app.js', initiatorType: 'script', transferSize: 10_000_000 }];
     const results = await checkerFor({ prepare: resourcesPrepare(bigJs) }).checkAll();
     expect(byName(results, 'javascript-size-acceptable').passed).toBe(false);
-    expect(byName(results, 'page-size-acceptable').passed).toBe(false);
+    expect(byName(results, 'cwv-page-size-acceptable').passed).toBe(false);
 
     const small = await checkerFor({ prepare: resourcesPrepare([]) }).checkAll();
     expect(byName(small, 'javascript-size-acceptable').passed).toBe(true);
-    expect(byName(small, 'page-size-acceptable').message).toContain('optimized');
+    expect(byName(small, 'cwv-page-size-acceptable').message).toContain('optimized');
   });
 
   it('flags large CSS and image resources', async () => {
@@ -188,10 +188,10 @@ describe('CoreWebVitalsChecker — resource-heuristic checks (mock-DOM)', () => 
 
   it('reports resource hints present or absent', async () => {
     const none = await checkerFor({}).checkAll();
-    expect(byName(none, 'resource-hints-present').message).toContain('No resource hints');
+    expect(byName(none, 'cwv-resource-hints-present').message).toContain('No resource hints');
 
     const withHints = await checkerFor({ headHtml: '<link rel="preconnect" href="https://cdn.example">' }).checkAll();
-    expect(byName(withHints, 'resource-hints-present').message).toContain('1 hints');
+    expect(byName(withHints, 'cwv-resource-hints-present').message).toContain('1 hints');
   });
 
   it('fails cache-headers-present with no response, flags missing headers, passes with them', async () => {

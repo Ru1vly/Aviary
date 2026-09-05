@@ -1,5 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
-import { extractImages, extractLinks, LinkData } from './shared/dom';
+import { extractImages, extractLinks, isHttpsUrl, LinkData } from './shared/dom';
 
 export class LegalComplianceChecker extends BaseChecker {
   private linksPromise?: Promise<LinkData[]>;
@@ -184,7 +184,7 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkDataProtection(): Promise<CheckOutcome> {
     try {
-      const dataProtectionData = await this.page.evaluate(() => {
+      const rawData = await this.page.evaluate(() => {
         const protectionKeywords = ['data protection', 'secure', 'encryption', 'ssl', 'https'];
 
         const bodyText = document.body.textContent?.toLowerCase() || '';
@@ -192,12 +192,9 @@ export class LegalComplianceChecker extends BaseChecker {
 
         const secureIcons = document.querySelectorAll('[class*="secure"], [class*="lock"], [id*="secure"]');
 
-        return {
-          hasDataProtection,
-          secureIcons: secureIcons.length,
-          isHTTPS: window.location.protocol === 'https:',
-        };
+        return { hasDataProtection, secureIcons: secureIcons.length };
       });
+      const dataProtectionData = { ...rawData, isHTTPS: isHttpsUrl(this.page.url()) };
 
       if (!dataProtectionData.isHTTPS) {
         return this.fail('Site not using HTTPS (security risk)', dataProtectionData);

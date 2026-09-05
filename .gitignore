@@ -43,3 +43,10 @@ target/
 engine/target/
 **/target/
 
+# Prebuilt platform binaries (populated by CI before publishing each
+# npm/<platform>/ package -- never committed)
+npm/*/tui
+npm/*/tui.exe
+npm/*/aviary-fast
+npm/*/aviary-fast.exe
+

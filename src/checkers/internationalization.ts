@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { getCharset } from './shared/dom';
 
 export class InternationalizationChecker extends BaseChecker {
   protected checks() {
@@ -216,19 +217,8 @@ export class InternationalizationChecker extends BaseChecker {
 
   private async checkCharsetDeclaration(): Promise<CheckOutcome> {
     try {
-      const charsetData = await this.page.evaluate(() => {
-        const metaCharset = document.querySelector('meta[charset]');
-        const metaContentType = document.querySelector('meta[http-equiv="Content-Type"]');
-
-        const charset = metaCharset?.getAttribute('charset') ||
-          metaContentType?.getAttribute('content')?.match(/charset=([^;]+)/)?.[1];
-
-        return {
-          hasCharset: !!charset,
-          charset: charset?.toUpperCase(),
-          isUTF8: charset?.toUpperCase() === 'UTF-8',
-        };
-      });
+      const charsetInfo = await this.page.evaluate(getCharset);
+      const charsetData = { hasCharset: !!charsetInfo.charset, ...charsetInfo };
 
       if (!charsetData.hasCharset) {
         return this.fail('Missing charset declaration (should be UTF-8)', charsetData);
@@ -545,7 +535,7 @@ export class InternationalizationChecker extends BaseChecker {
 
   private async checkUnicodeSupport(): Promise<CheckOutcome> {
     try {
-      const unicodeData = await this.page.evaluate(() => {
+      const unicodeScan = await this.page.evaluate(() => {
         const bodyText = document.body.textContent || '';
 
         // Check for various Unicode ranges
@@ -553,16 +543,10 @@ export class InternationalizationChecker extends BaseChecker {
         const hasSpecialChars = /[^\u0000-\u007F]/.test(bodyText);
         const hasCombiningChars = /[\u0300-\u036F]/.test(bodyText);
 
-        const charset = document.querySelector('meta[charset]')?.getAttribute('charset')?.toUpperCase();
-
-        return {
-          hasEmoji,
-          hasSpecialChars,
-          hasCombiningChars,
-          charset,
-          isUTF8: charset === 'UTF-8',
-        };
+        return { hasEmoji, hasSpecialChars, hasCombiningChars };
       });
+      const charsetInfo = await this.page.evaluate(getCharset);
+      const unicodeData = { ...unicodeScan, ...charsetInfo };
 
       if (unicodeData.hasSpecialChars && !unicodeData.isUTF8) {
         return this.fail(

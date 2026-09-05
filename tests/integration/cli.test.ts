@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { MockServer } from '../mocks/mockServer';
 
 /**
@@ -77,5 +79,22 @@ describe('cli.ts', () => {
     expect(code).toBe(0);
     expect(stderr).toContain('SEO Report for');
     expect(stderr).toMatch(/Score: (\d+\/100|N\/A)/);
+  }, 60000);
+
+  it('writes the --html report even when --json is also passed', async () => {
+    // The TUI always passes both flags together (--json to parse the
+    // result back, --html to get a report file) -- these used to be
+    // mutually exclusive because the --json branch returned before ever
+    // reaching the file-writing code.
+    const htmlPath = path.join(os.tmpdir(), `aviary-cli-test-${Date.now()}.html`);
+    try {
+      const { code } = await runCli(['-u', mockServer.getUrl('/optimal'), '--json', '--html', htmlPath]);
+      expect(code).toBe(0);
+      expect(fs.existsSync(htmlPath)).toBe(true);
+      const html = fs.readFileSync(htmlPath, 'utf8');
+      expect(html).toContain(mockServer.getUrl('/optimal'));
+    } finally {
+      fs.rmSync(htmlPath, { force: true });
+    }
   }, 60000);
 });

@@ -1,0 +1,9 @@
+{
+  "name": "@ru1vly/aviary-darwin-arm64",
+  "version": "1.0.0",
+  "description": "Prebuilt aviary TUI binary for darwin/arm64 -- internal optionalDependency of @ru1vly/aviary, not for direct use.",
+  "license": "MIT",
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "files": ["tui", "aviary-fast"]
+}

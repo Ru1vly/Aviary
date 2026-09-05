@@ -1,5 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
-import { extractJsonLdBlocks } from './shared/dom';
+import { extractJsonLdBlocks, parseViewportMeta } from './shared/dom';
 import { JsonLdBlock } from './shared/schemaTypes';
 
 export class PageQualityChecker extends BaseChecker {
@@ -304,7 +304,7 @@ export class PageQualityChecker extends BaseChecker {
 
   private async checkMobileOptimization(): Promise<CheckOutcome> {
     try {
-      const mobileData = await this.page.evaluate(() => {
+      const rawMobileData = await this.page.evaluate(() => {
         const viewport = document.querySelector('meta[name="viewport"]');
         const viewportContent = viewport?.getAttribute('content') || '';
 
@@ -313,12 +313,15 @@ export class PageQualityChecker extends BaseChecker {
 
         return {
           hasViewport: !!viewport,
-          hasDeviceWidth: viewportContent.includes('width=device-width'),
           hasTouchIcons,
           hasResponsiveImages,
           viewportContent,
         };
       });
+      const mobileData = {
+        ...rawMobileData,
+        hasDeviceWidth: parseViewportMeta(rawMobileData.viewportContent).hasDeviceWidth,
+      };
 
       const issues: string[] = [];
 

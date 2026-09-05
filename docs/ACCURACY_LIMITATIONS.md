@@ -1,6 +1,6 @@
 # SEO Checker Tool - Accuracy Limitations
 
-**Last Updated:** 2026-08-30
+**Last Updated:** 2026-09-06
 
 ## Overview
 
@@ -54,6 +54,42 @@ These were from placeholder/data URLs that weren't properly filtered.
 2. Check for legitimate accessibility hiding (screen readers)
 3. Reduce false positives for content overflow
 4. Only flag truly suspicious hiding techniques
+
+### 1.4 Trust-of-Analysis Bug Sweep (2026-09-06) ✅ FIXED
+
+Found by empirically running the tool against real sites (books.toscrape.com, demo.vercel.store) and hand-verifying flagged results against the raw DOM, then sweeping the rest of the codebase for the same two bug shapes:
+
+**Duplicated detection logic that had drifted out of sync** (the same underlying fact re-derived independently by two checks, with no shared source of truth):
+
+| Facts | Checks involved | Was | Fix |
+|---|---|---|---|
+| Charset declaration | `internationalization.ts`: `charset-utf8`, `unicode-support-utf8` | `unicode-support-utf8` only checked `meta[charset]`, false-failing pages (confirmed on books.toscrape.com) that declare charset via the older `<meta http-equiv="Content-Type" content="...;charset=...">` form | Both call `shared/dom.ts`'s new `getCharset()` |
+| Viewport directives | `mobileUX.ts`, `uiElements.ts`, `pageQuality.ts` | `mobileUX.ts` failed on `maximum-scale` (zoom lock); `uiElements.ts` never checked for it at all, silently passing the same tag | All three parse via `shared/dom.ts`'s new `parseViewportMeta()` (each keeps its own pass/fail policy) |
+| Open Graph tags | `metaTags.ts` (`og-tags-configured`), `socialMedia.ts` (`open-graph-configured`) | Each hand-rolled its own `querySelectorAll('meta[property^="og:"]')` | Both call `shared/dom.ts`'s new `extractOgTags()` |
+| HTTPS/protocol | `ecommerce.ts`, `legalCompliance.ts` | Each duplicated `window.location.protocol === 'https:'` in a browser `evaluate()` | Both now use `shared/dom.ts`'s new `isHttpsUrl(this.page.url())`, matching `security.ts`'s existing Node-side technique |
+
+**Check-id collisions** (two checkers registering the same rule id with different pass/fail criteria — since a rule id becomes a result's `name`, this conflates two different verdicts under one label in any flat, cross-checker view of a report):
+
+| Id | Checkers | Fix |
+|---|---|---|
+| `product-schema-complete` | `schemaValidation.ts`, `ecommerce.ts` | Renamed ecommerce.ts's to `ecommerce-product-schema-complete` |
+| `dom-content-loaded-acceptable` | `performance.ts`, `coreWebVitals.ts` | Renamed coreWebVitals.ts's to `cwv-dom-content-loaded-acceptable` |
+| `page-size-acceptable` | `technical.ts` (raw HTML size), `coreWebVitals.ts` (total page weight) | Renamed coreWebVitals.ts's to `cwv-page-size-acceptable` |
+| `resource-hints-present` | `resourceOptimization.ts`, `coreWebVitals.ts` | Renamed coreWebVitals.ts's to `cwv-resource-hints-present` |
+
+A new test (`tests/unit/registry.test.ts`) now asserts no two checkers registered on `BaseChecker` share a rule id, so this bug class can't reappear silently.
+
+**Sibling/descendant text-measurement bug** (confirmed false negative): `ecommerce.ts`'s `checkProductDescription` summed `textContent.length` only over the *descendants* of elements matched by `[class*="description"]`/`[id*="description"]`. On books.toscrape.com, the matched container (`<div id="product_description">`) holds only a heading — the actual paragraph is a DOM *sibling*, not a child — so the check measured 41 characters against an actual description of several hundred, and false-failed. `shared/dom.ts`'s new `resolveDescriptiveText()` falls back to a container's siblings when its own text looks like a bare label.
+
+**`analyzeScrollDepth`'s coordinate bug** (`heatmap.ts`, previously documented below in §2.4): fixed by replacing the `elementsFromPoint` probe with a document-relative bounding-box bucketing approach — see §2.4 for what the bug was.
+
+### 1.5 Retest Findings (2026-09-06) ✅ FIXED
+
+A follow-up retest against a broader set of real sites (webscraper.io's e-commerce test catalog, en.wikipedia.org, plus re-running books.toscrape.com and demo.vercel.store) surfaced two more issues, one of them introduced by §1.4's own fix:
+
+**`resolveDescriptiveText()` over-padding a genuinely short description:** the sibling-rescue fallback added in §1.4 correctly fixed the books.toscrape.com case, but on a real product card (webscraper.io) it also pulled in a *price* and *title* element that happened to be siblings of a genuinely short (99-character) description, padding the count to 166 and passing a description that should have failed by one character. Fixed by excluding siblings that are themselves a different structured product field (detected via `itemprop` or a `price`/`title`/`name`/`sku`/`brand` naming convention) from the fallback — it now only rescues text that was actually misplaced, not any nearby text.
+
+**A serialization hazard in the same fix, caught only by manually running the CLI:** the first version of that exclusion logic used a nested helper function (`const isOtherStructuredField = (el) => {...}`) declared inside `resolveDescriptiveText`. Running the tool via `npx tsx src/cli.ts` (the dev-mode runner used throughout this project's own testing) crashed with `ReferenceError: __name is not defined` — tsx's esbuild-based transform wraps nested function declarations with a name-preservation helper call that isn't included when Playwright serializes just the outer function's source via `.toString()` for `page.evaluate()`. The crash was caught by the check's existing `try/catch` and degraded gracefully to "check skipped" rather than crashing the audit — so real-world impact was silent under-reporting, not a hard failure. **This did not affect the actual published package**: the production build (`tsc`, via `npm run build:ts`) and the Vitest test suite (a different esbuild configuration) both compile the nested closure as plain JS with no such wrapper, and neither was affected — confirmed by building and running the compiled `dist/cli.js` with the buggy version in place. Fixed by inlining the check directly rather than declaring a nested named function, matching this file's own top-of-file rule that every function passed to `page.evaluate()` must be fully self-contained. A real-browser end-to-end test (`tests/e2e/seoChecker.e2e.test.ts`'s "resolves product-description-present against a real page without crashing") now exercises this function against an actual Playwright page rather than the mock DOM every other unit test uses — closing the specific blind spot where mock-DOM tests can't validate that a function actually survives Playwright's serialization boundary. That test does not reproduce the tsx-specific wrapper (Vitest doesn't inject it either), so the real protection against *this exact* hazard going forward is the "no nested closures" code pattern, not the test.
 
 ---
 
@@ -119,9 +155,22 @@ These checks use statistical models or heuristics that cannot be 100% accurate, 
 **Limitation & Code Bugs:**
 - 44px tap target rule is a guideline (WCAG 2.5.5)
 - Viewport simulation vs. actual device behavior
-- **Scroll Depth Coordinate Bug:** In `heatmap.ts`, the scroll depth content density checker uses the document-relative vertical offset `yPosition` inside `document.elementsFromPoint()`. Because `elementsFromPoint` expects viewport-relative client coordinates, passing any coordinate that exceeds the viewport height (`yPosition > viewportHeight`) returns an empty array. This breaks the density scoring calculation for pages taller than the viewport height.
+- **Scroll Depth Coordinate Bug ✅ FIXED (see §1.4):** `heatmap.ts`'s scroll depth content density checker used to pass the document-relative vertical offset `yPosition` into `document.elementsFromPoint()`, which expects viewport-relative client coordinates -- since the audit never actually scrolls the page, any `yPosition` beyond one viewport height returned an empty array, zeroing the density score for nearly every depth band on a typical page. Replaced with a bounding-box bucketing approach that doesn't depend on the page having scrolled there.
 
 **Recommendation:** Test on real devices for critical pages.
+
+### 2.4a Heatmap & Click Prediction (no ground truth available)
+
+**Check:** Click Heatmap, Attention Zones (`heatmap.ts`'s `generateClickHeatmap` and `analyzeAttentionZones`)
+
+Unlike every other check in this document, these aren't measuring a DOM fact that can be right or wrong -- they assign ad-hoc weighted scores (element type, size, position, background color) modeling where a real user would click or look. **There is no ground truth available from a static crawl**: real click/attention data comes from recorded user sessions (Hotjar, Microsoft Clarity, GA4 scroll-depth), which this tool has no access to. `heatmap.ts` is the only checker in the codebase built this way.
+
+**What this means in practice:**
+- Messages are worded "predicted"/"estimated" deliberately, not decoratively -- they should never be read as measured facts the way, say, an HTTPS check result is.
+- What *can* be validated without ground truth: the relative ranking makes sense (a colored above-fold CTA should outscore a buried below-fold link) and the scoring doesn't silently drift (a regression that swapped two weight constants should be caught by a test, not ship silently). `tests/unit/heatmap.test.ts` has rank-plausibility and exact-score-pinning tests for this.
+- What can't be validated: whether the absolute scores correlate with real user behavior on any given site. That requires correlating against actual analytics on a live, operated site -- out of scope for a static audit tool.
+
+**Recommendation:** Treat heatmap scores as a heuristic prioritization aid (which elements *should* draw attention, per visual-hierarchy best practice), not as a substitute for real user analytics.
 
 ---
 

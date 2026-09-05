@@ -1,0 +1,9 @@
+{
+  "name": "@ru1vly/aviary-linux-x64",
+  "version": "1.0.0",
+  "description": "Prebuilt aviary TUI binary for linux/x64 -- internal optionalDependency of @ru1vly/aviary, not for direct use.",
+  "license": "MIT",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["tui", "aviary-fast"]
+}

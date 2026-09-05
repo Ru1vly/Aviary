@@ -1,5 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
-import { extractJsonLdBlocks } from './shared/dom';
+import { extractJsonLdBlocks, parseViewportMeta } from './shared/dom';
 import { JsonLdBlock, isSchemaType } from './shared/schemaTypes';
 
 export class UIElementsChecker extends BaseChecker {
@@ -133,25 +133,21 @@ export class UIElementsChecker extends BaseChecker {
 
   private async checkMobileViewport(): Promise<CheckOutcome> {
     try {
-      const viewportData = await this.page.evaluate(() => {
+      const raw = await this.page.evaluate(() => {
         const viewport = document.querySelector('meta[name="viewport"]');
         const content = viewport?.getAttribute('content') || '';
-
-        const hasWidth = content.includes('width=');
-        const hasDeviceWidth = content.includes('width=device-width');
-        const hasInitialScale = content.includes('initial-scale=');
-        const hasUserScalable = content.includes('user-scalable=');
-
         return {
           hasViewport: !!viewport,
           content,
-          hasWidth,
-          hasDeviceWidth,
-          hasInitialScale,
-          hasUserScalable,
-          userScalableValue: content.match(/user-scalable=([^,\s]+)/)?.[1],
+          hasWidth: content.includes('width='),
+          // Looser than parseViewportMeta's own hasInitialScale (which requires
+          // exactly "initial-scale=1") -- this check only ever used presence of
+          // the directive at all, preserved here rather than folded into the
+          // shared parser to avoid silently tightening this checker's policy.
+          hasInitialScale: content.includes('initial-scale='),
         };
       });
+      const viewportData = { ...raw, ...parseViewportMeta(raw.content), hasInitialScale: raw.hasInitialScale };
 
       if (!viewportData.hasViewport) {
         return this.fail('Missing viewport meta tag - critical for mobile SEO');

@@ -1,11 +1,18 @@
 {
-  "name": "aviary",
+  "name": "@ru1vly/aviary",
   "version": "1.0.0",
   "description": "e2e seo testing kit for websites",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
-    "dist"
+    "dist",
+    "!dist/tui",
+    "!dist/tui.exe",
+    "!dist/aviary-fast",
+    "!dist/aviary-fast.exe"
   ],
   "bin": {
     "aviary": "dist/cli.js",
@@ -44,8 +51,16 @@
     "performance",
     "meta-tags"
   ],
-  "author": "",
+  "author": "Kerem Yiğit",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ru1vly/Aviary.git"
+  },
+  "homepage": "https://github.com/Ru1vly/Aviary#readme",
+  "bugs": {
+    "url": "https://github.com/Ru1vly/Aviary/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
@@ -74,5 +89,12 @@
     "prom-client": "^15.1.3",
     "web-vitals": "^6.2.1",
     "zod": "^4.4.3"
+  },
+  "optionalDependencies": {
+    "@ru1vly/aviary-linux-x64": "1.0.0",
+    "@ru1vly/aviary-linux-arm64": "1.0.0",
+    "@ru1vly/aviary-darwin-x64": "1.0.0",
+    "@ru1vly/aviary-darwin-arm64": "1.0.0",
+    "@ru1vly/aviary-win32-x64": "1.0.0"
   }
 }

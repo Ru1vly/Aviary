@@ -1,4 +1,5 @@
 import { BaseChecker, CheckOutcome } from './base';
+import { extractOgTags } from './shared/dom';
 
 export class SocialMediaChecker extends BaseChecker {
   protected checks() {
@@ -59,17 +60,7 @@ export class SocialMediaChecker extends BaseChecker {
 
   private async checkOpenGraphTags(): Promise<CheckOutcome> {
     try {
-      const ogTags = await this.page.evaluate(() => {
-        const tags = Array.from(document.querySelectorAll('meta[property^="og:"]'));
-        return tags.reduce((acc: Record<string, string>, tag) => {
-          const property = tag.getAttribute('property');
-          const content = tag.getAttribute('content');
-          if (property && content) {
-            acc[property] = content;
-          }
-          return acc;
-        }, {});
-      });
+      const ogTags = await this.page.evaluate(extractOgTags);
 
       const hasTitle = ogTags['og:title'];
       const hasDescription = ogTags['og:description'];

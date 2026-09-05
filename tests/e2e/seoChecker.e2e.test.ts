@@ -200,4 +200,26 @@ describe('E2E Tests - Full SEOChecker', () => {
     // Optimal page should have more passed checks
     expect(optimalReport.summary.passed).toBeGreaterThan(poorReport.summary.passed);
   }, 90000);
+
+  // Regression test for a bug that shipped and was only caught by manually
+  // running the CLI against a real site: shared/dom.ts's resolveDescriptiveText
+  // briefly had a nested helper function that a bundler wrapped with a
+  // name-preservation call, which broke Playwright's page.evaluate()
+  // serialization in a REAL browser while every mock-DOM unit test (which
+  // never goes through that serialization boundary) kept passing. This test
+  // exercises it end-to-end against a real page specifically to close that
+  // blind spot.
+  it('resolves product-description-present against a real page without crashing', async () => {
+    const checker = new SEOChecker({
+      url: mockServer.getUrl('/product-description-edge-cases'),
+      headless: true,
+    });
+
+    const report = await checker.check();
+    const result = report.checks.ecommerce.find((r) => r.name === 'product-description-present');
+
+    expect(result).toBeDefined();
+    expect(result!.message).not.toMatch(/skipped/i);
+    expect(result!.passed).toBe(true);
+  }, 60000);
 });

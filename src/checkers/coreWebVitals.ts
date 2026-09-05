@@ -72,9 +72,18 @@ export class CoreWebVitalsChecker extends BaseChecker {
       { id: 'ttfb-good', run: () => this.checkTTFB() },
       { id: 'total-blocking-time-acceptable', run: () => this.checkTotalBlockingTime() },
       { id: 'page-load-time-acceptable', run: () => this.checkPageLoadTime() },
-      { id: 'dom-content-loaded-acceptable', run: () => this.checkDOMContentLoaded() },
+      // Prefixed to avoid colliding with performance.ts's own
+      // 'dom-content-loaded-acceptable' id -- both measure DOM content
+      // loaded time from navigation timing as part of their own bundled
+      // report section (see this file's registry.ts module comment), but a
+      // shared id would conflate two independent verdicts under one name in
+      // any flat, cross-checker view of a report.
+      { id: 'cwv-dom-content-loaded-acceptable', run: () => this.checkDOMContentLoaded() },
       { id: 'resource-count-acceptable', run: () => this.checkResourceCount() },
-      { id: 'page-size-acceptable', run: () => this.checkTotalPageSize() },
+      // Prefixed: collides with technical.ts's 'page-size-acceptable', which
+      // measures raw HTML document size, not this check's total page weight
+      // (HTML + JS + CSS + images) -- same name, different metric.
+      { id: 'cwv-page-size-acceptable', run: () => this.checkTotalPageSize() },
       { id: 'javascript-size-acceptable', run: () => this.checkJavaScriptSize() },
       { id: 'css-size-acceptable', run: () => this.checkCSSSize() },
       { id: 'image-size-acceptable', run: () => this.checkImageSize() },
@@ -83,7 +92,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       { id: 'lazy-load-implemented', run: () => this.checkLazyLoadImplementation() },
       { id: 'critical-css-present', run: () => this.checkCriticalCSS() },
       { id: 'async-scripts-used', run: () => this.checkAsyncScripts() },
-      { id: 'resource-hints-present', run: () => this.checkPreloadPreconnect() },
+      // Prefixed: collides with resourceOptimization.ts's own
+      // 'resource-hints-present' id.
+      { id: 'cwv-resource-hints-present', run: () => this.checkPreloadPreconnect() },
       { id: 'cache-headers-present', run: () => this.checkCacheHeaders() },
       { id: 'server-response-time-acceptable', run: () => this.checkServerResponseTime() },
     ];
@@ -136,7 +147,7 @@ export class CoreWebVitalsChecker extends BaseChecker {
         return this.pass('DOM load time check skipped (navigation timing unavailable)');
       }
       const failMs = this.threshold(
-        'dom-content-loaded-acceptable',
+        'cwv-dom-content-loaded-acceptable',
         'failMs',
         CWV_DOM_LOAD_TIME_FAIL_MS
       );
@@ -194,8 +205,8 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalSize = entries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const pageSize = { ...formatBytes(totalSize) };
 
-      const failBytes = this.threshold('page-size-acceptable', 'failBytes', CWV_PAGE_SIZE_FAIL_BYTES);
-      const warnBytes = this.threshold('page-size-acceptable', 'warnBytes', CWV_PAGE_SIZE_WARN_BYTES);
+      const failBytes = this.threshold('cwv-page-size-acceptable', 'failBytes', CWV_PAGE_SIZE_FAIL_BYTES);
+      const warnBytes = this.threshold('cwv-page-size-acceptable', 'warnBytes', CWV_PAGE_SIZE_WARN_BYTES);
 
       if (pageSize.bytes > failBytes) {
         return this.fail(`Page size is large (${pageSize.mb}MB). Target: < ${Math.round(warnBytes / 1024 / 1024)}MB`, pageSize);

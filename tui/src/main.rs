@@ -8,13 +8,16 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{
+        canvas::{Canvas, Points, Rectangle},
+        Block, Borders, List, ListItem, ListState, Paragraph, Wrap,
+    },
     Frame, Terminal,
 };
 use serde::{Deserialize, Serialize};
 use std::{
     io,
-    process::Stdio,
+    process::{Command as OsCommand, Stdio},
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
@@ -180,6 +183,13 @@ struct App {
 
     // Severity filter
     severity_filter: SeverityFilter,
+
+    // Visual heatmap overlay (only meaningful on the "HEATMAP & UX" category)
+    heatmap_view: bool,
+
+    // Transient footer notice (e.g. "opened in browser" / an error), shown
+    // until the next keypress -- see handle_dashboard_input.
+    status_message: Option<(String, bool)>, // (text, is_error)
 }
 
 impl App {
@@ -200,6 +210,8 @@ impl App {
             check_list_state: ListState::default(),
             active_panel_right: false,
             severity_filter: SeverityFilter::All,
+            heatmap_view: false,
+            status_message: None,
         };
         app.category_list_state.select(Some(0));
         app.check_list_state.select(Some(0));
@@ -266,6 +278,14 @@ impl App {
             Some(_) => "F",
             None => "N/A",
         }
+    }
+
+    fn is_on_heatmap_category(&self) -> bool {
+        let cat_idx = self.category_list_state.selected().unwrap_or(0);
+        self.categories
+            .get(cat_idx)
+            .map(|(name, _)| name == "HEATMAP & UX")
+            .unwrap_or(false)
     }
 
     fn filtered_checks<'a>(&self, checks: &'a [SEOCheckResult]) -> Vec<&'a SEOCheckResult> {
@@ -390,6 +410,7 @@ async fn run_loop<B: ratatui::backend::Backend>(
     mut audit_rx: mpsc::Receiver<AuditEvent>,
 ) -> io::Result<()> {
     let mut spinner_frame: usize = 0;
+    let mut anim_tick: usize = 0;
     let mut load_start: Option<Instant> = None;
     let mut elapsed_secs: u64 = 0;
 
@@ -403,7 +424,7 @@ async fn run_loop<B: ratatui::backend::Backend>(
         }
 
         // Render frame
-        terminal.draw(|f| draw_ui(f, &app, spinner_frame, elapsed_secs))?;
+        terminal.draw(|f| draw_ui(f, &app, spinner_frame, anim_tick, elapsed_secs))?;
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -438,6 +459,7 @@ async fn run_loop<B: ratatui::backend::Backend>(
         if last_tick.elapsed() >= tick_rate {
             // Advance spinner every tick
             spinner_frame = (spinner_frame + 1) % 10;
+            anim_tick = anim_tick.wrapping_add(1);
             last_tick = Instant::now();
         }
 
@@ -600,6 +622,10 @@ async fn handle_setup_input(
 }
 
 fn handle_dashboard_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<AuditEvent>) {
+    // Cleared on every keypress so a status set by 'V' below stays visible
+    // until the user does something else, then goes away on its own.
+    app.status_message = None;
+
     match key.code {
         KeyCode::Left | KeyCode::BackTab => {
             app.active_panel_right = false;
@@ -622,6 +648,7 @@ fn handle_dashboard_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<
                 if curr + 1 < app.categories.len() {
                     app.category_list_state.select(Some(curr + 1));
                     app.check_list_state.select(Some(0));
+                    app.heatmap_view = false;
                 }
             }
         }
@@ -636,6 +663,30 @@ fn handle_dashboard_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<
                 if curr > 0 {
                     app.category_list_state.select(Some(curr - 1));
                     app.check_list_state.select(Some(0));
+                    app.heatmap_view = false;
+                }
+            }
+        }
+        KeyCode::Char('v') | KeyCode::Char('V') => {
+            if app.is_on_heatmap_category() {
+                // The already-generated HTML report (see --html below) has
+                // a real screenshot with the heatmap overlaid on it -- far
+                // more legible than the in-terminal braille plot, which is
+                // kept only as a fallback for headless/SSH sessions with no
+                // browser to open.
+                match open_html_report_heatmap(&app.html_report_path) {
+                    Ok(()) => {
+                        app.heatmap_view = false;
+                        app.status_message =
+                            Some(("Opened the heatmap report in your browser.".to_string(), false));
+                    }
+                    Err(reason) => {
+                        app.heatmap_view = true;
+                        app.status_message = Some((
+                            format!("Couldn't open a browser ({reason}) — showing in-terminal view."),
+                            true,
+                        ));
+                    }
                 }
             }
         }
@@ -643,6 +694,7 @@ fn handle_dashboard_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<
             app.active_screen = ActiveScreen::Setup;
             app.report = None;
             app.categories.clear();
+            app.heatmap_view = false;
         }
         KeyCode::Char('a') | KeyCode::Char('A') => {
             app.severity_filter = SeverityFilter::All;
@@ -838,7 +890,7 @@ async fn run_fast_audit_process(tx: mpsc::Sender<AuditEvent>, fast_bin_path: Str
 
 // ─── UI Drawing ───────────────────────────────────────────────────────────────
 
-fn draw_ui(f: &mut Frame, app: &App, spinner_frame: usize, elapsed_secs: u64) {
+fn draw_ui(f: &mut Frame, app: &App, spinner_frame: usize, anim_tick: usize, elapsed_secs: u64) {
     let size = f.area();
 
     // Brutalist black background
@@ -849,7 +901,7 @@ fn draw_ui(f: &mut Frame, app: &App, spinner_frame: usize, elapsed_secs: u64) {
 
     match &app.active_screen {
         ActiveScreen::Setup => draw_setup(f, size, app),
-        ActiveScreen::Loading => draw_loading(f, size, app, spinner_frame, elapsed_secs),
+        ActiveScreen::Loading => draw_loading(f, size, app, spinner_frame, anim_tick, elapsed_secs),
         ActiveScreen::Dashboard => draw_dashboard(f, size, app),
         ActiveScreen::Error(msg) => draw_error(f, size, msg),
     }
@@ -1040,7 +1092,14 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
 
-fn draw_loading(f: &mut Frame, area: Rect, app: &App, spinner_frame: usize, elapsed_secs: u64) {
+fn draw_loading(
+    f: &mut Frame,
+    area: Rect,
+    app: &App,
+    spinner_frame: usize,
+    anim_tick: usize,
+    elapsed_secs: u64,
+) {
     const SPINNERS: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
     let spinner = SPINNERS[spinner_frame % 10];
 
@@ -1056,14 +1115,21 @@ fn draw_loading(f: &mut Frame, area: Rect, app: &App, spinner_frame: usize, elap
         height: box_height,
     };
 
-    // Build progress bar (fake animated, cycles through 0-100% based on spinner)
+    // Build progress bar: indeterminate scanner that sweeps back and forth
+    // smoothly (a sawtooth reset here would read as a visible glitch).
     let bar_width = (box_width as usize).saturating_sub(6);
-    let filled = (spinner_frame * bar_width / 10).min(bar_width);
-    let empty = bar_width.saturating_sub(filled);
+    let scanner_width = (bar_width / 4).max(1);
+    let travel = bar_width.saturating_sub(scanner_width).max(1);
+    let period = travel * 2;
+    let phase = anim_tick % period.max(1);
+    let pos = if phase <= travel { phase } else { period - phase };
+    let pre = pos;
+    let post = bar_width.saturating_sub(pre + scanner_width);
     let progress_bar = format!(
-        "[{}{}]",
-        "▓".repeat(filled),
-        "░".repeat(empty)
+        "[{}{}{}]",
+        "░".repeat(pre),
+        "▓".repeat(scanner_width),
+        "░".repeat(post)
     );
 
     let elapsed_str = format!("{:02}:{:02}", elapsed_secs / 60, elapsed_secs % 60);
@@ -1169,53 +1235,83 @@ fn draw_dashboard(f: &mut Frame, area: Rect, app: &App) {
     // ── Header bar
     draw_dashboard_header(f, chunks[0], app, report);
 
-    // ── Main panels: categories (left) + checks (right)
-    let panels = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(28),
-            Constraint::Percentage(72),
-        ])
-        .split(chunks[1]);
+    if app.heatmap_view && app.is_on_heatmap_category() {
+        // Full-width visualization replaces the categories/checks/detail
+        // panels while active -- it needs the room, and there's nothing
+        // useful to browse in the check list while looking at it anyway.
+        let heatmap_area = Rect {
+            x: chunks[1].x,
+            y: chunks[1].y,
+            width: chunks[1].width,
+            height: chunks[1].height + chunks[2].height,
+        };
+        draw_heatmap_canvas(f, heatmap_area, report);
+    } else {
+        // ── Main panels: categories (left) + checks (right)
+        let panels = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(28),
+                Constraint::Percentage(72),
+            ])
+            .split(chunks[1]);
 
-    draw_category_panel(f, panels[0], app);
-    draw_checks_panel(f, panels[1], app);
+        draw_category_panel(f, panels[0], app);
+        draw_checks_panel(f, panels[1], app);
 
-    // ── Detail pane (bottom)
-    draw_detail_pane(f, chunks[2], app);
+        // ── Detail pane (bottom)
+        draw_detail_pane(f, chunks[2], app);
+    }
 
     // ── Footer
-    let filter_label = match app.severity_filter {
-        SeverityFilter::All => "ALL",
-        SeverityFilter::ErrorsOnly => "ERRORS",
-        SeverityFilter::WarningsOnly => "WARNINGS",
+    let footer = if let Some((text, is_error)) = &app.status_message {
+        Paragraph::new(Line::from(Span::styled(
+            text.clone(),
+            Style::default()
+                .fg(if *is_error { RED } else { GREEN })
+                .add_modifier(Modifier::BOLD),
+        )))
+        .style(Style::default().bg(BG))
+    } else {
+        let filter_label = match app.severity_filter {
+            SeverityFilter::All => "ALL",
+            SeverityFilter::ErrorsOnly => "ERRORS",
+            SeverityFilter::WarningsOnly => "WARNINGS",
+        };
+        let mut footer_spans = vec![
+            Span::styled("TAB", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
+            Span::styled(":PANEL  ", Style::default().fg(DIM)),
+            Span::styled("↑↓", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
+            Span::styled(":SCROLL  ", Style::default().fg(DIM)),
+            Span::styled("A", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
+            Span::styled(":ALL  ", Style::default().fg(DIM)),
+            Span::styled("E", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
+            Span::styled(":ERRORS  ", Style::default().fg(DIM)),
+            Span::styled("W", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
+            Span::styled(":WARNINGS  ", Style::default().fg(DIM)),
+        ];
+        if app.is_on_heatmap_category() {
+            footer_spans.push(Span::styled("V", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
+            footer_spans.push(Span::styled(
+                if app.heatmap_view { ":RETRY BROWSER  " } else { ":OPEN HEATMAP  " },
+                Style::default().fg(DIM),
+            ));
+        }
+        if report.fast {
+            footer_spans.push(Span::styled("F", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
+            footer_spans.push(Span::styled(":FULL AUDIT  ", Style::default().fg(DIM)));
+        }
+        footer_spans.push(Span::styled("Q", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
+        footer_spans.push(Span::styled(":BACK  ", Style::default().fg(DIM)));
+        footer_spans.push(Span::styled("ESC", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
+        footer_spans.push(Span::styled(":QUIT  ", Style::default().fg(DIM)));
+        footer_spans.push(Span::styled("FILTER:", Style::default().fg(DIM)));
+        footer_spans.push(Span::styled(
+            filter_label,
+            Style::default().fg(YELLOW).add_modifier(Modifier::BOLD),
+        ));
+        Paragraph::new(Line::from(footer_spans)).style(Style::default().bg(BG))
     };
-    let mut footer_spans = vec![
-        Span::styled("TAB", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
-        Span::styled(":PANEL  ", Style::default().fg(DIM)),
-        Span::styled("↑↓", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
-        Span::styled(":SCROLL  ", Style::default().fg(DIM)),
-        Span::styled("A", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
-        Span::styled(":ALL  ", Style::default().fg(DIM)),
-        Span::styled("E", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
-        Span::styled(":ERRORS  ", Style::default().fg(DIM)),
-        Span::styled("W", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)),
-        Span::styled(":WARNINGS  ", Style::default().fg(DIM)),
-    ];
-    if report.fast {
-        footer_spans.push(Span::styled("F", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
-        footer_spans.push(Span::styled(":FULL AUDIT  ", Style::default().fg(DIM)));
-    }
-    footer_spans.push(Span::styled("Q", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
-    footer_spans.push(Span::styled(":BACK  ", Style::default().fg(DIM)));
-    footer_spans.push(Span::styled("ESC", Style::default().fg(YELLOW).add_modifier(Modifier::BOLD)));
-    footer_spans.push(Span::styled(":QUIT  ", Style::default().fg(DIM)));
-    footer_spans.push(Span::styled("FILTER:", Style::default().fg(DIM)));
-    footer_spans.push(Span::styled(
-        filter_label,
-        Style::default().fg(YELLOW).add_modifier(Modifier::BOLD),
-    ));
-    let footer = Paragraph::new(Line::from(footer_spans)).style(Style::default().bg(BG));
     f.render_widget(footer, chunks[3]);
 }
 
@@ -1512,6 +1608,173 @@ fn draw_detail_pane(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(detail_widget, area);
 }
 
+// ─── Heatmap Visualization ─────────────────────────────────────────────────────
+// Mirrors the shape of the `allPoints`/`allAttentionElements` fields added to
+// the heatmap checker's `details` JSON (src/checkers/heatmap.ts) -- not part
+// of the shared SEOCheckResult/SEOReport schema above since these only exist
+// inside one checker's `details` blob, not the report's top-level shape.
+
+#[derive(Deserialize)]
+struct HeatmapPointJson {
+    x: f64,
+    y: f64,
+    value: f64,
+}
+
+#[derive(Deserialize)]
+struct AttentionBoundsJson {
+    top: f64,
+    left: f64,
+    width: f64,
+    height: f64,
+}
+
+#[derive(Deserialize)]
+struct AttentionZoneJson {
+    score: f64,
+    bounds: AttentionBoundsJson,
+}
+
+/// Renders the click-prediction points and high-attention zones the heatmap
+/// checker computed as an actual spatial plot (via ratatui's braille Canvas)
+/// instead of a pass/fail verdict -- so a person can judge attention flow on
+/// their own page themselves, the same data the HTML report overlays on a
+/// screenshot (src/reporter.ts's renderHeatmapVisualization).
+/// Opens the already-generated HTML report (written by the `--html` flag
+/// passed in run_audit_process below) in the user's default browser, via a
+/// `file://` URL jumping straight to the `#heatmap-visualization` section
+/// (src/reporter.ts). No local web server needed: the report is a single
+/// self-contained file with the page screenshot inlined as a base64 data
+/// URI, so a plain file URL renders the full overlay on its own.
+fn open_html_report_heatmap(html_path: &str) -> Result<(), String> {
+    if html_path.is_empty() {
+        return Err("no HTML report path configured in setup".to_string());
+    }
+
+    let path = std::path::Path::new(html_path);
+    let abs_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|e| e.to_string())?
+            .join(path)
+    };
+
+    if !abs_path.exists() {
+        return Err(format!("{} not found", abs_path.display()));
+    }
+
+    // file:// URLs need forward slashes even on Windows, and a Windows
+    // drive-letter path needs a third leading slash (file:///C:/...).
+    let path_str = abs_path.display().to_string().replace('\\', "/");
+    let url = if cfg!(target_os = "windows") {
+        format!("file:///{path_str}#heatmap-visualization")
+    } else {
+        format!("file://{path_str}#heatmap-visualization")
+    };
+
+    let spawn_result = if cfg!(target_os = "macos") {
+        OsCommand::new("open").arg(&url).stdout(Stdio::null()).stderr(Stdio::null()).spawn()
+    } else if cfg!(target_os = "windows") {
+        OsCommand::new("cmd")
+            .args(["/C", "start", "", &url])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+    } else {
+        OsCommand::new("xdg-open").arg(&url).stdout(Stdio::null()).stderr(Stdio::null()).spawn()
+    };
+
+    spawn_result.map(|_| ()).map_err(|e| e.to_string())
+}
+
+fn draw_heatmap_canvas(f: &mut Frame, area: Rect, report: &SEOReport) {
+    let heatmap_checks: &[SEOCheckResult] = report.checks.heatmap.as_deref().unwrap_or(&[]);
+    let click_check = heatmap_checks
+        .iter()
+        .find(|c| c.name.as_deref() == Some("click-heatmap-generated"));
+    let attention_check = heatmap_checks
+        .iter()
+        .find(|c| c.name.as_deref() == Some("attention-zones-strong"));
+
+    let (points, page_width, page_height): (Vec<HeatmapPointJson>, f64, f64) = click_check
+        .and_then(|c| c.details.as_ref())
+        .map(|d| {
+            let points = d
+                .get("allPoints")
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .unwrap_or_default();
+            let page_width = d.get("pageWidth").and_then(|v| v.as_f64()).unwrap_or(1920.0);
+            let page_height = d.get("pageHeight").and_then(|v| v.as_f64()).unwrap_or(1080.0);
+            (points, page_width, page_height)
+        })
+        .unwrap_or_else(|| (Vec::new(), 1920.0, 1080.0));
+
+    let zones: Vec<AttentionZoneJson> = attention_check
+        .and_then(|c| c.details.as_ref())
+        .and_then(|d| d.get("allAttentionElements"))
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_default();
+
+    // Canvas y-axis increases upward; page coordinates increase downward --
+    // flip here so the plot reads top-to-bottom the same way the page does.
+    let low: Vec<(f64, f64)> = points
+        .iter()
+        .filter(|p| p.value < 40.0)
+        .map(|p| (p.x, page_height - p.y))
+        .collect();
+    let mid: Vec<(f64, f64)> = points
+        .iter()
+        .filter(|p| (40.0..70.0).contains(&p.value))
+        .map(|p| (p.x, page_height - p.y))
+        .collect();
+    let high: Vec<(f64, f64)> = points
+        .iter()
+        .filter(|p| p.value >= 70.0)
+        .map(|p| (p.x, page_height - p.y))
+        .collect();
+
+    let title = if points.is_empty() && zones.is_empty() {
+        " HEATMAP — no data captured for this audit "
+    } else {
+        " HEATMAP — dots: predicted clicks · boxes: high-attention zones "
+    };
+
+    let canvas = Canvas::default()
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(RED))
+                .title(Span::styled(title, Style::default().fg(FG).add_modifier(Modifier::BOLD))),
+        )
+        .background_color(BG)
+        .x_bounds([0.0, page_width.max(1.0)])
+        .y_bounds([0.0, page_height.max(1.0)])
+        .paint(move |ctx| {
+            for z in &zones {
+                let color = if z.score >= 70.0 {
+                    RED
+                } else if z.score >= 40.0 {
+                    YELLOW
+                } else {
+                    MID
+                };
+                ctx.draw(&Rectangle {
+                    x: z.bounds.left,
+                    y: page_height - z.bounds.top - z.bounds.height,
+                    width: z.bounds.width,
+                    height: z.bounds.height,
+                    color,
+                });
+            }
+            ctx.draw(&Points { coords: &low, color: MID });
+            ctx.draw(&Points { coords: &mid, color: YELLOW });
+            ctx.draw(&Points { coords: &high, color: RED });
+        });
+
+    f.render_widget(canvas, area);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1546,5 +1809,101 @@ mod tests {
     #[test]
     fn normalize_url_trims_whitespace() {
         assert_eq!(normalize_url("  https://example.com  "), "https://example.com");
+    }
+
+    #[test]
+    fn draw_heatmap_canvas_paints_real_click_points_and_attention_zones() {
+        // Mirrors the exact `details` shape the heatmap checker produces
+        // (src/checkers/heatmap.ts's allPoints/allAttentionElements) -- a
+        // TestBackend renders to an in-memory buffer, so this actually
+        // exercises the JSON parsing + Canvas paint logic end-to-end
+        // without needing a real terminal (which CI/this sandbox lack).
+        let report: SEOReport = serde_json::from_value(serde_json::json!({
+            "url": "https://example.com",
+            "score": 80,
+            "timestamp": "2026-01-01T00:00:00Z",
+            "summary": {"total": 1, "passed": 1, "failed": 0},
+            "checks": {
+                "heatmap": [
+                    {
+                        "passed": true,
+                        "message": "Click heatmap generated",
+                        "severity": null,
+                        "name": "click-heatmap-generated",
+                        "details": {
+                            "pageWidth": 1920,
+                            "pageHeight": 1080,
+                            "allPoints": [
+                                {"x": 100.0, "y": 200.0, "value": 90.0, "element": "button.cta"},
+                                {"x": 500.0, "y": 800.0, "value": 30.0, "element": "a"}
+                            ]
+                        }
+                    },
+                    {
+                        "passed": true,
+                        "message": "Strong attention zones",
+                        "severity": null,
+                        "name": "attention-zones-strong",
+                        "details": {
+                            "allAttentionElements": [
+                                {
+                                    "selector": "h1",
+                                    "score": 95.0,
+                                    "zone": "hero-area",
+                                    "bounds": {"top": 20.0, "left": 10.0, "width": 400.0, "height": 60.0}
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }))
+        .expect("valid SEOReport json");
+
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal
+            .draw(|f| {
+                let area = f.area();
+                draw_heatmap_canvas(f, area, &report);
+            })
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let painted_something = buffer.content.iter().any(|cell| cell.symbol() != " ");
+        assert!(painted_something, "heatmap canvas rendered nothing for real point/zone data");
+    }
+
+    #[test]
+    fn draw_heatmap_canvas_handles_missing_heatmap_data_without_panicking() {
+        let report: SEOReport = serde_json::from_value(serde_json::json!({
+            "url": "https://example.com",
+            "score": null,
+            "timestamp": "2026-01-01T00:00:00Z",
+            "summary": {"total": 0, "passed": 0, "failed": 0},
+            "checks": {}
+        }))
+        .expect("valid SEOReport json");
+
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal
+            .draw(|f| {
+                let area = f.area();
+                draw_heatmap_canvas(f, area, &report);
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn open_html_report_heatmap_rejects_an_empty_path() {
+        let err = open_html_report_heatmap("").unwrap_err();
+        assert!(err.contains("no HTML report path"), "unexpected message: {err}");
+    }
+
+    #[test]
+    fn open_html_report_heatmap_rejects_a_report_that_was_never_generated() {
+        let err = open_html_report_heatmap("/tmp/aviary-test-report-that-does-not-exist.html").unwrap_err();
+        assert!(err.contains("not found"), "unexpected message: {err}");
     }
 }
