@@ -26,7 +26,14 @@ jobs:
         with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      # --no-frozen-lockfile: package.json's optionalDependencies point at
+      # the five @ru1vly/aviary-<platform> packages this same workflow's
+      # publish-platform-packages job publishes for the first time below --
+      # pnpm can't lock a package that doesn't exist on the registry yet, so
+      # a frozen install can never pass on the very first release. Once
+      # v1.0.0 has shipped, regenerate and commit pnpm-lock.yaml with real
+      # resolutions for them and switch this back to --frozen-lockfile.
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm run lint
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec playwright install chromium --with-deps
@@ -194,8 +201,26 @@ jobs:
           chmod +x "${{ matrix.binary_name }}" "${{ matrix.fast_binary_name }}" || true
       - name: Set version from tag
         working-directory: npm/${{ matrix.dir }}
-        run: npm version ${{ github.ref_name }} --no-git-tag-version
+        run: npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
+      # Idempotency guard: bootstrap-platform-packages.yml may have already
+      # published this exact version by hand (that's how the first release
+      # gets off the ground at all -- see the comment on the `test` job
+      # above) -- npm rejects republishing an existing version, so skip
+      # instead of failing when that's already happened.
+      - name: Check if this version is already published
+        id: check
+        working-directory: npm/${{ matrix.dir }}
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VERSION" version >/dev/null 2>&1; then
+            echo "Already published, skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish to npm
+        if: steps.check.outputs.skip == 'false'
         working-directory: npm/${{ matrix.dir }}
         run: npm publish --access public
         env:
@@ -215,7 +240,8 @@ jobs:
           node-version: '${{ env.NODE_VERSION }}'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
-      - run: pnpm install --frozen-lockfile
+      # --no-frozen-lockfile: see the `test` job above -- same bootstrap gap.
+      - run: pnpm install --no-frozen-lockfile
       # TS only — the native TUI binary now ships via the per-platform
       # optionalDependencies published above, not bundled into dist/.
       - run: pnpm run build:ts
@@ -233,12 +259,20 @@ jobs:
           "
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
+      # pnpm 9's `--no-git-checks` CLI flag mis-forwards a bare `--git-checks`
+      # to the underlying npm call, which npm rejects with
+      # "EUNKNOWNCONFIG: Unknown cli flag: --git-checks" (reproduced locally
+      # with the same pnpm major version CI uses). Setting it as a pnpm
+      # config value via the environment works around the bug.
       - name: Verify package contents (dry run)
-        run: pnpm publish --dry-run --access public --no-git-checks
+        run: pnpm publish --dry-run --access public
+        env:
+          npm_config_git_checks: 'false'
       - name: Publish to npm
-        run: pnpm publish --access public --no-git-checks
+        run: pnpm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          npm_config_git_checks: 'false'
 
   # ── Build & Push Docker Image ───────────────────────────────
   docker:

@@ -1,0 +1,193 @@
+name: Bootstrap Platform Packages
+
+# One-time (or occasional) manual publish of the five @ru1vly/aviary-<platform>
+# packages, decoupled from release.yml's `test` gate. These packages carry
+# only prebuilt tui/aviary-fast binaries and never touch the root
+# pnpm-lock.yaml, so they don't need to wait on (or be blocked by) the root
+# `pnpm install`.
+#
+# Why this exists: package.json's optionalDependencies point at these five
+# packages, but pnpm can't write a lockfile entry for a package that has
+# never been published -- so `pnpm install --frozen-lockfile` fails
+# everywhere (ci.yml, release.yml) until they exist for real, and
+# release.yml can't publish them itself because doing so is gated behind
+# the very `test` job that's stuck. Run this once to publish them for real,
+# then regenerate and commit pnpm-lock.yaml (it will now resolve them) and
+# switch ci.yml / release.yml back to `--frozen-lockfile`.
+#
+# Re-run later (with a new `version` input) if a platform's binary needs to
+# be republished outside of a tagged release -- ordinary releases publish
+# these same packages themselves, in release.yml's publish-platform-packages
+# job, once this bootstrap has unblocked --frozen-lockfile.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish for all five platform packages (use 1.0.0 to match the current optionalDependencies placeholder, at least until the first real tag ships)'
+        required: true
+        default: '1.0.0'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-rust-matrix:
+    name: Build TUI (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: tui-linux-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-linux-amd64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: tui-linux-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-linux-arm64
+            cross: true
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: tui-macos-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-macos-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: tui-macos-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-macos-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: tui-windows-amd64
+            binary_name: tui.exe
+            fast_binary_name: aviary-fast.exe
+            fast_artifact_name: aviary-fast-windows-amd64.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: '${{ matrix.target }}' }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: '. -> target' }
+      - name: Install cross (for ARM builds)
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+      # See release.yml's build-rust-matrix job for why QEMU registration
+      # and the exact `--bin` selection below are needed -- this mirrors it
+      # exactly, just triggered manually instead of by a tag.
+      - name: Install QEMU user-mode emulation (for cross-arch smoke test)
+        if: matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+      - name: Build (native)
+        if: '!matrix.cross'
+        run: cargo build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        working-directory: tui
+      - name: Build (cross)
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        working-directory: tui
+      - name: Rename binaries
+        run: |
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "${{ matrix.artifact_name }}"
+          cp "target/${{ matrix.target }}/release/${{ matrix.fast_binary_name }}" "${{ matrix.fast_artifact_name }}"
+        shell: bash
+      - name: Smoke test binary runs on this platform
+        run: node scripts/smoke-test-binary.js "./${{ matrix.artifact_name }}"
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.fast_artifact_name }}
+          path: ${{ matrix.fast_artifact_name }}
+
+  publish-platform-packages:
+    name: Publish platform package (${{ matrix.dir }})
+    runs-on: ubuntu-latest
+    needs: [build-rust-matrix]
+    strategy:
+      matrix:
+        include:
+          - dir: linux-x64
+            artifact_name: tui-linux-amd64
+            fast_artifact_name: aviary-fast-linux-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: linux-arm64
+            artifact_name: tui-linux-arm64
+            fast_artifact_name: aviary-fast-linux-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: darwin-x64
+            artifact_name: tui-macos-amd64
+            fast_artifact_name: aviary-fast-macos-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: darwin-arm64
+            artifact_name: tui-macos-arm64
+            fast_artifact_name: aviary-fast-macos-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+          - dir: win32-x64
+            artifact_name: tui-windows-amd64
+            fast_artifact_name: aviary-fast-windows-amd64.exe
+            binary_name: tui.exe
+            fast_binary_name: aviary-fast.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+          registry-url: 'https://registry.npmjs.org'
+      - uses: actions/download-artifact@v4
+        with: { name: '${{ matrix.artifact_name }}', path: 'npm/${{ matrix.dir }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: '${{ matrix.fast_artifact_name }}', path: 'npm/${{ matrix.dir }}' }
+      - name: Rename binaries and set executable bit
+        working-directory: npm/${{ matrix.dir }}
+        run: |
+          mv "${{ matrix.artifact_name }}" "${{ matrix.binary_name }}"
+          mv "${{ matrix.fast_artifact_name }}" "${{ matrix.fast_binary_name }}"
+          chmod +x "${{ matrix.binary_name }}" "${{ matrix.fast_binary_name }}" || true
+      # --allow-same-version: npm/<dir>/package.json is already committed at
+      # "1.0.0" (the optionalDependencies placeholder), so bootstrapping at
+      # the default input version is a same-version no-op edit, which
+      # `npm version` otherwise refuses.
+      - name: Set version
+        working-directory: npm/${{ matrix.dir }}
+        run: npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+      # Idempotency guard: this lets the bootstrap be re-run safely (e.g. to
+      # add a platform later), and matters more once release.yml's own
+      # publish-platform-packages job runs for the real tag matching this
+      # same version -- npm rejects republishing an existing version, so
+      # without this check that job would fail on exactly the version this
+      # bootstrap just published.
+      - name: Check if this version is already published
+        id: check
+        working-directory: npm/${{ matrix.dir }}
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VERSION" version >/dev/null 2>&1; then
+            echo "Already published, skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish to npm
+        if: steps.check.outputs.skip == 'false'
+        working-directory: npm/${{ matrix.dir }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -11,6 +11,16 @@ env:
   PNPM_VERSION: '9'
   RUST_VERSION: 'stable'
 
+# `--frozen-lockfile` is normally what we want (fails fast if someone edited
+# package.json without updating pnpm-lock.yaml), but package.json's
+# optionalDependencies point at the five @ru1vly/aviary-<platform> TUI
+# binary packages, which don't exist on the npm registry until the release
+# workflow publishes them for the first time -- pnpm can't lock a package it
+# can't resolve, so a frozen install here fails on every commit until that
+# first publish happens. Every `pnpm install` below uses `--no-frozen-lockfile`
+# for this reason. Once v1.0.0 has published those platform packages for
+# real, regenerate and commit pnpm-lock.yaml (it will then contain real
+# resolutions for them) and switch this back to `--frozen-lockfile`.
 jobs:
   # ── Lint & Type Check ──────────────────────────────────────
   lint:
@@ -22,7 +32,7 @@ jobs:
         with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm run lint
       - run: pnpm exec tsc --noEmit
 
@@ -37,7 +47,7 @@ jobs:
         with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:unit
       - run: pnpm run test:coverage
@@ -59,7 +69,7 @@ jobs:
         with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:integration
         timeout-minutes: 10
@@ -75,7 +85,7 @@ jobs:
         with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:e2e
         timeout-minutes: 10
@@ -110,7 +120,7 @@ jobs:
         with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm run build:ts
       - uses: actions/upload-artifact@v4
         with:
