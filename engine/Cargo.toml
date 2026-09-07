@@ -8,7 +8,12 @@ name = "aviary-fast"
 path = "src/bin/aviary_fast.rs"
 
 [dependencies]
-reqwest = { version = "0.12", features = ["json", "gzip", "brotli"] }
+# default-tls (the crate default) links native OpenSSL via openssl-sys,
+# whose build script needs a target-arch OpenSSL install -- cross's Docker
+# images don't ship one, so cross-compiling for aarch64-unknown-linux-gnu
+# fails there. rustls-tls is a pure-Rust TLS stack with no native
+# dependency, so it cross-compiles for every target build-rust-matrix uses.
+reqwest = { version = "0.12", default-features = false, features = ["json", "gzip", "brotli", "rustls-tls", "charset", "http2"] }
 scraper = "0.22"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
