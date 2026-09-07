@@ -81,7 +81,7 @@ jobs:
             fast_artifact_name: aviary-fast-macos-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: tui-windows-amd64
+            artifact_name: tui-windows-amd64.exe
             binary_name: tui.exe
             fast_binary_name: aviary-fast.exe
             fast_artifact_name: aviary-fast-windows-amd64.exe
@@ -179,7 +179,7 @@ jobs:
             binary_name: tui
             fast_binary_name: aviary-fast
           - dir: win32-x64
-            artifact_name: tui-windows-amd64
+            artifact_name: tui-windows-amd64.exe
             fast_artifact_name: aviary-fast-windows-amd64.exe
             binary_name: tui.exe
             fast_binary_name: aviary-fast.exe
