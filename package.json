@@ -1,6 +1,6 @@
 {
   "name": "@ru1vly/aviary",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "e2e seo testing kit for websites",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -92,10 +92,10 @@
     "zod": "^4.4.3"
   },
   "optionalDependencies": {
-    "@ru1vly/aviary-linux-x64": "1.0.0",
-    "@ru1vly/aviary-linux-arm64": "1.0.0",
-    "@ru1vly/aviary-darwin-x64": "1.0.0",
-    "@ru1vly/aviary-darwin-arm64": "1.0.0",
-    "@ru1vly/aviary-win32-x64": "1.0.0"
+    "@ru1vly/aviary-linux-x64": "0.1.0",
+    "@ru1vly/aviary-linux-arm64": "0.1.0",
+    "@ru1vly/aviary-darwin-x64": "0.1.0",
+    "@ru1vly/aviary-darwin-arm64": "0.1.0",
+    "@ru1vly/aviary-win32-x64": "0.1.0"
   }
 }

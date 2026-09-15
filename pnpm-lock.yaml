@@ -31,20 +31,20 @@ importers:
         version: 4.4.3
     optionalDependencies:
       '@ru1vly/aviary-darwin-arm64':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 0.1.0
+        version: 0.1.0
       '@ru1vly/aviary-darwin-x64':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 0.1.0
+        version: 0.1.0
       '@ru1vly/aviary-linux-arm64':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 0.1.0
+        version: 0.1.0
       '@ru1vly/aviary-linux-x64':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 0.1.0
+        version: 0.1.0
       '@ru1vly/aviary-win32-x64':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: 0.1.0
+        version: 0.1.0
     devDependencies:
       '@types/express':
         specifier: ^5.0.5
@@ -496,28 +496,28 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@ru1vly/aviary-darwin-arm64@1.0.0':
-    resolution: {integrity: sha512-NWDvhEm+P6pF+azAWGNa2a7skbtext/YMqGjbpSRQRN4qWz7Tn4izCyxlhmGAj+soPki2EZ9GUjoQNqv5K9tFw==}
+  '@ru1vly/aviary-darwin-arm64@0.1.0':
+    resolution: {integrity: sha512-vioLlr2ilKBtXxPLpmANvdX9cLPRiBOJoVu7MoHxqpZa8ykY1vDHNE2pVR4VZT/Vvtychola9PWnmMsPIU9Xfw==}
     cpu: [arm64]
     os: [darwin]
 
-  '@ru1vly/aviary-darwin-x64@1.0.0':
-    resolution: {integrity: sha512-GOwqvHgynsbmZaZ6FE/n8mnSZUY0nL+C2/6ljJXb5FKvOAHevSa8/9zxY5pH1rxVg05RvfnK+HToFJ9dcw1l/g==}
+  '@ru1vly/aviary-darwin-x64@0.1.0':
+    resolution: {integrity: sha512-rDHdBMOspsNXJtCk3foVFLMX+Z6/iYeXkPXNC8WHboG3nAfQjVmfiVimZuB3x4fNCWjj3GIPL4E12CfzukvfLQ==}
     cpu: [x64]
     os: [darwin]
 
-  '@ru1vly/aviary-linux-arm64@1.0.0':
-    resolution: {integrity: sha512-xmvELlJDc2saSe0b3AhETJPagoouYuVfThgNBOEaDwixHbc8D7uH75pqoYZx7UBT7aAFEMvXTmuq85JtxI/z3g==}
+  '@ru1vly/aviary-linux-arm64@0.1.0':
+    resolution: {integrity: sha512-D9koDDO82tKIFxVJceJ6yqd4YP6KUy3TGtaFX3uefzPCv/l2fo3He+0luHTcTClt6o3mhtw3RP1yYZ8hTzC2Yg==}
     cpu: [arm64]
     os: [linux]
 
-  '@ru1vly/aviary-linux-x64@1.0.0':
-    resolution: {integrity: sha512-iR7ncqWau8iXXTANkt5mAd5scOBgqCqNcIxryW/zbKRoYSJkuoxR/Dp66hfJIAXtqDwWcCy5coDp5ZkLk07CWA==}
+  '@ru1vly/aviary-linux-x64@0.1.0':
+    resolution: {integrity: sha512-50iLsHAEiQRQPzfLKZnhykEeq6i1QeEbSCRMAxDdN8/qbNp1dmfTxQQtVLKW9HEy2tE/Zm+GIPtICPNGQOhBRQ==}
     cpu: [x64]
     os: [linux]
 
-  '@ru1vly/aviary-win32-x64@1.0.0':
-    resolution: {integrity: sha512-O+dFrsSkOEoD4F2IcuoG4/VRIKzmQs7YCE0YKkxvdPSa25QyZNyM9fwW0uC5Bf9xm+urDpGRhUe4HKEjGgMcsw==}
+  '@ru1vly/aviary-win32-x64@0.1.0':
+    resolution: {integrity: sha512-iFWFJDr2Ygcvzm6mMAsPw8HBqYagAeNdQEEbbtaKWdktbdcPouQlYfh9Pq04UsedXOd1sXQH34jLiYFRweRFVA==}
     cpu: [x64]
     os: [win32]
 
@@ -1995,19 +1995,19 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@ru1vly/aviary-darwin-arm64@1.0.0':
+  '@ru1vly/aviary-darwin-arm64@0.1.0':
     optional: true
 
-  '@ru1vly/aviary-darwin-x64@1.0.0':
+  '@ru1vly/aviary-darwin-x64@0.1.0':
     optional: true
 
-  '@ru1vly/aviary-linux-arm64@1.0.0':
+  '@ru1vly/aviary-linux-arm64@0.1.0':
     optional: true
 
-  '@ru1vly/aviary-linux-x64@1.0.0':
+  '@ru1vly/aviary-linux-x64@0.1.0':
     optional: true
 
-  '@ru1vly/aviary-win32-x64@1.0.0':
+  '@ru1vly/aviary-win32-x64@0.1.0':
     optional: true
 
   '@sinclair/typebox@0.34.52': {}
