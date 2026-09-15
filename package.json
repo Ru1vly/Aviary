@@ -62,8 +62,9 @@
     "url": "https://github.com/Ru1vly/Aviary/issues"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
+  "packageManager": "pnpm@9.15.9",
   "devDependencies": {
     "@types/express": "^5.0.5",
     "@types/jest": "^30.0.0",

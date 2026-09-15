@@ -33,7 +33,7 @@ jobs:
       # a frozen install can never pass on the very first release. Once
       # v1.0.0 has shipped, regenerate and commit pnpm-lock.yaml with real
       # resolutions for them and switch this back to --frozen-lockfile.
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec playwright install chromium --with-deps
@@ -241,13 +241,13 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
       # --no-frozen-lockfile: see the `test` job above -- same bootstrap gap.
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       # TS only — the native TUI binary now ships via the per-platform
       # optionalDependencies published above, not bundled into dist/.
       - run: pnpm run build:ts
       - name: Set version from tag
         run: |
-          npm version ${{ github.ref_name }} --no-git-tag-version
+          npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
