@@ -89,11 +89,11 @@ jobs:
           sudo apt-get install -y qemu-user-static binfmt-support
       - name: Build (native)
         if: '!matrix.cross'
-        run: cargo build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        run: cargo build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
         working-directory: tui
       - name: Build (cross)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        run: cross build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
         working-directory: tui
       - name: Rename binaries
         run: |

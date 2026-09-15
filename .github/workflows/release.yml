@@ -11,7 +11,6 @@ permissions:
 
 env:
   NODE_VERSION: '20'
-  PNPM_VERSION: '9'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -23,7 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
       # --no-frozen-lockfile: package.json's optionalDependencies point at
@@ -111,11 +109,11 @@ jobs:
       # a package name, so `--package aviary-fast` alone wouldn't resolve.
       - name: Build (native)
         if: '!matrix.cross'
-        run: cargo build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        run: cargo build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
         working-directory: tui
       - name: Build (cross)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        run: cross build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
         working-directory: tui
       # `tui` is a member of the root Cargo workspace (see /Cargo.toml), so
       # even when built from within `tui/`, cargo/cross write output to
@@ -234,7 +232,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'

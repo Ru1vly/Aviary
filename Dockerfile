@@ -4,7 +4,7 @@ FROM node:20-slim AS ts-builder
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@9.15.9
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -27,7 +27,7 @@ WORKDIR /app
 # of which user the runtime stage ends up running as.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@9.15.9
 COPY package.json pnpm-lock.yaml ./
 # Production dependencies only — this is exactly what ships into the runtime
 # image below, so devDependencies (typescript, vitest, eslint, ...) never
