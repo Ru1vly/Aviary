@@ -2,6 +2,47 @@
 
 An end-to-end SEO testing toolkit for websites using browser automation. Built with TypeScript and Playwright for comprehensive SEO analysis.
 
+<p align="left">
+  <a href="https://www.npmjs.com/package/@ru1vly/aviary"><img src="https://img.shields.io/npm/v/@ru1vly/aviary.svg?style=flat-square" alt="npm version" /></a>
+  <a href="https://github.com/Ru1vly/Aviary/releases/latest"><img src="https://img.shields.io/github/v/release/Ru1vly/Aviary?style=flat-square" alt="GitHub release" /></a>
+  <a href="https://ru1vly.github.io/Aviary-Docs/"><img src="https://img.shields.io/badge/docs-live-blue.svg?style=flat-square" alt="Documentation" /></a>
+  <a href="https://github.com/Ru1vly/Aviary/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="License" /></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg?style=flat-square" alt="Node" /></a>
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>🌐 <a href="https://ru1vly.github.io/Aviary-Docs/">Documentation Portal</a></h4>
+      <p>Full guides, CLI reference, 12-factor configuration, and accuracy disclosures.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h4>🤖 <a href="#model-context-protocol-mcp-server">Model Context Protocol (MCP)</a></h4>
+      <p>Stdio MCP server (<code>aviary-mcp</code>) allowing AI coding agents (Claude, Cursor, Codex) to audit sites.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>🖥️ <a href="#quick-start">Terminal UI (TUI) Dashboard</a></h4>
+      <p>Full-screen interactive Ratatui console dashboard with score meters and issue inspector.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h4>⚡ <a href="#native-architecture--terminal-ui">Fast Rust Static Engine</a></h4>
+      <p>Microsecond raw HTTP static parser (<code>aviary-fast</code>) for high-throughput evaluations.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>📦 <a href="https://www.npmjs.com/package/@ru1vly/aviary">npm Distribution</a></h4>
+      <p>Zero-config installation with automatic Playwright Chromium provisioning and Chrome fallback.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h4>📊 <a href="#features">28 Categories · 235 Checks</a></h4>
+      <p>Real Core Web Vitals, predictive heatmaps, JSON-LD schema, security headers, and UX.</p>
+    </td>
+  </tr>
+</table>
+
 > [!IMPORTANT]
 > This toolkit performs static and dynamic audits on fully rendered web pages. Because it executes checks within a real browser instance, it accurately evaluates JavaScript-rendered metadata, dynamic layouts, and web performance metrics.
 
