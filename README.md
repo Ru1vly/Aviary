@@ -26,18 +26,37 @@ The library executes 235 individual checks across 28 categories (heatmap's click
 
 ---
 
+## Prerequisites
+
+- **Node.js**: `>= 20.0.0` (required by MCP server and modern runtime libraries)
+- **Browsers**: Chromium (automatically downloaded on first run if missing, with fallback to system Google Chrome)
+
+---
+
 ## Installation
 
-Install the package via npm:
+Install the package into your project:
 
 ```bash
+# Using npm
 npm install @ru1vly/aviary
+
+# Using pnpm
+pnpm add @ru1vly/aviary
 ```
 
 To install globally as a command-line tool:
 
 ```bash
-npm install -g .
+npm install -g @ru1vly/aviary
+# or with pnpm
+pnpm add -g @ru1vly/aviary
+```
+
+Or run directly without installing:
+
+```bash
+npx @ru1vly/aviary -u https://example.com
 ```
 
 ---
@@ -74,10 +93,10 @@ aviary -u https://example.com --viewport 375x667
 
 ### Programmatic API
 
-Import the SEOChecker class to run checks programmatically within your Node.js application:
+Import the `SEOChecker` class to run checks programmatically within your Node.js application:
 
 ```typescript
-import { SEOChecker } from 'aviary';
+import { SEOChecker } from '@ru1vly/aviary';
 
 async function runAudit() {
   const checker = new SEOChecker({
@@ -95,22 +114,88 @@ runAudit();
 
 ---
 
+## Model Context Protocol (MCP) Server
+
+Aviary includes a built-in Model Context Protocol (MCP) server that exposes real-browser SEO auditing tools directly to AI coding agents (Claude Desktop, Cursor, Windsurf, Antigravity, etc.).
+
+The server communicates via standard I/O (`stdio`) and provides three registered tools:
+
+| Tool | Parameters | Description |
+|---|---|---|
+| `seo_audit` | `url`, `preset?` (`basic`\|`advanced`\|`strict`), `categories?` | Full SEO audit returning structured results across all 28 categories. |
+| `seo_score` | `url` | Quick audit returning overall score (0-100), letter grade (`A`-`F`), and pass/fail counts. |
+| `seo_check_category` | `url`, `category` | Targeted audit executing checks for a single specified category. |
+
+### Running the MCP Server
+
+```bash
+# Via binary entry point
+aviary-mcp
+
+# Or via npx
+npx @ru1vly/aviary aviary-mcp
+
+# Or directly from source/monorepo
+pnpm run mcp-server
+```
+
+### Agent Configuration (`claude_desktop_config.json` / MCP Settings)
+
+```json
+{
+  "mcpServers": {
+    "aviary": {
+      "command": "npx",
+      "args": ["-y", "@ru1vly/aviary", "aviary-mcp"]
+    }
+  }
+}
+```
+
+---
+
 ## Command Line Options
 
 The command-line interface supports the following parameters:
 
 | Option | Shortcut | Type | Description |
 |---|---|---|---|
-| `--url` | `-u` | string | Target website URL to analyze (required) |
+| `--url` | `-u` | string | Target website URL to analyze (required for CLI audit mode) |
 | `--output` | `-o` | string | File path to write the JSON results payload |
 | `--html` | | string | File path to write the visual HTML report page |
 | `--json` | | boolean | Output raw JSON string directly to standard output |
 | `--config` | `-c` | string | Path to a custom JSON or YAML configuration file |
-| `--preset` | `-p` | string | Configuration preset name (basic, advanced, strict) |
+| `--preset` | `-p` | string | Configuration preset name (`basic`, `advanced`, `strict`) |
 | `--verbose` | `-v` | boolean | Output check details object for failed entries |
 | `--headed` | | boolean | Run the browser simulator in headed mode (visible) |
-| `--viewport` | | string | Set simulator window size (e.g. 1920x1080) |
+| `--viewport` | | string | Set simulator window size (e.g. `1920x1080` or `375x667`) |
 | `--init-config`| | boolean | Create a default configuration template file in the CWD |
+
+---
+
+## Environment Variables (12-Factor Config)
+
+All CLI options can be configured via environment variables for 12-factor deployment and container environments:
+
+| Variable | Type / Values | Description |
+|---|---|---|
+| `AVIARY_URL` | string | Target URL (overridden by `-u` / `--url`) |
+| `AVIARY_HEADLESS` | `"true"` \| `"false"` | Run browser headless (overridden by `--headed`) |
+| `AVIARY_TIMEOUT` | number (ms) | Page load timeout in milliseconds (default: `30000`) |
+| `AVIARY_VIEWPORT` | `"WxH"` | Simulator viewport size (overridden by `--viewport`) |
+| `AVIARY_PRESET` | `"basic"` \| `"advanced"` \| `"strict"` | Active rule preset (overridden by `--preset`) |
+| `AVIARY_OUTPUT` | string (path) | Destination path for JSON report (overridden by `--output`) |
+| `AVIARY_HTML_OUTPUT` | string (path) | Destination path for HTML report (overridden by `--html`) |
+| `AVIARY_LOG_LEVEL` | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | Log verbosity (default: `info`) |
+| `AVIARY_LLM_PROVIDER`| `"ollama"` \| `"stub"` | LLM provider for semantic checks (default: `stub`) |
+| `AVIARY_LLM_ENDPOINT`| string | LLM endpoint URL (default: `http://localhost:11434`) |
+| `AVIARY_LLM_MODEL` | string | LLM model identifier (default: `llama3.2`) |
+| `AVIARY_LLM_API_KEY` | string | LLM API key when required (never logged) |
+| `AVIARY_METRICS_PORT`| number | Prometheus `/metrics` HTTP server port (default: `9090`) |
+
+### Prometheus Metrics
+
+Aviary automatically starts a lightweight background Prometheus metrics server on port `9090` (or `AVIARY_METRICS_PORT`). Scrape `http://localhost:9090/metrics` to monitor execution histograms (`llm_inference_time_ms`) and default Node.js runtime metrics.
 
 ---
 
@@ -129,7 +214,7 @@ Beyond enabling/disabling rules and setting severity, individual checks' numeric
 To write an HTML report programmatically:
 
 ```typescript
-import { SEOChecker, generateHtmlReport } from 'aviary';
+import { SEOChecker, generateHtmlReport } from '@ru1vly/aviary';
 
 async function exportReport() {
   const checker = new SEOChecker({ url: 'https://example.com' });
@@ -139,6 +224,21 @@ async function exportReport() {
   generateHtmlReport(report, './reports/seo-analysis.html');
 }
 ```
+
+---
+
+## Native Architecture & Terminal UI
+
+Aviary combines a high-fidelity TypeScript + Playwright browser crawler with high-performance Rust components:
+
+1. **Interactive TUI Dashboard**: Built with [Ratatui](https://crates.io/crates/ratatui) and Crossterm in `tui/`. Running `aviary` with no arguments boots into a responsive terminal dashboard with real-time audit navigation, score meters, and issue inspectors.
+2. **Fast Static Engine (`aviary-fast`)**: Native Rust parser built with `reqwest`, `scraper`, and `tokio` for microsecond-level raw HTTP checks.
+3. **Platform Prebuilt Binaries**: Shipped via optional dependencies for zero-compilation startup:
+   - `@ru1vly/aviary-linux-x64`
+   - `@ru1vly/aviary-linux-arm64`
+   - `@ru1vly/aviary-darwin-x64`
+   - `@ru1vly/aviary-darwin-arm64`
+   - `@ru1vly/aviary-win32-x64`
 
 ---
 

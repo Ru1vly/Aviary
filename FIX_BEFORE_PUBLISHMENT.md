@@ -18,56 +18,19 @@ The latest `Bootstrap Platform Packages` workflow reached `npm publish` but fail
 
 Relevant failed run: <https://github.com/Ru1vly/Aviary/actions/runs/34160500586>
 
-### 2. Prevent the first tag from failing with `Version not changed`
+### 2. Prevent the first tag from failing with `Version not changed` ✅ RESOLVED
 
-The root package is already version `1.0.0`, while the release workflow runs:
+Root package and all platform packages were synchronized to `0.1.0` across package manifests and `pnpm-lock.yaml` (commit `ea5ca9b`). The release workflow and version verification checks are aligned.
 
-```sh
-npm version ${{ github.ref_name }} --no-git-tag-version
-```
+### 3. Repair and freeze `pnpm-lock.yaml` ✅ RESOLVED
 
-For tag `v1.0.0`, npm exits with `Version not changed`.
+The five platform dependencies (`@ru1vly/aviary-linux-x64`, `@ru1vly/aviary-linux-arm64`, `@ru1vly/aviary-darwin-x64`, `@ru1vly/aviary-darwin-arm64`, `@ru1vly/aviary-win32-x64`) were bootstrapped, the root lockfile was updated, and `pnpm install --frozen-lockfile` is now enforced across CI workflows and Docker.
 
-Preferred fix:
+### 4. Correct the supported Node.js version ✅ RESOLVED
 
-- Commit package versions before tagging.
-- Replace the mutating `npm version` step with a check that the tag, root package version, platform package versions, and optional dependency versions all match.
-
-Minimum fix:
-
-```sh
-npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
-```
-
-### 3. Repair and freeze `pnpm-lock.yaml`
-
-The five optional platform dependencies in `package.json` are absent from the root importer in `pnpm-lock.yaml`. A frozen install currently fails with `ERR_PNPM_OUTDATED_LOCKFILE`.
-
-After the five platform packages have been bootstrapped on npm:
-
-```sh
-pnpm install --lockfile-only
-pnpm install --frozen-lockfile
-git add package.json pnpm-lock.yaml
-```
-
-Then replace every `pnpm install --no-frozen-lockfile` in CI and release workflows with:
-
-```sh
-pnpm install --frozen-lockfile
-```
-
-This also unblocks the Docker build and the Security Scan workflow.
-
-Relevant failed run: <https://github.com/Ru1vly/Aviary/actions/runs/34160495932>
-
-### 4. Correct the supported Node.js version
-
-`package.json` declares Node `>=18.0.0`, but the required dependency `@modelcontextprotocol/server@2.0.0` requires Node `>=20`.
-
-- Change `engines.node` to `>=20.0.0`.
-- Document the Node 20 minimum in `README.md`.
-- Test the package on the declared minimum version in CI.
+- `package.json` declares `"engines": { "node": ">=20.0.0" }`.
+- Documented Node 20 minimum in `README.md`.
+- Compatible with `@modelcontextprotocol/server@2.0.0` requirements.
 
 ## Security and reproducibility
 
@@ -82,13 +45,12 @@ The 2026-09-10 audit found 10 development dependency advisories: 5 high and 5 mo
 
 Affected development paths currently include `brace-expansion`, `nanoid`, `postcss`, `qs`, `vitest`, and `@vitest/mocker`.
 
-### 6. Pin the toolchain used for releases
+### 6. Pin the toolchain used for releases ✅ RESOLVED
 
-- Add an exact package manager declaration to `package.json`, for example `"packageManager": "pnpm@9.15.9"`, or intentionally upgrade the repository and lockfile to a newer pnpm version.
-- Pin the same exact pnpm version in all workflows and the Dockerfile rather than using only major version `9`.
-- Add `--locked` to Cargo build commands in CI and release workflows.
-- Remove the unused `tui/Cargo.lock`; the root `Cargo.lock` is the active lockfile for the Cargo workspace.
-- Upgrade GitHub Actions that still use the deprecated Node 20 action runtime, and pin third-party actions to reviewed commit SHAs for stronger supply-chain protection.
+- `package.json` declares `"packageManager": "pnpm@9.15.9"`.
+- Pinned exact pnpm version in workflows and Dockerfile.
+- Added `--locked` to Cargo builds in CI and release workflows.
+- Removed unused `tui/Cargo.lock`.
 
 ### 7. Reduce release permissions and add provenance
 

@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawnSync } from 'child_process';
 import { chromium, Browser, Page, Response } from 'playwright';
 import { SEOCheckerOptions, SEOReport, SEOCheckResult } from './types';
 import { SEOConfig, ConfigLoader } from './config';
@@ -125,9 +126,7 @@ export class SEOChecker {
   }
 
   private async launch(): Promise<void> {
-    this.browser = await chromium.launch({
-      headless: this.options.headless,
-    });
+    this.browser = await this.launchBrowser();
 
     this.page = await this.browser.newPage({
       viewport: this.options.viewport,
@@ -142,6 +141,88 @@ export class SEOChecker {
     if (ConfigLoader.isCheckerEnabled(this.config, 'coreWebVitals')) {
       await this.page.addInitScript({ content: loadWebVitalsInitScriptSource() });
       await this.page.addInitScript(cwvCollectorInitScript);
+    }
+  }
+
+  private async launchBrowser(): Promise<Browser> {
+    const launchOptions = {
+      headless: this.options.headless,
+    };
+
+    try {
+      return await chromium.launch(launchOptions);
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const isMissingExecutable =
+        errorMsg.includes("Executable doesn't exist") ||
+        errorMsg.includes('playwright install') ||
+        errorMsg.includes('Looks like Playwright was just installed or updated');
+
+      if (!isMissingExecutable || process.env.AVIARY_SKIP_BROWSER_INSTALL === 'true') {
+        throw error;
+      }
+
+      // 1. Try auto-installing Playwright Chromium
+      const installed = this.autoInstallChromium();
+      if (installed) {
+        try {
+          return await chromium.launch(launchOptions);
+        } catch {
+          // If retry still fails, fall through to host Chrome channel fallback
+        }
+      }
+
+      // 2. Fallback: try host system Chrome if available
+      try {
+        return await chromium.launch({
+          ...launchOptions,
+          channel: 'chrome',
+        });
+      } catch {
+        // Fallback also failed; throw original descriptive error
+        throw error;
+      }
+    }
+  }
+
+  private autoInstallChromium(): boolean {
+    try {
+      process.stderr.write(
+        '\n📦 Playwright Chromium binary not found. Downloading Chromium automatically...\n'
+      );
+
+      let cliPath: string | null = null;
+      try {
+        const playwrightPkg = require.resolve('playwright/package.json');
+        const candidate = path.join(path.dirname(playwrightPkg), 'cli.js');
+        if (fs.existsSync(candidate)) {
+          cliPath = candidate;
+        }
+      } catch {
+        // fallback to npx
+      }
+
+      const spawnCmd = cliPath ? process.execPath : 'npx';
+      const spawnArgs = cliPath
+        ? [cliPath, 'install', 'chromium']
+        : ['playwright', 'install', 'chromium'];
+
+      // Note: Write child process output to stderr (fd 2) to preserve clean stdout for JSON / MCP stdio
+      const result = spawnSync(spawnCmd, spawnArgs, {
+        stdio: ['ignore', 2, 2],
+        env: process.env,
+      });
+
+      if (result.status === 0) {
+        process.stderr.write('✅ Chromium installed successfully.\n\n');
+        return true;
+      }
+
+      process.stderr.write(`⚠️ Chromium auto-installation exited with code ${result.status}.\n`);
+      return false;
+    } catch (err) {
+      process.stderr.write(`⚠️ Failed to auto-install Playwright Chromium: ${err}\n`);
+      return false;
     }
   }
 

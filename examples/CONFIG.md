@@ -21,20 +21,23 @@ aviary --init-config --preset strict   # For strict checks
 
 ### Use a configuration file
 
+> [!NOTE]
+> When running the CLI in audit mode, always pass the target URL using the `-u` or `--url` flag (positional URL arguments are not supported). Running `aviary` with no arguments launches the interactive full-screen Terminal UI (TUI).
+
 ```bash
 # Auto-detect config file in current directory
-aviary https://example.com
+aviary -u https://example.com
 
 # Specify a custom config file
-aviary https://example.com --config my-config.yaml
+aviary -u https://example.com --config my-config.yaml
 ```
 
 ### Use a preset without a file
 
 ```bash
-aviary https://example.com --preset basic
-aviary https://example.com --preset advanced
-aviary https://example.com --preset strict
+aviary -u https://example.com --preset basic
+aviary -u https://example.com --preset advanced
+aviary -u https://example.com --preset strict
 ```
 
 ## Configuration Structure

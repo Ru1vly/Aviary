@@ -179,6 +179,79 @@ describe('SEOChecker', () => {
         expect(['error', 'warning', 'info']).toContain(check.severity);
       }
     });
+
+    it('should attempt auto-install and retry when browser executable is missing', async () => {
+      const launchMock = vi.mocked(chromium.launch);
+      launchMock.mockRejectedValueOnce(
+        new Error("browserType.launch: Executable doesn't exist at /fake/path/chrome")
+      );
+      launchMock.mockResolvedValueOnce(mockBrowser);
+
+      const autoInstallSpy = vi
+        .spyOn(SEOChecker.prototype as any, 'autoInstallChromium')
+        .mockReturnValue(true);
+
+      const checker = new SEOChecker({ url: 'https://example.com' });
+      const report = await checker.check();
+
+      expect(autoInstallSpy).toHaveBeenCalledTimes(1);
+      expect(launchMock).toHaveBeenCalledTimes(2);
+      expect(report).toHaveProperty('score');
+      autoInstallSpy.mockRestore();
+    });
+
+    it('should fallback to system chrome channel when auto-install fails', async () => {
+      const launchMock = vi.mocked(chromium.launch);
+      launchMock.mockRejectedValueOnce(
+        new Error("browserType.launch: Executable doesn't exist at /fake/path/chrome")
+      );
+      launchMock.mockResolvedValueOnce(mockBrowser);
+
+      const autoInstallSpy = vi
+        .spyOn(SEOChecker.prototype as any, 'autoInstallChromium')
+        .mockReturnValue(false);
+
+      const checker = new SEOChecker({ url: 'https://example.com' });
+      const report = await checker.check();
+
+      expect(autoInstallSpy).toHaveBeenCalledTimes(1);
+      expect(launchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          channel: 'chrome',
+        })
+      );
+      expect(report).toHaveProperty('score');
+      autoInstallSpy.mockRestore();
+    });
+
+    it('should propagate original error if both auto-install and fallback fail', async () => {
+      const launchMock = vi.mocked(chromium.launch);
+      const missingError = new Error("browserType.launch: Executable doesn't exist at /fake/path/chrome");
+      launchMock.mockRejectedValue(missingError);
+
+      const autoInstallSpy = vi
+        .spyOn(SEOChecker.prototype as any, 'autoInstallChromium')
+        .mockReturnValue(false);
+
+      const checker = new SEOChecker({ url: 'https://example.com' });
+      await expect(checker.check()).rejects.toThrow(missingError);
+
+      autoInstallSpy.mockRestore();
+    });
+
+    it('should not attempt auto-install for unrelated launch errors', async () => {
+      const launchMock = vi.mocked(chromium.launch);
+      const otherError = new Error('Browser launch failed: ENOMEM');
+      launchMock.mockRejectedValueOnce(otherError);
+
+      const autoInstallSpy = vi.spyOn(SEOChecker.prototype as any, 'autoInstallChromium');
+
+      const checker = new SEOChecker({ url: 'https://example.com' });
+      await expect(checker.check()).rejects.toThrow('Browser launch failed: ENOMEM');
+
+      expect(autoInstallSpy).not.toHaveBeenCalled();
+      autoInstallSpy.mockRestore();
+    });
   });
 
   describe('close', () => {

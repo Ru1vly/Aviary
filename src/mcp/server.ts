@@ -31,7 +31,7 @@ function gradeFor(score: number | null): 'A' | 'B' | 'C' | 'D' | 'F' | 'N/A' {
 }
 
 function createServer(): McpServer {
-  const server = new McpServer({ name: 'aviary', version: '0.1.0' });
+  const server = new McpServer({ name: 'aviary', version: '0.1.1' });
 
   server.registerTool(
     'seo_audit',
