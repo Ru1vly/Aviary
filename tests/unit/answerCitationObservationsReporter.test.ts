@@ -92,5 +92,16 @@ describe('observed AI-answer citation report', () => {
     expect(html).toContain('owned.example');
     expect(html).toContain('2026-09');
     expect(html).toContain('2026-10');
+
+    const categorizedHtml = renderAiAnswerCitationObservationHtml(report, [
+      'owned.example=Owned sources',
+      'independent.example=Independent reviews',
+    ]);
+    expect(categorizedHtml).toContain('Operator-defined citation source categories');
+    expect(categorizedHtml).toContain('Owned sources');
+    expect(categorizedHtml).toContain('Independent reviews');
+    expect(() => renderAiAnswerCitationObservationHtml(report, ['invalid mapping'])).toThrow(
+      'Source-category mapping 1 must use hostname=category format.'
+    );
   });
 });

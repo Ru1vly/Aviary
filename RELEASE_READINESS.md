@@ -7,7 +7,7 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The candidate and follow-up commits are local; `main` has not been pushed or tagged. Two required release conditions remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete run passes **481 tests across 58 files**, with **49.33% statement, 50.46% line, 47.10% function, and 32.99% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
+1. The tagged workflow requires at least 80% coverage. The latest complete run passes **481 tests across 58 files**, with **49.85% statement, 51.00% line, 47.81% function, and 33.41% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
 The release candidate is prepared for review, but the coverage threshold, npm trusted-publisher setup, a clean-checkout verification, and the required CI/security gates must pass on the final release commit before tagging.
@@ -50,7 +50,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Release blockers and maintainer actions
 
-1. **Recover the coverage gate.** The latest full run passed 481 tests but failed the configured 80% minimums: statements 49.33%, branches 32.99%, functions 47.10%, and lines 50.46%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
+1. **Recover the coverage gate.** The latest full run passed 481 tests but failed the configured 80% minimums: statements 49.85%, branches 33.41%, functions 47.81%, and lines 51.00%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
 2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. See [npm's trusted publisher setup guide](https://docs.npmjs.com/trusted-publishers/). Publishing should use OIDC provenance; do not add a broad npm token to the release workflow.
 3. **Recheck release controls.** Verify workflow permissions, tag protection, bootstrap secrets, and current CI/Security Scan/bootstrap results on the final release commit. The last observed passing runs are from before this candidate.
 4. **Keep the 1.0.0 versions deprecated.** npm's post-72-hour criteria require no dependents, fewer than 300 downloads in the last week, and a single owner. The five platform versions are dependencies of the root package, so retain the existing warnings unless npm support confirms a policy-compliant removal path. See [npm's unpublish policy](https://docs.npmjs.com/policies/unpublish/).
@@ -61,7 +61,7 @@ Coverage recovery should start with the largest uncovered statement counts from 
 
 | Module                                          | Uncovered statements | Statement coverage |
 | ----------------------------------------------- | -------------------: | -----------------: |
-| `src/geo/answerCitationObservationsReporter.ts` |        4,099 / 5,094 |                20% |
+| `src/geo/answerCitationObservationsReporter.ts` |        3,951 / 5,094 |                22% |
 | `src/geo/answerCitationPromptSimilarity.ts`     |        1,938 / 2,088 |                 7% |
 | `src/geo/answerCitationObservations.ts`         |        1,823 / 3,471 |                47% |
 | `src/geo/answerCitationPagePairedReach.ts`      |        1,009 / 1,344 |                25% |
