@@ -476,7 +476,11 @@ export function renderAiAnswerCitationProviderSourceNetworkOverlapCsv(
   summary.output_rows_emitted = Math.min(rows.length, MAX_OUTPUT_ROWS);
   summary.output_rows_truncated = outputRowsTruncated;
   summary.interpretation_note = `Unknown source-detail prompt groups across evaluated pairs: ${unknownSourcePromptGroups}.`;
-  const output: Array<Record<string, unknown>> = [summary, ...rows.slice(0, MAX_OUTPUT_ROWS)];
+  const output: Array<Record<string, unknown>> = [
+    Object.fromEntries(headers.map((header) => [header, header])),
+    summary,
+    ...rows.slice(0, MAX_OUTPUT_ROWS),
+  ];
   return `${output.map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(',')).join('\r\n')}\r\n`;
 }
 
@@ -811,6 +815,10 @@ export function renderAiAnswerCitationProviderSourceNetworkEdgeComparisonCsv(
   summary.output_rows_emitted = Math.min(rows.length, MAX_OUTPUT_ROWS);
   summary.output_rows_truncated = outputRowsTruncated;
   summary.interpretation_note = `Unknown shared source-detail prompt groups: ${unknownSourcePromptGroups}; edge work budget exceeded: ${workBudgetExceeded}; candidate-edge cap exceeded: ${edgeCandidateCapExceeded}.`;
-  const output: Array<Record<string, unknown>> = [summary, ...rows.slice(0, MAX_OUTPUT_ROWS)];
+  const output: Array<Record<string, unknown>> = [
+    Object.fromEntries(headers.map((header) => [header, header])),
+    summary,
+    ...rows.slice(0, MAX_OUTPUT_ROWS),
+  ];
   return `${output.map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(',')).join('\r\n')}\r\n`;
 }
