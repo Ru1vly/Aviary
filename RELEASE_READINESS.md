@@ -7,7 +7,7 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The candidate and follow-up commits are local; `main` has not been pushed or tagged. Two required release conditions remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete run passes **485 tests across 59 files**, with **51.41% statement, 52.59% line, 49.14% function, and 34.19% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
+1. The tagged workflow requires at least 80% coverage. The latest complete run passes **488 tests across 60 files**, with **52.33% statement, 53.55% line, 50.18% function, and 35.20% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
 The release candidate is prepared for review, but the coverage threshold, npm trusted-publisher setup, a clean-checkout verification, and the required CI/security gates must pass on the final release commit before tagging.
@@ -22,10 +22,10 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 The build, audit, test, and install checks below passed on the release candidate. Follow-up documentation and release-workflow edits were checked separately:
 
-- Rechecked the current source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The full test suite passed 485 tests, while `pnpm run test:coverage` exited at the documented 80% thresholds.
+- Rechecked the current source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The full test suite passed 488 tests, while `pnpm run test:coverage` exited at the documented 80% thresholds.
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
-- The 485-test suite. Coverage still fails the configured 80% thresholds as described above.
+- The 488-test suite. Coverage still fails the configured 80% thresholds as described above.
 - A fresh simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,080,489 unpacked bytes, and 2,012,708 compressed bytes**, includes `CHANGELOG.md` and `docs/openapi.yaml` version 0.2.0, and excludes `reports/` and this handoff. It uses the current compiled output; repeat from a clean checkout on the final release commit.
 - A fresh install of the rebuilt simulated 0.2.0 tarball with optional native packages omitted loaded 348 exports and `AviaryApiClient`; CLI help succeeded. The package dry run confirmed `CHANGELOG.md` is present, README/changelog document `SHA256SUMS`, and the packaged OpenAPI version is 0.2.0. The earlier clean-install smoke also verified API health and served OpenAPI versions, MCP initialization, and the Linux x64 binary.
 - Local Markdown links and the package-boundary links in packed Markdown files.
@@ -50,27 +50,31 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Release blockers and maintainer actions
 
-1. **Recover the coverage gate.** The latest full run passed 485 tests but failed the configured 80% minimums: statements 51.41%, branches 34.19%, functions 49.14%, and lines 52.59%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
+1. **Recover the coverage gate.** The latest full run passed 488 tests but failed the configured 80% minimums: statements 52.33%, branches 35.20%, functions 50.18%, and lines 53.55%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
 2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. See [npm's trusted publisher setup guide](https://docs.npmjs.com/trusted-publishers/). Publishing should use OIDC provenance; do not add a broad npm token to the release workflow.
 3. **Recheck release controls.** Verify workflow permissions, tag protection, bootstrap secrets, and current CI/Security Scan/bootstrap results on the final release commit. The last observed passing runs are from before this candidate.
 4. **Keep the 1.0.0 versions deprecated.** npm's post-72-hour criteria require no dependents, fewer than 300 downloads in the last week, and a single owner. The five platform versions are dependencies of the root package, so retain the existing warnings unless npm support confirms a policy-compliant removal path. See [npm's unpublish policy](https://docs.npmjs.com/policies/unpublish/).
 5. **Inspect the actual release artifacts.** Repeat a clean-checkout build, package dry run, and install smoke; verify platform installers and tarballs on supported systems. Keep generated reports out of the package.
 6. **Update the separate website.** Correct the homepage check/category count to 242/29, deploy, and regenerate the live homepage report.
 
-Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 485 tests passed):
+Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 488 tests passed):
 
 | Module                                              | Uncovered statements | Statement coverage |
 | --------------------------------------------------- | -------------------: | -----------------: |
 | `src/geo/answerCitationObservationsReporter.ts`     |        3,951 / 5,094 |                22% |
-| `src/geo/answerCitationPromptSimilarity.ts`         |        1,758 / 2,088 |                16% |
+| `src/geo/answerCitationPromptSimilarity.ts`         |        1,721 / 2,088 |                18% |
 | `src/geo/answerCitationObservations.ts`             |        1,324 / 3,471 |                62% |
 | `src/geo/answerCitationPagePairedReach.ts`          |        1,009 / 1,344 |                25% |
 | `src/reporter.ts`                                   |            783 / 864 |                 9% |
 | `src/geo/aiCrawlerLogs.ts`                          |          737 / 1,379 |                47% |
 | `src/sitewide.ts`                                   |            504 / 856 |                41% |
 | `src/geo/bingAiPerformance.ts`                      |            437 / 832 |                47% |
+| `src/geo/answerCitationSourcePortfolioDrift.ts`     |            348 / 648 |                46% |
+| `src/geo/aiCrawlerPathFamilies.ts`                  |            283 / 560 |                49% |
+| `src/geo/answerCitationDomainPairedReach.ts`        |            273 / 279 |                 2% |
+| `src/geo/answerCitationProviderSourceDivergence.ts` |            245 / 251 |                 2% |
+| `src/geo/platformMatrix.ts`                         |            141 / 378 |                63% |
 | `src/geo/entityPromptMatchedCitationAssociation.ts` |             89 / 405 |                78% |
-| `src/geo/platformMatrix.ts`                         |            373 / 378 |                 1% |
 
 ## Clean-checkout verification
 
