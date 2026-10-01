@@ -5,6 +5,7 @@ These results were generated with the compiled local Aviary CLI against the publ
 ## Live-site captures
 
 - A depth-4 static-link crawl with a 50-URL cap discovered nine same-origin routes. All nine browser audits completed, with 72 of 72 GEO checks passing. The mean initial-HTML/rendered five-word phrase overlap was 28.5%; six pages were below 20%, one was between 40% and 60%, and two were at least 80%. The 100/100 average is an Aviary check score over this capture, not a ranking or GEO-readiness prediction.
+- A resumed 15:55 UTC crawl against the canonical `https://www.aviary-rs.com/` host independently rediscovered nine same-origin routes at depth 4. All nine audits completed, with 72 of 72 GEO checks passing and a 28.5% mean initial-HTML/rendered phrase overlap. JSON, HTML, Markdown, PDF, and exact reproduction notes are in `reports/aviary-rs-live/resumed-handoff-2026-10-01/www-canonical/`. The bare `https://aviary-rs.com/` host returns a 308 redirect to `www`; the static crawler correctly stops at this cross-origin redirect, so use the canonical host as the crawl start. The 100/100 average describes only the checks in this capture.
 - A separate homepage GEO capture completed all eight checks and measured 57% initial-HTML/rendered phrase overlap. Its 100/100 score covers only those eight checks.
 - A fresh homepage capture at 12:05 UTC repeated the 8/8 result and measured the same 57% phrase overlap. Its JSON, HTML, PDF, Markdown, exact command, and limitations are preserved locally in `reports/aviary-rs-live/usage-meter-recheck-2026-10-01/`.
 - Final-handoff capture at 14:35 UTC reran the compiled release-candidate CLI with the `geo` preset. All eight GEO checks passed; the page exposed 2,005 visible characters and 301 words, and 57% of rendered five-word phrase samples also appeared in the initial HTML. JSON, HTML, Markdown, PDF, and the exact commands are in `reports/aviary-rs-live/release-handoff-final-2026-10-01/`. The 100/100 score covers only these eight checks.
@@ -20,7 +21,7 @@ The crawl follows links found in static HTML and can miss client-rendered routes
 
 ## Reproduction and local artifacts
 
-The raw JSON, HTML, PDF, and CSV captures remain under `reports/aviary-rs-live/`. Synthetic output and renderer-recheck files remain under `reports/geo-toolbox-finalization-2026-10-01/` and `reports/geo-report-recheck-2026-10-01/`. These generated files are intentionally excluded from npm and are not committed wholesale.
+The raw JSON, HTML, PDF, and CSV captures remain under `reports/aviary-rs-live/`, including the fresh canonical-host crawl in `reports/aviary-rs-live/resumed-handoff-2026-10-01/www-canonical/`. Synthetic output and renderer-recheck files remain under `reports/geo-toolbox-finalization-2026-10-01/` and `reports/geo-report-recheck-2026-10-01/`. These generated files are intentionally excluded from npm and are not committed wholesale.
 
 The simulated root and Linux x64 0.2.0 npm tarballs, pack manifests, checksums, and install-smoke notes are retained locally under `reports/release-package-smokes/final-2026-10-01/`. These were packed from commit `08e1b1a`; the Linux x64 artifact was installed and smoke-checked. The other four platform binaries were not built in this checkout, and no package was published.
 
