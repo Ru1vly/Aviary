@@ -5,9 +5,9 @@ Current checkout: `@ru1vly/aviary` **0.1.1** with platform dependencies/manifest
 
 ## Release decision
 
-**Status: release candidate committed locally; not ready to publish.** The user selected and authorized `0.2.0`; that version is unused on npm for the root and all five platform packages, and no `v0.2.0` GitHub tag exists. The tagged release workflow is blocked by its 80% coverage gate (latest full run: 44.87% statements, 46.02% lines, 43.04% functions, and 28.92% branches). npm trusted publishing still needs maintainer-side configuration. The intended 279 source, test, docs, example, and release-config paths are committed as `90e0de5` (`Prepare Aviary 0.2.0 release candidate`: 150,904 insertions and 2,076 deletions); follow-up coverage work remains on the local branch. The 335 generated report evidence files remain untracked and excluded from the candidate commits.
+**Status: release candidate committed locally; not ready to publish.** The user selected and authorized `0.2.0`; that version is unused on npm for the root and all five platform packages, and no `v0.2.0` GitHub tag exists. The tagged release workflow is blocked by its 80% coverage gate (latest full run: 44.87% statements, 46.02% lines, 43.04% functions, and 28.92% branches). npm trusted publishing still needs maintainer-side configuration. The intended 279 source, test, docs, example, and release-config paths are committed as `90e0de5` (`Prepare Aviary 0.2.0 release candidate`: 150,904 insertions and 2,076 deletions); follow-up coverage work remains on the local branch. The 345 generated report evidence files remain untracked and excluded from the candidate commits.
 
-The implementation, docs, examples, package contents, and generated reports are assembled for review. The latest full test run passed 469 tests across 55 files; coverage remains below the 80% gate. Lint, formatting, typecheck, build, dependency audits, package dry run, and clean-install package smoke have passed as recorded below. The 335 generated report files are local evidence and should not be committed wholesale.
+The implementation, docs, examples, package contents, and generated reports are assembled for review. The latest full test run passed 469 tests across 55 files; coverage remains below the 80% gate. Lint, formatting, typecheck, build, dependency audits, package dry run, and clean-install package smoke have passed as recorded below. The 345 generated report files are local evidence and should not be committed wholesale.
 
 ### Review bundle
 
@@ -17,7 +17,7 @@ The implementation, docs, examples, package contents, and generated reports are 
 - [Robots-policy replay](reports/aviary-rs-live/robots-policy-2026-10-01/README.md): saved-audit replay with JSON, HTML, and PDF outputs.
 - [Synthetic GEO toolbox index](reports/geo-toolbox-finalization-2026-10-01/index.html): linked index for the 60 generated offline workflow artifacts.
 - [GEO renderer regression reports](reports/geo-report-recheck-2026-10-01/README.md): CLI-generated synthetic CSV, JSON, and offline dashboards for the repaired source-diversity, source-portfolio, and provider-edge comparison paths.
-- The full live capture set is about 35 MB. Generated reports are local review evidence and excluded from the npm tarball; this handoff is excluded too.
+- The full live capture set is about 39 MB across 345 generated files. Reports are local review evidence and excluded from the npm tarball; this handoff is excluded too.
 
 See the maintainer gates and release sequence below.
 
@@ -129,7 +129,7 @@ The clean tarball smoke passed from a fresh temporary install: CLI help, the Com
 
 ## Suggested release sequence
 
-1. The source, tests, docs, examples, package manifests, and workflows are committed in local commit `90e0de5`. Keep the 335 generated report files as local evidence and selectively archive concise report summaries if needed.
+1. The source, tests, docs, examples, package manifests, and workflows are committed in local commit `90e0de5`, with five local follow-up commits listed above. Keep the 345 generated report files as local evidence and selectively archive concise report summaries if needed.
 2. Use `0.2.0`, the version selected by the user and verified unused on npm. The six mistaken `1.0.0` versions already carry deprecation warnings; retry their removal only with OTP-capable authorization and after confirming npm's no-dependents requirement. Verify trusted publishing before tagging.
 3. Re-run the clean-checkout verification above and inspect the actual packed tarball.
 4. In the separate website repository, update the homepage check/category count to 242/29, then rerun the live fast audit and GEO reports against the deployed page.
