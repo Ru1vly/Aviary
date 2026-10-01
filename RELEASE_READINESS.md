@@ -16,6 +16,7 @@ The implementation, docs, examples, package contents, and generated reports are 
 - [Real-site release-candidate report](reports/aviary-rs-live/release-candidate-2026-10-01/README.md): live homepage report and exact generation details.
 - [Robots-policy replay](reports/aviary-rs-live/robots-policy-2026-10-01/README.md): saved-audit replay with JSON, HTML, and PDF outputs.
 - [Synthetic GEO toolbox index](reports/geo-toolbox-finalization-2026-10-01/index.html): linked index for the 60 generated offline workflow artifacts.
+- [GEO renderer regression reports](reports/geo-report-recheck-2026-10-01/README.md): CLI-generated synthetic CSV, JSON, and offline dashboards for the repaired source-diversity, source-portfolio, and provider-edge comparison paths.
 - The full live capture set is about 35 MB. Generated reports are local review evidence and excluded from the npm tarball; this handoff is excluded too.
 
 See the maintainer gates and release sequence below.
@@ -27,6 +28,7 @@ The working tree includes GEO analysis and reporting workflows, API and crawler 
 ## Current state
 
 - The local `main` branch contains the GEO feature work, docs, examples, API and report capture improvements in commit `90e0de5`. It has not been pushed, tagged, or published; generated live-site review reports remain local evidence.
+- Five follow-up commits on local `main` (`768802f`, `421c3e6`, `46bd87d`, `98df55a`, `fe08e16`) repair missing CSV headers in four GEO report pipelines, add regression coverage, refresh coverage and release handoff notes, and verify current tarball contents. None has been pushed or tagged.
 - Removed a duplicate `--geo-crawler-path-family-failure-gate-json` parser case and CLI help entry found during release CLI inspection. `pnpm run build:ts` passes, and the compiled `--help` output now lists the option once.
 - The API documentation now states its network trust boundary: authenticated audit URLs are browser navigations from the service host, and operators who accept less-trusted clients should restrict outbound network access. Private-site scans remain supported.
 - `docs/PRIVACY.md` documents no default outbound usage telemetry, target-site browser requests, local report and in-memory API retention, loopback metrics, and the optional Ollama payload. The package dry run confirms this guide ships.
