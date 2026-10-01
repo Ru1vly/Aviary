@@ -193,7 +193,9 @@ export function renderAiAnswerCitationOwnedSourceNetworkGapsCsv(
   if (!Array.isArray(report.ownedDomains) || report.ownedDomains.length === 0) {
     summary.interpretation_note =
       'Configure at least one owned domain to classify exact prompts by owned-citation presence.';
-    return `${headers.map((header) => csvCell(summary[header] ?? '')).join(',')}\r\n`;
+    const headerRow = headers.map((header) => csvCell(header)).join(',');
+    const summaryRow = headers.map((header) => csvCell(summary[header] ?? '')).join(',');
+    return `${headerRow}\r\n${summaryRow}\r\n`;
   }
 
   const ownedDomains = [
@@ -416,5 +418,9 @@ export function renderAiAnswerCitationOwnedSourceNetworkGapsCsv(
     summary,
     ...providerRows.slice(0, MAX_OUTPUT_ROWS),
   ];
-  return `${output.map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(',')).join('\r\n')}\r\n`;
+  const headerRow = headers.map((header) => csvCell(header)).join(',');
+  const dataRows = output
+    .map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(','))
+    .join('\r\n');
+  return `${headerRow}\r\n${dataRows}\r\n`;
 }
