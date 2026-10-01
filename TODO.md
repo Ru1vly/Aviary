@@ -638,7 +638,7 @@ This is a feature backlog, not a release sign-off: checked items mean the capabi
 
 ## Priority Levels
 
-🔴 **High Priority** - Essential for v1.0 production release
+🔴 **High Priority** - Essential for a production release
 🟡 **Medium Priority** - Important but can be added in v1.x
 🟢 **Low Priority** - Nice to have, can be added in future versions
 
