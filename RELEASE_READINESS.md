@@ -7,10 +7,10 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The candidate and follow-up commits are local; `main` has not been pushed or tagged. Two required release conditions remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete run passes **470 tests across 56 files**, with **45.55% statement, 46.67% line, 43.53% function, and 29.18% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
+1. The tagged workflow requires at least 80% coverage. The latest complete run passes **477 tests across 57 files**, with **46.61% statement, 47.68% line, 44.37% function, and 29.99% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
-The release candidate is prepared for review, but a clean-checkout verification and the required CI/security gates must pass on the final release commit before tagging.
+The release candidate is prepared for review, but the coverage threshold, npm trusted-publisher setup, a clean-checkout verification, and the required CI/security gates must pass on the final release commit before tagging.
 
 ## Included work
 
@@ -24,7 +24,7 @@ The build, audit, test, and install checks below passed on the release candidate
 
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
-- The 470-test suite. Coverage still fails the configured 80% thresholds as described above.
+- The 477-test suite. Coverage still fails the configured 80% thresholds as described above.
 - A fresh simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,080,117 unpacked bytes, and 2,012,536 compressed bytes**, includes `CHANGELOG.md` and `docs/openapi.yaml`, and excludes `reports/` and this handoff. It uses the current compiled output; repeat from a clean checkout on the final release commit.
 - A fresh install of the final simulated 0.2.0 tarball with optional native packages omitted loaded 348 exports and `AviaryApiClient`; CLI help succeeded, `CHANGELOG.md` was present, README/changelog documented `SHA256SUMS`, and the packaged OpenAPI version was 0.2.0. The earlier clean-install smoke verified API health and served OpenAPI versions, MCP initialization, and the Linux x64 binary.
 - Local Markdown links and the package-boundary links in packed Markdown files.
