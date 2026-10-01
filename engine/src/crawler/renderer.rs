@@ -175,11 +175,7 @@ mod unix_worker {
 
             // Reader task
             let mut reader_handle = tokio::spawn(async move {
-                loop {
-                    let len = match read_half.read_u32().await {
-                        Ok(l) => l,
-                        Err(_) => break,
-                    };
+                while let Ok(len) = read_half.read_u32().await {
                     let mut buf = vec![0u8; len as usize];
                     if read_half.read_exact(&mut buf).await.is_err() {
                         break;

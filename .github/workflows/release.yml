@@ -142,6 +142,9 @@ jobs:
       - name: Smoke test binary runs on this platform
         run: node scripts/smoke-test-binary.js "./${{ matrix.artifact_name }}"
         shell: bash
+      - name: Smoke test fast engine help without network access
+        run: node scripts/smoke-test-fast-binary.js "./${{ matrix.fast_artifact_name }}"
+        shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}

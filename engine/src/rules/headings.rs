@@ -57,7 +57,7 @@ impl Rule for HeadingsRule {
             .filter_map(|(tag, _)| {
                 tag.strip_prefix('h')
                     .and_then(|n| n.parse::<u8>().ok())
-                    .filter(|&n| n >= 1 && n <= 6)
+                    .filter(|&n| (1..=6).contains(&n))
             })
             .collect();
 

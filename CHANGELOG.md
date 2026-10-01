@@ -19,6 +19,7 @@ Notable changes to Aviary are documented here.
 - Added the missing header row to provider source-divergence CSV exports so consumers can map metrics by column name.
 - Added the missing header row to owned-source network-gap CSV exports, including its no-owned-domain summary.
 - Removed embedded HTTP(S) URL credentials from cross-platform matrix CSV and HTML output, including searchable page data.
+- Made the native fast engine handle `--help` locally, reject unknown options, and added a per-platform release smoke check that never needs a network request.
 - Hardened report rendering and exports against unsafe HTML, spreadsheet formulas, and hostile labels.
 - Clarified what Aviary scores measure, how GEO evidence should be interpreted, what data leaves the process, and the API's outbound-network boundary.
 - Updated Rust and JavaScript dependencies, pinned the pnpm toolchain, and prepared optional per-platform native packages for release automation.
