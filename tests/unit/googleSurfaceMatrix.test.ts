@@ -13,6 +13,7 @@ import type {
   GoogleAiPerformanceExport,
   GoogleAiPerformanceRow,
 } from '../../src/geo/googleAiPerformance';
+import type { SEOReport } from '../../src/types';
 
 function exportFor(
   surface: 'search' | 'discover',
@@ -179,6 +180,72 @@ describe('Google AI Search and Discover surface matrix', () => {
     );
     expect(differentDepth.pathFamilyComparison).toBeUndefined();
     expect(differentDepth.note).toContain('different or absent path depths');
+  });
+
+  it('attaches current crawler and preview controls from a canonical audit match', () => {
+    const audit = {
+      url: 'https://example.com/alias',
+      checks: {
+        geo: [
+          {
+            name: 'ai-search-crawler-access',
+            details: {
+              crawlers: [
+                {
+                  token: 'Googlebot',
+                  allowed: false,
+                  matchedRule: { directive: 'disallow', pattern: '/private', line: 3 },
+                },
+              ],
+            },
+          },
+          {
+            name: 'ai-search-preview-controls',
+            details: {
+              crawlerControls: [
+                { token: 'Googlebot', noindex: true, noSnippet: false, maxSnippetZero: false },
+              ],
+              dataNoSnippetElements: 1,
+              dataNoSnippetWords: 12,
+            },
+          },
+          {
+            name: 'answer-content-profile',
+            details: { documentLanguage: 'en', documentLanguageValid: true },
+          },
+        ],
+        metaTags: [
+          {
+            name: 'canonical-url-exists',
+            details: { canonicalUrl: 'https://example.com/canonical' },
+          },
+        ],
+      },
+    } as unknown as SEOReport;
+    const matrix = compareGoogleAiSurfacePageObservations(
+      exportFor('search', [{ url: 'https://example.com/canonical', impressions: 5 }]),
+      exportFor('discover', [{ url: 'https://example.com/canonical', impressions: 4 }]),
+      audit,
+      { pathFamilyDepth: 1 }
+    );
+
+    expect(matrix.pages[0]?.currentAudit).toMatchObject({
+      matchType: 'canonical-url',
+      auditUrl: 'https://example.com/alias',
+      googlebotAccess: 'blocked',
+      noindex: true,
+      noSnippet: false,
+      maxSnippetZero: false,
+      dataNoSnippetElements: 1,
+      documentLanguage: 'en',
+      documentLanguageValid: true,
+    });
+    expect(matrix.pathFamilies?.[0]).toMatchObject({
+      pagesWithCurrentAudit: 1,
+      googlebotBlockedPages: 1,
+      pagesWithIndexingRestrictions: 1,
+      pagesWithSnippetRestrictions: 1,
+    });
   });
 
   it('rejects incompatible source surfaces, dimensions, and family-depth settings', () => {
