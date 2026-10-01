@@ -654,7 +654,12 @@ export function renderAiAnswerCitationSourcePortfolioDriftCsv(
   summary.providers_omitted_by_budget = providersOmittedByBudget;
   summary.prompt_comparisons_evaluated = comparisonsEvaluated;
   summary.output_rows_truncated = outputTruncated;
-  return `${[summary, ...outputRows].map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(',')).join('\r\n')}\r\n`;
+  return `${[
+    headers.map(csvCell).join(','),
+    ...[summary, ...outputRows].map((row) =>
+      headers.map((header) => csvCell(row[header] ?? '')).join(',')
+    ),
+  ].join('\r\n')}\r\n`;
 }
 
 function parseSourcePortfolioDriftCsv(csv: string): string[][] {
