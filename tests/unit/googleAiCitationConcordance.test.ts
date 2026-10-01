@@ -5,6 +5,14 @@ import {
   renderGoogleAiCitationConcordanceCsv,
   renderGoogleAiCitationConcordanceHtml,
 } from '../../src/geo/googleAiCitationConcordance';
+import {
+  compareGoogleAiCitationConcordanceReports,
+  isGoogleAiCitationConcordanceReport,
+  renderGoogleAiCitationConcordanceComparisonCsv,
+  renderGoogleAiCitationConcordanceComparisonHtml,
+  renderGoogleAiCitationConcordanceProviderComparisonCsv,
+} from '../../src/geo/googleAiCitationConcordanceComparison';
+import type { GoogleAiCitationConcordanceReport } from '../../src/geo/googleAiCitationConcordance';
 import type { GoogleAiPerformanceExport } from '../../src/geo/googleAiPerformance';
 
 describe('Google AI impression and observed-citation concordance', () => {
@@ -128,5 +136,182 @@ describe('Google AI impression and observed-citation concordance', () => {
     expect(() => analyzeGoogleAiCitationConcordance(pageDataset, answers, 0)).toThrow(
       'Citation concordance path depth must be an integer from 1 to 5.'
     );
+  });
+
+  it('validates saved reports and compares page, provider, and sample changes safely', () => {
+    const googleAi: GoogleAiPerformanceExport = {
+      sourceFile: 'period.csv',
+      surface: 'search',
+      datasetKind: 'page',
+      dimensions: ['url'],
+      headerRow: 1,
+      rowCount: 2,
+      skippedRows: 0,
+      uniquePageCount: 2,
+      columns: { url: 'Page', impressions: 'Impressions' },
+      rows: [
+        { url: 'https://example.com/guides/cats/article', impressions: 20 },
+        { url: 'https://example.com/products/cat-food', impressions: 5 },
+      ],
+    };
+    const answers = analyzeAiAnswerCitationObservations(
+      {
+        schemaVersion: 1,
+        observations: [
+          {
+            observedAt: '2026-09-30T10:00:00Z',
+            provider: 'Answer engine',
+            prompt: 'best indoor cat food',
+            citedUrls: ['https://example.com/guides/cats/article'],
+            citationListComplete: true,
+          },
+        ],
+      },
+      ['example.com'],
+      '2026-10-01T00:00:00Z'
+    );
+    const baseline = analyzeGoogleAiCitationConcordance(googleAi, answers);
+    expect(isGoogleAiCitationConcordanceReport(baseline)).toBe(true);
+    expect(
+      isGoogleAiCitationConcordanceReport({ ...baseline, rows: [{ url: 'javascript:alert(1)' }] })
+    ).toBe(false);
+    expect(isGoogleAiCitationConcordanceReport({ ...baseline, answerObservations: -1 })).toBe(
+      false
+    );
+
+    const current = structuredClone(baseline);
+    current.googleAiSourceFile = 'current.csv';
+    const matched = current.rows.find((row) => row.joinState === 'matched')!;
+    matched.googleAiImpressions = (matched.googleAiImpressions ?? 0) + 3;
+    matched.citationEvents = (matched.citationEvents ?? 0) + 1;
+    matched.providerMetrics = [
+      { provider: 'Answer engine', citationEvents: 2, pageAnswerPairs: 1, pagePromptPairs: 1 },
+      { provider: 'Current-only', citationEvents: 1, pageAnswerPairs: 1, pagePromptPairs: 1 },
+    ];
+    const newlyMatched = current.rows.find((row) => row.joinState === 'google-ai-only')!;
+    newlyMatched.joinState = 'matched';
+    newlyMatched.citationEvents = 1;
+    newlyMatched.pageAnswerPairs = 1;
+    newlyMatched.pagePromptPairs = 1;
+
+    const baselineMatched = structuredClone(matched);
+    baselineMatched.url = 'https://example.com/lost-match';
+    baseline.rows.push(baselineMatched);
+    const currentLost = structuredClone(baselineMatched);
+    currentLost.joinState = 'google-ai-only';
+    currentLost.citationEvents = 0;
+    current.rows.push(currentLost);
+
+    const baselineGoogleOnly = structuredClone(
+      baseline.rows.find((row) => row.joinState === 'google-ai-only')!
+    );
+    baselineGoogleOnly.url = 'https://example.com/changed-unmatched';
+    baseline.rows.push(baselineGoogleOnly);
+    const currentAnswerOnly = structuredClone(baselineGoogleOnly);
+    currentAnswerOnly.joinState = 'observed-answer-only';
+    currentAnswerOnly.googleAiImpressions = 0;
+    current.rows.push(currentAnswerOnly);
+
+    const answerOnly = structuredClone(baselineMatched);
+    answerOnly.url = 'https://independent.example/unmatched';
+    answerOnly.joinState = 'observed-answer-only';
+    answerOnly.googleAiImpressions = 0;
+    baseline.rows.push(answerOnly);
+
+    const baselineUnmatched = structuredClone(
+      baseline.rows.find((row) => row.joinState === 'observed-answer-only')!
+    );
+    baselineUnmatched.url = 'https://example.com/unchanged-unmatched';
+    baseline.rows.push(baselineUnmatched);
+    current.rows.push(structuredClone(baselineUnmatched));
+
+    current.rows = current.rows.filter((row) => row.url !== 'https://independent.example/cat-food');
+    const appeared = structuredClone(baselineGoogleOnly);
+    appeared.url = 'https://example.com/appeared';
+    current.rows.push(appeared);
+
+    baseline.answerProviderSamples = [
+      {
+        provider: 'Answer engine',
+        observations: 2,
+        uniquePrompts: 2,
+        citationEvents: 3,
+        incompleteCitationListObservations: 0,
+      },
+      {
+        provider: 'Baseline-only',
+        observations: 1,
+        uniquePrompts: 1,
+        citationEvents: 1,
+        incompleteCitationListObservations: null,
+      },
+    ];
+    current.answerProviderSamples = [
+      {
+        provider: 'Answer engine',
+        observations: 3,
+        uniquePrompts: 2,
+        citationEvents: 4,
+        incompleteCitationListObservations: 0,
+      },
+      {
+        provider: 'Current-only',
+        observations: 1,
+        uniquePrompts: 1,
+        citationEvents: 1,
+        incompleteCitationListObservations: 1,
+      },
+    ];
+
+    const comparison = compareGoogleAiCitationConcordanceReports(baseline, current);
+    expect(comparison.rows.map(({ transition }) => transition)).toEqual(
+      expect.arrayContaining([
+        'matched-both',
+        'newly-matched',
+        'lost-match',
+        'appeared',
+        'disappeared',
+        'changed-unmatched',
+        'unchanged-unmatched',
+      ])
+    );
+    expect(comparison.rows.find(({ url }) => url.endsWith('/article'))).toMatchObject({
+      transition: 'matched-both',
+      googleAiImpressionsChange: 3,
+      citationEventsChange: 1,
+    });
+    expect(comparison.providerChanges.map(({ detailState }) => detailState)).toEqual(
+      expect.arrayContaining(['present-both', 'current-detail-only', 'baseline-detail-only'])
+    );
+    expect(comparison.providerSampleChanges.map(({ detailState }) => detailState)).toEqual(
+      expect.arrayContaining(['present-both', 'current-detail-only', 'baseline-detail-only'])
+    );
+
+    const csv = renderGoogleAiCitationConcordanceComparisonCsv(comparison);
+    const providerCsv = renderGoogleAiCitationConcordanceProviderComparisonCsv(comparison);
+    expect(csv.split('\n')[0]).toContain('google_ai_impressions_change');
+    expect(providerCsv.split('\n')[0]).toContain('provider_sample_detail_state');
+    expect(renderGoogleAiCitationConcordanceComparisonHtml(comparison)).toContain(
+      'Page transitions'
+    );
+
+    expect(() =>
+      compareGoogleAiCitationConcordanceReports(baseline, {
+        ...current,
+        googleAiSurface: 'discover',
+      } as GoogleAiCitationConcordanceReport)
+    ).toThrow('same Search or Discover surface');
+    expect(() =>
+      compareGoogleAiCitationConcordanceReports(baseline, {
+        ...current,
+        auditCanonicalBridgeAvailable: true,
+      } as GoogleAiCitationConcordanceReport)
+    ).toThrow('same canonical-bridge availability');
+    expect(() =>
+      compareGoogleAiCitationConcordanceReports(baseline, {
+        ...current,
+        ownedDomainAssessmentEnabled: false,
+      } as GoogleAiCitationConcordanceReport)
+    ).toThrow('same owned-domain assessment setting');
   });
 });
