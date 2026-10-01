@@ -820,7 +820,11 @@ export function renderAiAnswerCitationPagePairedReachComparisonCsv(
     prompt_page_evaluations_truncated: comparison.promptPageEvaluationsTruncated,
     interpretation_note: comparison.note,
   }));
-  return `${[summaryRow, ...dataRows].map((row) => headers.map((header) => csvCell(row[header])).join(',')).join('\r\n')}\r\n`;
+  const headerRow = headers.map(csvCell).join(',');
+  const data = [summaryRow, ...dataRows]
+    .map((row) => headers.map((header) => csvCell(row[header])).join(','))
+    .join('\r\n');
+  return `${headerRow}\r\n${data}\r\n`;
 }
 
 /** Render the bounded paired page reach comparison as typed, versioned JSON. */

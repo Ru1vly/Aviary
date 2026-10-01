@@ -45,25 +45,25 @@ These are local candidate checks, not evidence that CI has passed on this branch
 - Several docs-host pages had low initial-HTML/rendered-text overlap in the saved snapshot. Inspect those pages to determine whether meaningful content is inserted client-side; the capture alone does not prove what any external crawler sees.
 - Provider answer observations and citation-repeatability reports need dated prompt panels and sample counts. Do not present them as evidence of guaranteed citations.
 - The 1,500 ms settle-delay sensitivity capture is diagnostic, not a recommended universal setting.
-- The current 1.0.0 npm versions were mistaken test releases. All six root/platform versions remain published; their warning now says: “Mistaken initial test release; use @ru1vly/aviary@0.1.1 instead.” An unpublish attempt returned `E403` because the configured credentials cannot satisfy npm's 2FA requirement. npm's post-72-hour policy also requires zero public dependents; confirm that and use OTP-capable authorization before retrying.
+- The 1.0.0 npm versions were mistaken test releases. All six root/platform versions remain published and carry the deprecation message “Mistaken initial test release; use @ru1vly/aviary@0.1.1 instead.” Removing all six is not currently viable: the 72-hour window has passed, and the root 1.0.0 package depends on the five platform 1.0.0 packages, so those platform versions have a public dependent. The earlier unpublish attempt also returned `E403` because the configured credentials could not satisfy npm's 2FA requirement. Keep the warning in place unless npm support confirms an allowed removal path.
 
 ## Release blockers and maintainer actions
 
-1. **Recover the coverage gate.** Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, page-paired-reach, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
+1. **Recover the coverage gate.** The latest full run passed 477 tests but failed the configured 80% minimums: statements 46.61%, branches 29.99%, functions 44.37%, and lines 47.68%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
 2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. See [npm's trusted publisher setup guide](https://docs.npmjs.com/trusted-publishers/). Publishing should use OIDC provenance; do not add a broad npm token to the release workflow.
 3. **Recheck release controls.** Verify workflow permissions, tag protection, bootstrap secrets, and current CI/Security Scan/bootstrap results on the final release commit. The last observed passing runs are from before this candidate.
-4. **Resolve the 1.0.0 versions if policy permits.** Verify there are zero public dependents and use an OTP-capable npm session. Otherwise retain the deprecation warnings; they preserve installability while telling users which release to use. See [npm's unpublish policy](https://docs.npmjs.com/policies/unpublish/).
+4. **Keep the 1.0.0 versions deprecated.** npm's post-72-hour criteria require no dependents, fewer than 300 downloads in the last week, and a single owner. The five platform versions are dependencies of the root package, so retain the existing warnings unless npm support confirms a policy-compliant removal path. See [npm's unpublish policy](https://docs.npmjs.com/policies/unpublish/).
 5. **Inspect the actual release artifacts.** Repeat a clean-checkout build, package dry run, and install smoke; verify platform installers and tarballs on supported systems. Keep generated reports out of the package.
 6. **Update the separate website.** Correct the homepage check/category count to 242/29, deploy, and regenerate the live homepage report.
 
-Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact:
+Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 477 tests passed):
 
 | Module                                          | Uncovered statements | Statement coverage |
 | ----------------------------------------------- | -------------------: | -----------------: |
 | `src/geo/answerCitationObservationsReporter.ts` |        4,319 / 5,094 |                15% |
 | `src/geo/answerCitationPromptSimilarity.ts`     |        2,067 / 2,088 |                 1% |
 | `src/geo/answerCitationObservations.ts`         |        1,823 / 3,471 |                47% |
-| `src/geo/answerCitationPagePairedReach.ts`      |        1,336 / 1,342 |                 0% |
+| `src/geo/answerCitationPagePairedReach.ts`      |        1,009 / 1,344 |                25% |
 | `src/reporter.ts`                               |            783 / 864 |                 9% |
 | `src/geo/aiCrawlerLogs.ts`                      |          737 / 1,379 |                47% |
 | `src/sitewide.ts`                               |            504 / 856 |                41% |
@@ -94,7 +94,7 @@ The coverage command must pass its configured thresholds, not just run all tests
 ## Release sequence
 
 1. Resolve the coverage and trusted-publisher blockers.
-2. Verify the external CI/security state and remove 1.0.0 only if npm policy and account authorization allow it; the deprecation warnings are already active.
+2. Verify the external CI/security state; retain the 1.0.0 deprecation warnings unless npm support confirms that removal meets current policy.
 3. Run the clean-checkout checks above and inspect the exact packed artifacts.
 4. Update and recapture the separate website homepage.
 5. Once all required checks pass, create the already-authorized `v0.2.0` tag and let the release workflow publish.
