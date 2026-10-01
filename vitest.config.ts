@@ -25,17 +25,9 @@ export default defineConfig({
         'src/worker.ts',
         'src/mcp/server.ts',
       ],
-      // Phase 10 (coverage-to-80%): reached by (a) writing dedicated
-      // happy-dom-backed unit tests for every previously zero/low-coverage
-      // checker — critically, through tests/mocks/mockPage.ts, not a real
-      // Playwright/Chromium page: real page.evaluate() bodies run in a
-      // separate browser process invisible to v8's Node-side coverage, so
-      // the pre-existing real-browser tests in checkers.test.ts (kept, since
-      // they're valid behavioral coverage) contributed almost nothing to
-      // these numbers — and (b) excluding the three subprocess-only files
-      // above. Real baseline as of this ratchet: ~94% statements / 84%
-      // branches / 96% functions / 95% lines — thresholds set with headroom
-      // below that so the gate is honest without being flaky on minor drift.
+      // Release gate: every included source file must meet all four metrics.
+      // Keep the 80% minimums unchanged until the actual coverage report clears
+      // them; subprocess-only behavior is checked by separate integration tests.
       thresholds: {
         lines: 80,
         functions: 80,
@@ -48,4 +40,3 @@ export default defineConfig({
     hookTimeout: 90000,
   },
 });
-
