@@ -14,7 +14,7 @@ The release candidate is prepared for review, but a clean-checkout verification 
 
 ## Included work
 
-The candidate adds GEO audit, crawl, comparison, observation, citation-network, source-diversity, source-portfolio, crawler-log, and provider-report workflows, plus API/MCP support, schemas, examples, and operator guidance. It also includes report-rendering safety fixes and repairs CSV headers that previously caused several offline comparison dashboards to render empty or misaligned data. The curated [0.2.0 changelog](CHANGELOG.md) is included in the npm package.
+The candidate adds GEO audit, crawl, comparison, observation, citation-network, source-diversity, source-portfolio, crawler-log, and provider-report workflows, plus API/MCP support, schemas, examples, and operator guidance. It also includes report-rendering safety fixes and repairs CSV headers that previously caused several offline comparison dashboards to render empty or misaligned data. The curated [0.2.0 changelog](CHANGELOG.md) ships in the npm package and now supplies the GitHub Release notes, with commit subjects as a fallback when a version has no changelog section.
 
 Public-facing docs explain the measured scope and limits of Aviary's scores, crawler discovery, provider observations, API network boundary, data handling, and semantic analyzer configuration. The package dry run includes the user docs and examples, and excludes `reports/` and this handoff.
 

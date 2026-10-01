@@ -342,15 +342,23 @@ jobs:
           pattern: aviary-fast-*
           merge-multiple: true
           path: release-artifacts/
-      - name: Generate changelog
+      - name: Generate release notes
         id: changelog
         run: |
-          TAG="$RELEASE_TAG"
-          PREV_TAG=$(git tag --sort=-version:refname | grep -F -x -v -- "$TAG" | head -1)
-          if [ -n "$PREV_TAG" ]; then
-            CHANGELOG=$(git log --oneline "${PREV_TAG}..${TAG}" --no-merges)
-          else
-            CHANGELOG=$(git log --oneline --no-merges | head -20)
+          VERSION="${RELEASE_TAG#v}"
+          CHANGELOG=$(awk -v section="## $VERSION" '
+            $0 == section { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md)
+          if ! grep -q '[^[:space:]]' <<<"$CHANGELOG"; then
+            TAG="$RELEASE_TAG"
+            PREV_TAG=$(git tag --sort=-version:refname | grep -F -x -v -- "$TAG" | head -1)
+            if [ -n "$PREV_TAG" ]; then
+              CHANGELOG=$(git log --oneline "${PREV_TAG}..${TAG}" --no-merges)
+            else
+              CHANGELOG=$(git log --oneline --no-merges | head -20)
+            fi
           fi
           echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
