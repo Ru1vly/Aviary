@@ -585,5 +585,9 @@ export function renderAiAnswerCitationProviderSourceDivergenceCsv(
       interpretation_note: note,
     };
   });
-  return `${[summary, ...rows].map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(',')).join('\r\n')}\r\n`;
+  const headerRow = headers.map((header) => csvCell(header)).join(',');
+  const dataRows = [summary, ...rows]
+    .map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(','))
+    .join('\r\n');
+  return `${headerRow}\r\n${dataRows}\r\n`;
 }
