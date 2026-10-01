@@ -1602,5 +1602,10 @@ export function renderAiAnswerCitationSourceDiversityComparisonCsv(
       interpretation_note: note,
     };
   });
-  return `${[summary, ...rows].map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(',')).join('\r\n')}\r\n`;
+  return `${[
+    headers.map(csvCell).join(','),
+    ...[summary, ...rows].map((row) =>
+      headers.map((header) => csvCell(row[header] ?? '')).join(',')
+    ),
+  ].join('\r\n')}\r\n`;
 }
