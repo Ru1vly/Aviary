@@ -22,6 +22,7 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 The build, audit, test, and install checks below passed on the release candidate. Follow-up documentation and release-workflow edits were checked separately:
 
+- Rechecked the current source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The full test suite passed 477 tests, while `pnpm run test:coverage` exited at the documented 80% thresholds.
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
 - The 477-test suite. Coverage still fails the configured 80% thresholds as described above.
