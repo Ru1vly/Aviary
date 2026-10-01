@@ -7,7 +7,7 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** A live npm registry check on 2026-10-01 found only `0.1.0`, `0.1.1`, and `1.0.0` for the root and each of the five platform packages. No remote `v0.2.0` tag or GitHub Release exists. The local `main` checkout is ahead of `origin/main` and clean; it has not been pushed or tagged. Two known hard blockers remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete run passes **515 tests across 65 files**, with **61.40% statement, 62.72% line, 59.73% function, and 44.00% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
+1. The tagged workflow requires at least 80% coverage. The latest complete run passes **515 tests across 65 files**, with **61.68% statement, 63.00% line, 60.19% function, and 44.31% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
 The candidate cannot publish until the coverage threshold and npm trusted-publisher setup are resolved. A clean-checkout verification and the required CI/security gates must also pass on the final release commit before tagging.
@@ -29,7 +29,8 @@ The build, audit, test, and install checks below passed on the release candidate
 - Added a representative report fixture covering prompt-family rarefaction, provider overlap, threshold sweeps, period comparisons, influence, and dashboards. The focused prompt-similarity suite passes 6 tests; isolated module coverage rose from 18% to **91.57% statements, 66.81% branches, 96.49% functions, and 93.11% lines**. The focused coverage command still exits at the branch threshold.
 - Added saved-report validation and comparison fixtures covering every URL transition, provider changes, sample changes, and CSV/HTML exports. The focused concordance suite passes 3 tests; the comparison module now has **91.27% statement, 84.98% branch, 97.14% function, and 95.45% line coverage**.
 - Added Search/Discover matrix fixtures for normalized URL joins, separate impression shares, path families, period deltas, invalid rows, and incompatible inputs. The focused suite passes 3 tests; `googleSurfaceMatrix.ts` now has **86.95% statement, 71.85% branch, 82.69% function, and 90.09% line coverage**.
-- Latest full run: `pnpm exec vitest run --coverage --maxWorkers=2` passed 515 tests across 65 files but exited at the global threshold: **61.40% statements, 44.00% branches, 59.73% functions, and 62.72% lines**.
+- Added HTML/CSV dashboard checks for the Google Search/Discover matrix and path-family exports. The reporter module now has **94.62% statement, 63.05% branch, 96.66% function, and 94.11% line coverage**.
+- Latest full run: `pnpm exec vitest run --coverage --maxWorkers=2` passed 515 tests across 65 files but exited at the global threshold: **61.68% statements, 44.31% branches, 60.19% functions, and 63.00% lines**.
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
 - `cargo test --locked --package aviary-engine` passed 4 unit tests and 1 doctest; `cargo clippy --locked --jobs 1 --package aviary-engine --bin aviary-fast -- -D warnings` passed. `rustfmt --check` passed for the edited fast binary. Workspace-wide `cargo fmt --check` still reports pre-existing formatting differences in unrelated Rust files.
@@ -59,7 +60,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Release blockers and maintainer actions
 
-1. **Recover the coverage gate.** The latest full run passed 515 tests but failed the configured 80% minimums: statements 61.40%, branches 44.00%, functions 59.73%, and lines 62.72%. Prompt-similarity statements, concordance comparison coverage, and surface-matrix statements/lines are now above 80%; the surface matrix still has 71.85% branch coverage. Add meaningful coverage for the large GEO observation/reporting and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
+1. **Recover the coverage gate.** The latest full run passed 515 tests but failed the configured 80% minimums: statements 61.68%, branches 44.31%, functions 60.19%, and lines 63.00%. Prompt-similarity statements, concordance comparison coverage, and surface-matrix statements/lines are now above 80%; the surface matrix still has 71.85% branch coverage. Add meaningful coverage for the large GEO observation/reporting and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
 2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. On 2026-10-01, `npm trust list` was rejected with `E403` for the configured token, so the publisher settings could not be inspected or updated from this session. The current `npm trust` management command requires npm 11.15.0 or newer; the workflow's npm 11.5.1 meets npm's separate minimum for publishing through trusted publishers. With an OTP-capable npm account and npm 11.15.0+, run `npm trust github <package> --repository Ru1vly/Aviary --file release.yml --allow-publish` for each package:
 
    ```sh
@@ -84,28 +85,28 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 512 tests passed):
 
-| Module                                          | Uncovered statements | Statement coverage |
-| ----------------------------------------------- | -------------------: | -----------------: |
-| `src/geo/answerCitationObservationsReporter.ts` |        3,951 / 5,094 |                22% |
-| `src/geo/answerCitationObservations.ts`         |        1,324 / 3,471 |                62% |
-| `src/geo/answerCitationPagePairedReach.ts`      |          892 / 1,344 |                34% |
-| `src/reporter.ts`                               |            783 / 864 |                 9% |
-| `src/geo/aiCrawlerLogs.ts`                      |          737 / 1,379 |                47% |
-| `src/sitewide.ts`                               |            504 / 856 |                41% |
-| `src/geo/bingAiPerformance.ts`                  |            437 / 832 |                47% |
-| `src/geo/answerCitationSourcePortfolioDrift.ts` |            348 / 648 |                46% |
-| `src/geo/aiCrawlerPathFamilies.ts`              |            283 / 560 |                49% |
-| `src/crawler.ts`                                |            234 / 626 |                63% |
-| `src/geo/aiCrawlerLogComparison.ts`             |            222 / 226 |                 2% |
-| `src/scoring.ts`                                |            179 / 457 |                61% |
-| `src/geo/answerCitationPromptSimilarity.ts`     |          176 / 2,088 |                92% |
-| `src/api/server.ts`                             |            167 / 414 |                60% |
-| `src/geo/aiCrawlerLogsReporter.ts`              |            165 / 220 |                25% |
-| `src/geo/platformMatrix.ts`                     |            103 / 378 |                73% |
-| `src/geo/xlsxWorksheetCsv.ts`                   |            103 / 111 |                 7% |
-| `src/checkers/geo.ts`                           |            101 / 584 |                83% |
-| `src/index.ts`                                  |             97 / 243 |                60% |
-| `src/geo/googleSurfaceMatrixReporter.ts`        |              93 / 93 |                 0% |
+| Module                                              | Uncovered statements | Statement coverage |
+| --------------------------------------------------- | -------------------: | -----------------: |
+| `src/geo/answerCitationObservationsReporter.ts`     |        3,951 / 5,094 |                22% |
+| `src/geo/answerCitationObservations.ts`             |        1,324 / 3,471 |                62% |
+| `src/geo/answerCitationPagePairedReach.ts`          |          892 / 1,344 |                34% |
+| `src/reporter.ts`                                   |            783 / 864 |                 9% |
+| `src/geo/aiCrawlerLogs.ts`                          |          737 / 1,379 |                47% |
+| `src/sitewide.ts`                                   |            504 / 856 |                41% |
+| `src/geo/bingAiPerformance.ts`                      |            437 / 832 |                47% |
+| `src/geo/answerCitationSourcePortfolioDrift.ts`     |            348 / 648 |                46% |
+| `src/geo/aiCrawlerPathFamilies.ts`                  |            283 / 560 |                49% |
+| `src/crawler.ts`                                    |            234 / 626 |                63% |
+| `src/geo/aiCrawlerLogComparison.ts`                 |            222 / 226 |                 2% |
+| `src/scoring.ts`                                    |            179 / 457 |                61% |
+| `src/geo/answerCitationPromptSimilarity.ts`         |          176 / 2,088 |                92% |
+| `src/api/server.ts`                                 |            167 / 414 |                60% |
+| `src/geo/aiCrawlerLogsReporter.ts`                  |            165 / 220 |                25% |
+| `src/geo/platformMatrix.ts`                         |            103 / 378 |                73% |
+| `src/geo/xlsxWorksheetCsv.ts`                       |            103 / 111 |                 7% |
+| `src/checkers/geo.ts`                               |            101 / 584 |                83% |
+| `src/index.ts`                                      |             97 / 243 |                60% |
+| `src/geo/entityPromptMatchedCitationAssociation.ts` |             89 / 405 |                78% |
 
 ## Clean-checkout verification
 

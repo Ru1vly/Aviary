@@ -4,6 +4,11 @@ import {
   compareGoogleAiSurfacePageObservations,
   isGoogleSurfacePageMatrix,
 } from '../../src/geo/googleSurfaceMatrix';
+import {
+  renderGoogleSurfaceMatrixCsv,
+  renderGoogleSurfaceMatrixHtml,
+  renderGoogleSurfacePathFamilyCsv,
+} from '../../src/geo/googleSurfaceMatrixReporter';
 import type {
   GoogleAiPerformanceExport,
   GoogleAiPerformanceRow,
@@ -74,6 +79,11 @@ describe('Google AI Search and Discover surface matrix', () => {
     });
     expect(isGoogleSurfacePageMatrix(matrix)).toBe(true);
     expect(isGoogleSurfacePageMatrix({ ...matrix, pathFamilyDepth: 6 })).toBe(false);
+    expect(renderGoogleSurfaceMatrixHtml(matrix)).toContain(
+      'Two surfaces,<br><em>page by page.</em>'
+    );
+    expect(renderGoogleSurfaceMatrixCsv(matrix).split('\n')[0]).toContain('search_ai_impressions');
+    expect(renderGoogleSurfacePathFamilyCsv(matrix).split('\n')[0]).toContain('path_family');
   });
 
   it('compares matched, appearing, and disappearing pages with independent share movement', () => {
@@ -121,6 +131,8 @@ describe('Google AI Search and Discover surface matrix', () => {
     );
 
     const comparison = compareGoogleAiSurfaceMatrices(current, baseline);
+    current.periodComparison = comparison;
+    current.searchSourceFile = '<img src=x onerror=alert(1)>';
     expect(comparison).toMatchObject({
       baselineSearchSourceFile: 'search-old.csv',
       currentDiscoverSourceFile: 'discover-new.csv',
@@ -153,6 +165,13 @@ describe('Google AI Search and Discover surface matrix', () => {
       ])
     );
     expect(comparison.note).not.toContain('different or absent path depths');
+    const dashboard = renderGoogleSurfaceMatrixHtml(current);
+    expect(dashboard).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(dashboard).toContain('Page movement across saved periods');
+    expect(renderGoogleSurfaceMatrixCsv(current).split('\n')[0]).toContain(
+      'search_share_change_percentage_points'
+    );
+    expect(renderGoogleSurfacePathFamilyCsv(current).split('\n')[0]).toContain('period_state');
 
     const differentDepth = compareGoogleAiSurfaceMatrices(
       { ...current, pathFamilyDepth: 2 },
