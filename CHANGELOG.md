@@ -18,3 +18,4 @@ Notable changes to Aviary are documented here.
 - Hardened report rendering and exports against unsafe HTML, spreadsheet formulas, and hostile labels.
 - Clarified what Aviary scores measure, how GEO evidence should be interpreted, what data leaves the process, and the API's outbound-network boundary.
 - Updated Rust and JavaScript dependencies, pinned the pnpm toolchain, and prepared optional per-platform native packages for release automation.
+- Added a SHA-256 manifest to GitHub Release assets so downloaded native binaries can be checked against their published digests.

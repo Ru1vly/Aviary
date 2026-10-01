@@ -344,6 +344,10 @@ jobs:
           pattern: aviary-fast-*
           merge-multiple: true
           path: release-artifacts/
+      - name: Generate SHA-256 checksums
+        run: |
+          cd release-artifacts
+          sha256sum -- * > SHA256SUMS
       - name: Generate release notes
         id: changelog
         run: |

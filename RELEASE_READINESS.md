@@ -14,7 +14,7 @@ The release candidate is prepared for review, but a clean-checkout verification 
 
 ## Included work
 
-The candidate adds GEO audit, crawl, comparison, observation, citation-network, source-diversity, source-portfolio, crawler-log, and provider-report workflows, plus API/MCP support, schemas, examples, and operator guidance. It also includes report-rendering safety fixes and repairs CSV headers that previously caused several offline comparison dashboards to render empty or misaligned data. The curated [0.2.0 changelog](CHANGELOG.md) ships in the npm package and now supplies the GitHub Release notes, with commit subjects as a fallback when a version has no changelog section.
+The candidate adds GEO audit, crawl, comparison, observation, citation-network, source-diversity, source-portfolio, crawler-log, and provider-report workflows, plus API/MCP support, schemas, examples, and operator guidance. It also includes report-rendering safety fixes and repairs CSV headers that previously caused several offline comparison dashboards to render empty or misaligned data. The curated [0.2.0 changelog](CHANGELOG.md) ships in the npm package and now supplies the GitHub Release notes, with commit subjects as a fallback when a version has no changelog section. GitHub Release assets will also include a SHA-256 manifest for the native binaries.
 
 Public-facing docs explain the measured scope and limits of Aviary's scores, crawler discovery, provider observations, API network boundary, data handling, and semantic analyzer configuration. The package dry run includes the user docs and examples, and excludes `reports/` and this handoff.
 
@@ -25,11 +25,12 @@ The build, audit, test, and install checks below passed on the release candidate
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
 - The 470-test suite. Coverage still fails the configured 80% thresholds as described above.
-- A fresh simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,079,338 unpacked bytes, and 2,012,259 compressed bytes**, includes `CHANGELOG.md` and `docs/openapi.yaml`, and excludes `reports/` and this handoff. It uses the current compiled output; repeat from a clean checkout on the final release commit.
+- A fresh simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,080,117 unpacked bytes, and 2,012,536 compressed bytes**, includes `CHANGELOG.md` and `docs/openapi.yaml`, and excludes `reports/` and this handoff. It uses the current compiled output; repeat from a clean checkout on the final release commit.
 - A fresh versioned 0.2.0 tarball install with optional native packages omitted loaded 348 exports and `AviaryApiClient`; CLI help succeeded, `CHANGELOG.md` was present, and the packaged OpenAPI version was 0.2.0. The earlier clean-install smoke verified API health and served OpenAPI versions, MCP initialization, and the Linux x64 binary.
 - Local Markdown links and the package-boundary links in packed Markdown files.
 - Compared compiled CLI help with the README and GEO guide: all 390 switches are documented (383 long options and 7 shortcuts). `pnpm run check:cli-docs` now repeats this check in CI and the tagged-release test job.
 - Parsed the release workflow YAML, checked the release-notes shell step, and verified it uses the curated `0.2.0` notes and falls back to commit subjects for `0.1.1`.
+- Parsed the release workflow and exercised its checksum step against sample binary assets; the generated `SHA256SUMS` verified both files.
 
 These are local candidate checks, not evidence that CI has passed on this branch. The latest observed main CI run succeeded on 2026-09-19 and Security Scan on 2026-09-28; both predate the candidate work.
 

@@ -1176,6 +1176,8 @@ Aviary combines a high-fidelity TypeScript + Playwright browser crawler with hig
    - `@ru1vly/aviary-darwin-arm64`
    - `@ru1vly/aviary-win32-x64`
 
+GitHub releases include a `SHA256SUMS` manifest for the downloadable TUI and `aviary-fast` binaries. On Linux, verify downloaded assets from their directory with `sha256sum -c SHA256SUMS`.
+
 ---
 
 ## Project Structure
