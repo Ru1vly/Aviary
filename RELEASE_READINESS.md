@@ -87,6 +87,23 @@ The working tree includes GEO analysis and reporting workflows, API and crawler 
 6. **Review the final diff and package contents.** The full live report set is about 35 MB and remains local generated evidence. If committing report evidence, select the dated report README and concise Markdown findings/parity/opportunity summaries; leave the large raw JSON captures and generated HTML dashboards out unless there is a specific archival need. Confirm every intended source, doc, schema, example, and package file is tracked. Check that tarballs contain required docs/examples and no generated reports or unintended binaries.
 7. **Verify external release state.** Confirm CI, Security Scan, and bootstrap workflows are green on the release commit; confirm npm package versions, trusted publisher settings, any bootstrap secret, and tag protections in GitHub/npm. After the image publishes, verify GHCR's versioned manifest and `latest` digest, which currently still matches `0.1.0`.
 
+### Coverage recovery order
+
+The table ranks the largest uncovered statement counts from the latest full coverage artifact. It points to the biggest sources of the global gap; line coverage alone does not satisfy the branch, function, and statement thresholds.
+
+| Module                                                | Uncovered statements | Current statement coverage |
+| ----------------------------------------------------- | -------------------: | -------------------------: |
+| `src/geo/answerCitationObservationsReporter.ts`       |        4,319 / 5,094 |                        15% |
+| `src/geo/answerCitationPromptSimilarity.ts`           |        2,067 / 2,088 |                         1% |
+| `src/geo/answerCitationObservations.ts`               |        1,873 / 3,471 |                        46% |
+| `src/geo/answerCitationPagePairedReach.ts`            |        1,336 / 1,342 |                         0% |
+| `src/reporter.ts`                                     |            783 / 864 |                         9% |
+| `src/geo/aiCrawlerLogs.ts`                            |          737 / 1,379 |                        47% |
+| `src/geo/answerCitationSourcePortfolioDrift.ts`       |            631 / 648 |                         3% |
+| `src/geo/answerCitationSourceDiversityUncertainty.ts` |            593 / 599 |                         1% |
+
+These totals come from `coverage/coverage-final.json` after the 463-test full run. Google AI performance ingestion, comparison, and audit correlation now have dedicated behavioral tests; new work added them to the test set, but the remaining untested GEO tools still dominate the global shortfall.
+
 ## Local verification before tagging
 
 From a clean checkout and the CI toolchain, run:
