@@ -7,14 +7,14 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The candidate and follow-up commits are local; `main` has not been pushed or tagged. Two known hard blockers remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete run passes **507 tests across 63 files**, with **54.78% statement, 55.98% line, 51.81% function, and 36.72% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
+1. The tagged workflow requires at least 80% coverage. The latest complete run passes **510 tests across 64 files**, with **55.31% statement, 56.53% line, 52.49% function, and 37.49% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
 The candidate cannot publish until the coverage threshold and npm trusted-publisher setup are resolved. A clean-checkout verification and the required CI/security gates must also pass on the final release commit before tagging.
 
 ## Included work
 
-The candidate adds GEO audit, crawl, comparison, observation, citation-network, source-diversity, source-portfolio, crawler-log, and provider-report workflows, plus API/MCP support, schemas, examples, and operator guidance. It also includes report-rendering safety fixes and repairs CSV headers that previously caused several offline comparison dashboards to render empty or misaligned data, including the provider source-divergence and owned-source network-gap exports. The curated [0.2.0 changelog](CHANGELOG.md) ships in the npm package and now supplies the GitHub Release notes, with commit subjects as a fallback when a version has no changelog section. GitHub Release assets will also include a SHA-256 manifest for the native binaries.
+The candidate adds GEO audit, crawl, comparison, observation, citation-network, source-diversity, source-portfolio, crawler-log, and provider-report workflows, plus API/MCP support, schemas, examples, and operator guidance. It also includes report-rendering safety fixes, removes embedded URL credentials from cross-platform matrix exports, and repairs CSV headers that previously caused several offline comparison dashboards to render empty or misaligned data, including the provider source-divergence and owned-source network-gap exports. The curated [0.2.0 changelog](CHANGELOG.md) ships in the npm package and now supplies the GitHub Release notes, with commit subjects as a fallback when a version has no changelog section. GitHub Release assets will also include a SHA-256 manifest for the native binaries.
 
 Public-facing docs explain the measured scope and limits of Aviary's scores, crawler discovery, provider observations, API network boundary, data handling, and semantic analyzer configuration. The package dry run includes the user docs and examples, and excludes `reports/` and this handoff.
 
@@ -22,14 +22,16 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 The build, audit, test, and install checks below passed on the release candidate. Follow-up documentation and release-workflow edits were checked separately:
 
-- Rechecked the current source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The full test suite passed 507 tests across 63 files; coverage remains below the documented 80% thresholds.
+- Rechecked the current source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The full test suite passed 510 tests across 64 files; coverage remains below the documented 80% thresholds.
 - Focused provider-divergence verification after fixing its missing CSV header: 9 tests pass; isolated module coverage is 99.21% statements, 93.15% branches, 100% functions, and 100% lines. This targeted run does not replace the full-suite coverage gate.
 - Focused owned-source network-gap verification after fixing its missing CSV header: 7 tests pass; isolated module coverage is 95.71% statements, 88.13% branches, 95.83% functions, and 96.31% lines. This targeted run does not replace the full-suite coverage gate.
-- Latest full run: `pnpm exec vitest run --coverage --maxWorkers=2` passed 507 tests across 63 files but exited at the global threshold: **54.78% statements, 36.72% branches, 51.81% functions, and 55.98% lines**.
+- Focused platform-matrix reporter verification: 3 tests pass across CSV and HTML exports, including URL-credential redaction. Isolated module coverage is 97.79% statements, 70.87% branches, 100% functions, and 98.43% lines; the targeted coverage invocation exits on the configured branch threshold, while the focused test run passes.
+- Latest full run: `pnpm exec vitest run --coverage --maxWorkers=2` passed 510 tests across 64 files but exited at the global threshold: **55.31% statements, 37.49% branches, 52.49% functions, and 56.53% lines**.
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
-- The 507-test suite. Coverage still fails the configured 80% thresholds as described above.
-- A fresh simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,080,489 unpacked bytes, and 2,012,708 compressed bytes**, includes `CHANGELOG.md` and `docs/openapi.yaml` version 0.2.0, and excludes `reports/` and this handoff. It uses the current compiled output; repeat from a clean checkout on the final release commit.
+- The 510-test suite. Coverage still fails the configured 80% thresholds as described above.
+- A prior simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contained **573 files, 12,080,489 unpacked bytes, and 2,012,708 compressed bytes**, included `CHANGELOG.md` and `docs/openapi.yaml` version 0.2.0, and excluded `reports/` and this handoff. That simulation predates the latest GEO reporter fixes; repeat it from a clean checkout on the final release commit.
+- A final-source `npm pack --dry-run --json` while package metadata remains at 0.1.1 contains **573 files and 12,083,037 unpacked bytes**. It includes the compiled provider-divergence, owned-source network-gap, and platform-matrix reporters plus the updated changelog/OpenAPI, and excludes `reports/` and `RELEASE_READINESS.md`. This verifies the current package boundary, not the release-mutated 0.2.0 tarball.
 - A fresh install of the rebuilt simulated 0.2.0 tarball with optional native packages omitted loaded 348 exports and `AviaryApiClient`; CLI help succeeded. The package dry run confirmed `CHANGELOG.md` is present, README/changelog document `SHA256SUMS`, and the packaged OpenAPI version is 0.2.0. The earlier clean-install smoke also verified API health and served OpenAPI versions, MCP initialization, and the Linux x64 binary.
 - Local Markdown links and the package-boundary links in packed Markdown files.
 - Compared compiled CLI help with the README and GEO guide: all 390 switches are documented (383 long options and 7 shortcuts). `pnpm run check:cli-docs` now repeats this check in CI and the tagged-release test job.
@@ -53,7 +55,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Release blockers and maintainer actions
 
-1. **Recover the coverage gate.** The latest full run passed 507 tests but failed the configured 80% minimums: statements 54.78%, branches 36.72%, functions 51.81%, and lines 55.98%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
+1. **Recover the coverage gate.** The latest full run passed 510 tests but failed the configured 80% minimums: statements 55.31%, branches 37.49%, functions 52.49%, and lines 56.53%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
 2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. On 2026-10-01, `npm trust list` was rejected with `E403` for the configured token, so the publisher settings could not be inspected or updated from this session. With an OTP-capable npm account, run `npm trust github <package> --repository Ru1vly/Aviary --file release.yml --allow-publish` for each package:
 
    ```sh
@@ -76,7 +78,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 5. **Inspect the actual release artifacts.** Repeat a clean-checkout build, package dry run, and install smoke; verify platform installers and tarballs on supported systems. Keep generated reports out of the package.
 6. **Finish the separate website update.** Review and commit the local 242/29 copy edits in `/home/r1/Projects/Aviary-Docs` without losing its existing in-progress changes, deploy the site, and regenerate the live homepage report. Refresh the old social artwork labels before reusing those assets.
 
-Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 507 tests passed):
+Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 510 tests passed):
 
 | Module                                              | Uncovered statements | Statement coverage |
 | --------------------------------------------------- | -------------------: | -----------------: |
@@ -93,7 +95,8 @@ Coverage recovery should start with the largest uncovered statement counts from 
 | `src/geo/answerCitationDomainPairedReach.ts`        |             64 / 279 |                77% |
 | `src/geo/answerCitationOwnedSourceNetworkGaps.ts`   |              9 / 210 |                96% |
 | `src/geo/answerCitationProviderSourceDivergence.ts` |              2 / 254 |                99% |
-| `src/geo/platformMatrix.ts`                         |            141 / 378 |                63% |
+| `src/geo/platformMatrix.ts`                         |            103 / 378 |                73% |
+| `src/geo/platformMatrixReporter.ts`                 |              3 / 136 |                98% |
 | `src/geo/entityPromptMatchedCitationAssociation.ts` |             89 / 405 |                78% |
 
 ## Clean-checkout verification

@@ -15,14 +15,27 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-function pageLink(value: string): string {
+function safePageUrl(value: string): string {
   try {
     const url = new URL(value);
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
-      return escapeHtml(value);
-    return `<a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${escapeHtml(value)}</a>`;
+    if (!['http:', 'https:'].includes(url.protocol) || (!url.username && !url.password))
+      return value;
+    url.username = '';
+    url.password = '';
+    return url.href;
   } catch {
-    return escapeHtml(value);
+    return value;
+  }
+}
+
+function pageLink(value: string): string {
+  try {
+    const safeValue = safePageUrl(value);
+    const url = new URL(safeValue);
+    if (!['http:', 'https:'].includes(url.protocol)) return escapeHtml(safeValue);
+    return `<a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${escapeHtml(safeValue)}</a>`;
+  } catch {
+    return escapeHtml(safePageUrl(value));
   }
 }
 
@@ -113,7 +126,7 @@ export function renderAiPlatformPageMatrixCsv(
     const audit = page.currentAuditSignals;
     const content = audit?.pageContent;
     const row = [
-      page.url,
+      safePageUrl(page.url),
       page.pathFamily,
       page.coverage,
       page.googleSearchAiImpressions,
@@ -133,7 +146,7 @@ export function renderAiPlatformPageMatrixCsv(
       audit?.bingbot.maxSnippetZero,
       audit?.dataNoSnippetElements,
       audit?.dataNoSnippetWords,
-      audit?.auditUrl,
+      audit?.auditUrl ? safePageUrl(audit.auditUrl) : undefined,
       content?.questionHeadings,
       content?.conciseAnswerBlocks,
       content?.externalContentLinks,
@@ -143,9 +156,9 @@ export function renderAiPlatformPageMatrixCsv(
       content?.visibleDate,
       content?.documentLanguage,
       content?.documentLanguageValid,
-      JSON.stringify(page.googleSourceUrls),
+      JSON.stringify(page.googleSourceUrls.map(safePageUrl)),
       page.googleSourceUrlsTruncated,
-      JSON.stringify(page.bingSourceUrls),
+      JSON.stringify(page.bingSourceUrls.map(safePageUrl)),
       page.bingSourceUrlsTruncated,
       page.sitemapMembership?.state,
       page.sitemapMembership?.matchedVia,
@@ -251,14 +264,14 @@ function renderRow(page: AiPlatformPageObservation): string {
         .join(' · ') || 'content signals assessed'
     : 'not assessed';
   const search = [
-    page.url,
+    safePageUrl(page.url),
     page.pathFamily,
     page.coverage,
-    audit?.auditUrl,
+    audit?.auditUrl ? safePageUrl(audit.auditUrl) : undefined,
     page.sitemapMembership?.state,
     page.sitemapMembership?.matchedVia,
-    ...page.googleSourceUrls,
-    ...page.bingSourceUrls,
+    ...page.googleSourceUrls.map(safePageUrl),
+    ...page.bingSourceUrls.map(safePageUrl),
     audit?.googlebot.access,
     audit?.bingbot.access,
     crawlerControls,
@@ -292,7 +305,7 @@ function renderRow(page: AiPlatformPageObservation): string {
   const sitemapCell = !page.sitemapMembership
     ? '<span class="muted">not assessed</span>'
     : `<span class="coverage ${sitemapState === 'listed' ? 'coverage-both-observed' : sitemapState === 'possible' ? 'coverage-google-export-only' : 'coverage-bing-export-only'}">${sitemapState === 'listed' ? 'listed' : sitemapState === 'possible' ? 'possible alias' : 'not found'}</span>${page.sitemapMembership.matchedVia ? `<span class="submetric">via ${escapeHtml(page.sitemapMembership.matchedVia)}</span>` : sitemapState === 'possible' ? '<span class="submetric">source alias list capped</span>' : ''}`;
-  return `<tr data-coverage="${escapeHtml(page.coverage)}" data-audit="${Boolean(audit)}" data-crawler-blocked="${crawlerBlocked}" data-indexing-restricted="${indexingRestricted}" data-snippet-restricted="${snippetRestricted}" data-language-invalid="${invalidLanguage}" data-sitemap="${sitemapState}" data-share-gap="${absoluteGap}" data-google-impressions="${page.googleSearchAiImpressions ?? ''}" data-bing-citations="${page.bingAiCitations ?? ''}" data-url="${escapeHtml(page.url)}" data-search="${escapeHtml(search)}">
+  return `<tr data-coverage="${escapeHtml(page.coverage)}" data-audit="${Boolean(audit)}" data-crawler-blocked="${crawlerBlocked}" data-indexing-restricted="${indexingRestricted}" data-snippet-restricted="${snippetRestricted}" data-language-invalid="${invalidLanguage}" data-sitemap="${sitemapState}" data-share-gap="${absoluteGap}" data-google-impressions="${page.googleSearchAiImpressions ?? ''}" data-bing-citations="${page.bingAiCitations ?? ''}" data-url="${escapeHtml(safePageUrl(page.url))}" data-search="${escapeHtml(search)}">
     <td class="url-cell">${pageLink(page.url)}${audit ? `<details class="audit-url"><summary>Current audit</summary>${pageLink(audit.auditUrl)}</details>` : ''}</td>
     <td class="path-family-cell">${page.pathFamily ? pageLink(page.pathFamily) : '<span class="muted">not grouped</span>'}</td>
     <td><span class="coverage coverage-${page.coverage}">${escapeHtml(page.coverage.replace(/-/g, ' '))}</span></td>
@@ -380,7 +393,7 @@ function renderShareDistributionPlot(pages: AiPlatformPageObservation[]): string
       const signedGap = page.platformShareGapPercentagePoints ?? google - bing;
       const gap = Math.abs(signedGap);
       const gapClass = gap >= 15 ? 'gap-large' : gap >= 5 ? 'gap-medium' : 'gap-small';
-      const title = `${page.url} — Google ${number(google, 2)}% of usable-URL impressions; Bing ${number(bing, 2)}% of usable-URL citations; share gap ${signedGap > 0 ? '+' : ''}${number(signedGap, 2)} pp`;
+      const title = `${safePageUrl(page.url)} — Google ${number(google, 2)}% of usable-URL impressions; Bing ${number(bing, 2)}% of usable-URL citations; share gap ${signedGap > 0 ? '+' : ''}${number(signedGap, 2)} pp`;
       return `<circle class="share-point ${gapClass}" cx="${xPosition(google)}" cy="${yPosition(bing)}" r="4"><title>${escapeHtml(title)}</title></circle>`;
     })
     .join('');
