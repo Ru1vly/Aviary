@@ -7,7 +7,7 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** A live npm registry check on 2026-10-01 found only `0.1.0`, `0.1.1`, and `1.0.0` for the root and each of the five platform packages. No remote `v0.2.0` tag or GitHub Release exists. The local `main` checkout is ahead of `origin/main` and clean; it has not been pushed or tagged. Two known hard blockers remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete run passes **512 tests across 64 files**, with **60.78% statement, 62.07% line, 59.06% function, and 43.13% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
+1. The tagged workflow requires at least 80% coverage. The latest complete run passes **515 tests across 65 files**, with **61.40% statement, 62.72% line, 59.73% function, and 44.00% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
 The candidate cannot publish until the coverage threshold and npm trusted-publisher setup are resolved. A clean-checkout verification and the required CI/security gates must also pass on the final release commit before tagging.
@@ -22,17 +22,18 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 The build, audit, test, and install checks below passed on the release candidate. Follow-up native CLI and release-workflow edits were checked separately:
 
-- Rechecked the TypeScript source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The latest full suite passed 512 tests across 64 files; coverage remains below the documented 80% thresholds.
+- Rechecked the TypeScript source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The latest full suite passed 515 tests across 65 files; coverage remains below the documented 80% thresholds.
 - Focused provider-divergence verification after fixing its missing CSV header: 9 tests pass; isolated module coverage is 99.21% statements, 93.15% branches, 100% functions, and 100% lines. This targeted run does not replace the full-suite coverage gate.
 - Focused owned-source network-gap verification after fixing its missing CSV header: 7 tests pass; isolated module coverage is 95.71% statements, 88.13% branches, 95.83% functions, and 96.31% lines. This targeted run does not replace the full-suite coverage gate.
 - Focused platform-matrix reporter verification: 3 tests pass across CSV and HTML exports, including URL-credential redaction. Isolated module coverage is 97.79% statements, 70.87% branches, 100% functions, and 98.43% lines; the targeted coverage invocation exits on the configured branch threshold, while the focused test run passes.
 - Added a representative report fixture covering prompt-family rarefaction, provider overlap, threshold sweeps, period comparisons, influence, and dashboards. The focused prompt-similarity suite passes 6 tests; isolated module coverage rose from 18% to **91.57% statements, 66.81% branches, 96.49% functions, and 93.11% lines**. The focused coverage command still exits at the branch threshold.
 - Added saved-report validation and comparison fixtures covering every URL transition, provider changes, sample changes, and CSV/HTML exports. The focused concordance suite passes 3 tests; the comparison module now has **91.27% statement, 84.98% branch, 97.14% function, and 95.45% line coverage**.
-- Latest full run: `pnpm exec vitest run --coverage --maxWorkers=2` passed 512 tests across 64 files but exited at the global threshold: **60.78% statements, 43.13% branches, 59.06% functions, and 62.07% lines**.
+- Added Search/Discover matrix fixtures for normalized URL joins, separate impression shares, path families, period deltas, invalid rows, and incompatible inputs. The focused suite passes 3 tests; `googleSurfaceMatrix.ts` now has **86.95% statement, 71.85% branch, 82.69% function, and 90.09% line coverage**.
+- Latest full run: `pnpm exec vitest run --coverage --maxWorkers=2` passed 515 tests across 65 files but exited at the global threshold: **61.40% statements, 44.00% branches, 59.73% functions, and 62.72% lines**.
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
 - `cargo test --locked --package aviary-engine` passed 4 unit tests and 1 doctest; `cargo clippy --locked --jobs 1 --package aviary-engine --bin aviary-fast -- -D warnings` passed. `rustfmt --check` passed for the edited fast binary. Workspace-wide `cargo fmt --check` still reports pre-existing formatting differences in unrelated Rust files.
-- The 512-test suite. Coverage still fails the configured 80% thresholds as described above.
+- The 515-test suite. Coverage still fails the configured 80% thresholds as described above.
 - A fresh simulated `@ru1vly/aviary@0.2.0` package from commit `d53cc51` applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,083,197 unpacked bytes, and 2,013,236 compressed bytes**, includes the current changelog, fast-engine CLI help, platform-matrix reporter, and `docs/openapi.yaml` version 0.2.0, and excludes `reports/` and this handoff. A clean consumer install with optional native packages omitted loaded 352 exports, including `AviaryApiClient` and the platform-matrix CSV reporter, and CLI `--help` succeeded.
 - Rebuilt the Rust `tui` and `aviary-fast` release binaries from the current checkout. The simulated `@ru1vly/aviary-linux-x64@0.2.0` tarball contains three files (11,187,370 unpacked bytes; 3,988,487 compressed bytes), and installs cleanly on Linux x64. The installed TUI passed its binary smoke; the installed fast engine passed its local help/error smoke and generated a live 18-check report for `aviary-rs.com` (17 passed, 1 content-to-HTML ratio advisory). The fast-engine help check is now in the tagged release matrix. Both local tarballs, pack manifests, and SHA-256 checksums are retained in `reports/release-package-smokes/2026-10-01/`. This verifies Linux x64 only; the other four target packages still need their release-matrix builds and install/runtime checks.
 - An earlier clean-install smoke also verified API health and served OpenAPI versions, MCP initialization, and the Linux x64 binary. The package dry run confirmed `CHANGELOG.md` is present, README/changelog document `SHA256SUMS`, and the packaged OpenAPI version is 0.2.0.
@@ -58,7 +59,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Release blockers and maintainer actions
 
-1. **Recover the coverage gate.** The latest full run passed 512 tests but failed the configured 80% minimums: statements 60.78%, branches 43.13%, functions 59.06%, and lines 62.07%. Prompt-similarity statements are now at 91.57%, and Google AI concordance comparison coverage is above 84% for all metrics. Add meaningful coverage for the large GEO observation/reporting and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
+1. **Recover the coverage gate.** The latest full run passed 515 tests but failed the configured 80% minimums: statements 61.40%, branches 44.00%, functions 59.73%, and lines 62.72%. Prompt-similarity statements, concordance comparison coverage, and surface-matrix statements/lines are now above 80%; the surface matrix still has 71.85% branch coverage. Add meaningful coverage for the large GEO observation/reporting and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
 2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. On 2026-10-01, `npm trust list` was rejected with `E403` for the configured token, so the publisher settings could not be inspected or updated from this session. The current `npm trust` management command requires npm 11.15.0 or newer; the workflow's npm 11.5.1 meets npm's separate minimum for publishing through trusted publishers. With an OTP-capable npm account and npm 11.15.0+, run `npm trust github <package> --repository Ru1vly/Aviary --file release.yml --allow-publish` for each package:
 
    ```sh
@@ -95,7 +96,6 @@ Coverage recovery should start with the largest uncovered statement counts from 
 | `src/geo/answerCitationSourcePortfolioDrift.ts` |            348 / 648 |                46% |
 | `src/geo/aiCrawlerPathFamilies.ts`              |            283 / 560 |                49% |
 | `src/crawler.ts`                                |            234 / 626 |                63% |
-| `src/geo/googleSurfaceMatrix.ts`                |            224 / 230 |                 3% |
 | `src/geo/aiCrawlerLogComparison.ts`             |            222 / 226 |                 2% |
 | `src/scoring.ts`                                |            179 / 457 |                61% |
 | `src/geo/answerCitationPromptSimilarity.ts`     |          176 / 2,088 |                92% |
@@ -105,6 +105,7 @@ Coverage recovery should start with the largest uncovered statement counts from 
 | `src/geo/xlsxWorksheetCsv.ts`                   |            103 / 111 |                 7% |
 | `src/checkers/geo.ts`                           |            101 / 584 |                83% |
 | `src/index.ts`                                  |             97 / 243 |                60% |
+| `src/geo/googleSurfaceMatrixReporter.ts`        |              93 / 93 |                 0% |
 
 ## Clean-checkout verification
 
