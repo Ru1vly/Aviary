@@ -1218,6 +1218,9 @@ pnpm exec playwright install chromium
 # Compile TypeScript code to distribution folder
 pnpm run build
 
+# Check that every CLI option appears in the README or GEO guide
+pnpm run check:cli-docs
+
 # Run unit and integration tests
 pnpm run test
 ```

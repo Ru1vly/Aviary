@@ -176,6 +176,7 @@
     "test:benchmark": "vitest bench",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "check:cli-docs": "node scripts/check-cli-option-docs.mjs",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "example": "npm run build:ts && tsx examples/basic-usage.ts",

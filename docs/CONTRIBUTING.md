@@ -23,6 +23,7 @@ Use the narrowest checks that cover your change, then run the full suite when pr
 
 ```sh
 pnpm run build:ts
+pnpm run check:cli-docs
 pnpm run lint
 pnpm run format:check
 pnpm test

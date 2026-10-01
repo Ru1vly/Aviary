@@ -41,6 +41,8 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run format:check
       - run: pnpm exec tsc --noEmit
+      - run: pnpm run build:ts
+      - run: pnpm run check:cli-docs
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:coverage
 
