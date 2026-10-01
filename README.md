@@ -59,6 +59,7 @@ An end-to-end SEO and Generative Engine Optimization (GEO) toolkit for websites.
 - [Native architecture and terminal UI](#native-architecture--terminal-ui)
 - [Project structure](#project-structure)
 - [Development setup](#development-setup)
+- [Changelog](CHANGELOG.md)
 - [License](#license)
 
 ---

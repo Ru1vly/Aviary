@@ -9,6 +9,7 @@
   },
   "files": [
     "dist",
+    "CHANGELOG.md",
     "docs/API.md",
     "docs/ACCURACY_LIMITATIONS.md",
     "docs/audit-report.schema.json",
