@@ -5,7 +5,7 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 ## Release decision
 
-**Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. As of 2026-10-01, the clean local `main` checkout is 52 commits ahead of `origin/main`; it has not been pushed or tagged. Two known hard blockers remain:
+**Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The local `main` checkout is ahead of `origin/main` and clean; it has not been pushed or tagged. Two known hard blockers remain:
 
 1. The tagged workflow requires at least 80% coverage. The latest complete run passes **510 tests across 64 files**, with **55.31% statement, 56.53% line, 52.49% function, and 37.49% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
