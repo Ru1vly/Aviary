@@ -28,7 +28,7 @@ The working tree includes GEO analysis and reporting workflows, API and crawler 
 ## Current state
 
 - The local `main` branch contains the GEO feature work, docs, examples, API and report capture improvements in commit `90e0de5`. It has not been pushed, tagged, or published; generated live-site review reports remain local evidence.
-- Twelve follow-up commits on local `main` (`3f454ec`, `753e27e`, `a232863`, `a7ebde7`, `e27ba5e`, `768802f`, `421c3e6`, `46bd87d`, `98df55a`, `fe08e16`, `54776b7`, `e4d08e9`) document release handoff, improve GEO coverage and report safety, fix missing CSV headers in four GEO report pipelines, add regression coverage, and verify packaging. None has been pushed or tagged.
+- Follow-up commits on local `main` (`3f454ec`, `753e27e`, `a232863`, `a7ebde7`, `e27ba5e`, `768802f`, `421c3e6`, `46bd87d`, `98df55a`, `fe08e16`, `54776b7`, `e4d08e9`) document release handoff, improve GEO coverage and report safety, fix missing CSV headers in four GEO report pipelines, add regression coverage, and verify packaging. None has been pushed or tagged.
 - Removed a duplicate `--geo-crawler-path-family-failure-gate-json` parser case and CLI help entry found during release CLI inspection. `pnpm run build:ts` passes, and the compiled `--help` output now lists the option once.
 - The API documentation now states its network trust boundary: authenticated audit URLs are browser navigations from the service host, and operators who accept less-trusted clients should restrict outbound network access. Private-site scans remain supported.
 - `docs/PRIVACY.md` documents no default outbound usage telemetry, target-site browser requests, local report and in-memory API retention, loopback metrics, and the optional Ollama payload. The package dry run confirms this guide ships.
@@ -129,7 +129,7 @@ The clean tarball smoke passed from a fresh temporary install: CLI help, the Com
 
 ## Suggested release sequence
 
-1. The source, tests, docs, examples, package manifests, and workflows are committed in local commit `90e0de5`, with twelve local follow-up commits listed above. Keep the 345 generated report files as local evidence and selectively archive concise report summaries if needed.
+1. The source, tests, docs, examples, package manifests, and workflows are committed in local commit `90e0de5`, with the local follow-up commits listed above. Keep the 345 generated report files as local evidence and selectively archive concise report summaries if needed.
 2. Use `0.2.0`, the version selected by the user and verified unused on npm. The six mistaken `1.0.0` versions already carry deprecation warnings; retry their removal only with OTP-capable authorization and after confirming npm's no-dependents requirement. Verify trusted publishing before tagging.
 3. Re-run the clean-checkout verification above and inspect the actual packed tarball.
 4. In the separate website repository, update the homepage check/category count to 242/29, then rerun the live fast audit and GEO reports against the deployed page.
