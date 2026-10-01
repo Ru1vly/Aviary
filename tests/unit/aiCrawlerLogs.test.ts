@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   analyzeAiCrawlerAccessLog,
+  analyzeAiCrawlerRobotsAuditReplay,
   analyzeAiCrawlerLogRobotsPolicy,
   analyzeAiCrawlerSitemapRecrawlCoverage,
 } from '../../src/geo/aiCrawlerLogs';
-import { renderAiCrawlerAccessLogHtml } from '../../src/geo/aiCrawlerLogsReporter';
+import {
+  renderAiCrawlerAccessLogHtml,
+  renderAiCrawlerRobotsAuditReplayHtml,
+} from '../../src/geo/aiCrawlerLogsReporter';
 
 describe('analyzeAiCrawlerAccessLog', () => {
   it('normalizes paths, groups crawler activity, and retains no client IP or raw user agent', () => {
@@ -162,6 +166,17 @@ describe('analyzeAiCrawlerAccessLog', () => {
       blockedPaths: 1,
       blockedRequests: 1,
     });
+    const auditReplay = analyzeAiCrawlerRobotsAuditReplay(
+      ['https://example.com/private/a', 'https://example.com/public'],
+      'User-agent: GPTBot\nDisallow: /private/\n\nUser-agent: *\nDisallow: /blocked/',
+      'https://example.com',
+      { sourceFile: 'saved-audit.json', auditTimestamp: '2026-09-30T12:00:00Z' }
+    );
+    const replayHtml = renderAiCrawlerRobotsAuditReplayHtml(auditReplay);
+    expect(replayHtml).toContain('Robots rules across');
+    expect(replayHtml).toContain('Policy coverage by crawler token');
+    expect(replayHtml).toContain('blocked');
+    expect(replayHtml).not.toContain('/private/user');
   });
 
   it('compares sitemap lastmod days with observed crawler paths and excludes ambiguous URLs', () => {
@@ -234,5 +249,72 @@ describe('analyzeAiCrawlerAccessLog', () => {
     expect(html).not.toContain('private=value');
     expect(html).not.toContain('private-agent-suffix');
     expect(html).not.toContain('<script src=');
+    expect(renderAiCrawlerAccessLogHtml([])).toContain('No logs were analyzed.');
+  });
+
+  it('renders enriched edge, timing, verification, referral, and failure details', () => {
+    const rows = [
+      {
+        timestamp: '2026-09-30T10:00:00Z',
+        path: '/guide?utm_source=partner-ai&private=first',
+        status: 200,
+        origin_status: 200,
+        user_agent: 'GPTBot/1.0 private-agent-suffix',
+        content_type: 'text/html; charset=UTF-8',
+        response_time_ms: 250,
+        time_to_first_byte_ms: 110,
+        edgeResultType: 'Hit',
+        edgeResponseResultType: 'Miss',
+        bot_score: 15,
+        bot_score_src: 'Machine Learning',
+        verified_bot_category: 'Search Engine Crawler',
+        security_actions: ['managed_challenge'],
+        client_ip: '203.0.113.14',
+      },
+      {
+        timestamp: '2026-09-30T11:00:00Z',
+        path: '/guide?utm_source=partner-ai&private=second',
+        status: 503,
+        origin_status: 502,
+        user_agent: 'GPTBot/1.0 private-agent-suffix',
+        response_time_ms: 1_250,
+        time_to_first_byte_ms: 800,
+        edgeResultType: 'Error',
+        edgeResponseResultType: 'OriginError',
+        bot_score: 80,
+        bot_score_src: 'Verified Bot',
+        verified_bot_category: 'Search Engine Crawler',
+        security_action: 'block',
+        client_ip: '198.51.100.45',
+      },
+      {
+        timestamp: '2026-09-30T12:00:00Z',
+        path: '/pricing?utm_source=partner-ai&private=third',
+        status: 302,
+      },
+    ].map((row) => JSON.stringify(row));
+    const analysis = analyzeAiCrawlerAccessLog(rows.join('\n'), {
+      sourceFile: 'edge-export.jsonl',
+      aiReferralSources: [{ label: 'Partner AI', value: 'partner-ai' }],
+      ipRanges: [{ token: 'GPTBot', cidrs: ['203.0.113.0/24'] }],
+    });
+
+    const html = renderAiCrawlerAccessLogHtml([analysis]);
+
+    expect(html).toContain('Request timing bands');
+    expect(html).toContain('CloudFront result profile');
+    expect(html).toContain('Cloudflare bot fields');
+    expect(html).toContain('Machine Learning');
+    expect(html).toContain('Verified Bot');
+    expect(html).toContain('Search Engine Crawler');
+    expect(html).toContain('Cloudflare security actions:');
+    expect(html).toContain('edge/origin differ');
+    expect(html).toContain('First-party tagged request evidence');
+    expect(html).toContain('Partner AI');
+    expect(html).toContain('Caller-supplied crawler IP range checks');
+    expect(html).not.toContain('private-agent-suffix');
+    expect(html).not.toContain('private=first');
+    expect(html).not.toContain('203.0.113.14');
+    expect(html).not.toContain('198.51.100.45');
   });
 });
