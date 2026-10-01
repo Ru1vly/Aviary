@@ -21,4 +21,6 @@ The crawl follows links found in static HTML and can miss client-rendered routes
 
 The raw JSON, HTML, PDF, and CSV captures remain under `reports/aviary-rs-live/`. Synthetic output and renderer-recheck files remain under `reports/geo-toolbox-finalization-2026-10-01/` and `reports/geo-report-recheck-2026-10-01/`. These generated files are intentionally excluded from npm and are not committed wholesale.
 
+The simulated root and Linux x64 0.2.0 npm tarballs, pack manifests, and checksums are retained locally under `reports/release-package-smokes/2026-10-01/`. The Linux x64 artifact was installed and smoke-checked; the other four platform binaries were not built in this checkout.
+
 The dated README files beside the local captures record the exact CLI commands and file names. Rebuild first, then use those commands to regenerate the outputs. The checked-in summary intentionally preserves the interpretation and limitations without adding tens of megabytes of generated reports to the release branch.
