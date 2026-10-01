@@ -35,7 +35,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Report review bundle
 
-`reports/` contains the full local generated report set (about 39 MB); the raw JSON, HTML, PDF, and CSV artifacts stay out of the npm tarball and are not committed wholesale. The compact [release-candidate evidence brief](reports/RELEASE_EVIDENCE.md) is tracked for review and records the live-site results, synthetic workflow outputs, interpretation limits, and local artifact locations.
+`reports/` contains the full local generated report set (about 39 MB); the raw JSON, HTML, PDF, and CSV artifacts are ignored by Git and excluded from the npm tarball. The compact [release-candidate evidence brief](reports/RELEASE_EVIDENCE.md) is tracked for review and records the live-site results, synthetic workflow outputs, interpretation limits, and local artifact locations.
 
 ## Known limitations and follow-up
 

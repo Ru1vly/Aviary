@@ -12,6 +12,10 @@ playwright-report/
 playwright/.cache/
 coverage/
 
+# Generated local SEO/GEO reports; selectively commit concise review summaries.
+reports/*
+!reports/RELEASE_EVIDENCE.md
+
 # IDE
 .vscode/
 .idea/
@@ -49,4 +53,3 @@ npm/*/tui
 npm/*/tui.exe
 npm/*/aviary-fast
 npm/*/aviary-fast.exe
-
