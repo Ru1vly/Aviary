@@ -44,7 +44,7 @@ describe('cli.ts', () => {
     const { stdout, stderr, code } = await runCli(['--help']);
     expect(code).toBe(0);
     expect(stderr).toContain('Usage: aviary');
-    expect(stderr).toContain(`across ${28} categories`);
+    expect(stderr).toContain(`across ${29} categories`);
     expect(stdout).toBe('');
   });
 

@@ -28,6 +28,7 @@
     "resourceOptimization": true,
     "legalCompliance": true,
     "ecommerce": false,
-    "internationalization": true
+    "internationalization": true,
+    "geo": true
   }
 }

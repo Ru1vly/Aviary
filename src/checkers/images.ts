@@ -54,9 +54,12 @@ export class ImagesChecker extends BaseChecker {
     const maxCount = this.threshold('image-count-reasonable', 'maxCount', IMAGE_MAX_COUNT);
 
     if (images.length > maxCount) {
-      return this.fail(`High number of images (${images.length}). Consider optimization for performance`, {
-        imageCount: images.length,
-      });
+      return this.fail(
+        `High number of images (${images.length}). Consider optimization for performance`,
+        {
+          imageCount: images.length,
+        }
+      );
     }
 
     return this.pass(`Image count is reasonable (${images.length})`, { imageCount: images.length });

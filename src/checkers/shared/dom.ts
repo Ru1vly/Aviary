@@ -203,7 +203,9 @@ export function resolveDescriptiveText({
 }): DescriptiveTextResult {
   const seen = new Set<Element>();
   const parts: string[] = [];
-  const containers = selectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
+  const containers = selectors.flatMap((selector) =>
+    Array.from(document.querySelectorAll(selector))
+  );
 
   for (const el of containers) {
     if (seen.has(el)) continue;
@@ -224,7 +226,9 @@ export function resolveDescriptiveText({
         const siblingItemprop = sibling.getAttribute('itemprop');
         const isOtherField =
           (siblingItemprop && siblingItemprop !== 'description') ||
-          /\b(price|title|name|sku|brand)\b/.test((sibling.className + ' ' + sibling.id).toLowerCase());
+          /\b(price|title|name|sku|brand)\b/.test(
+            (sibling.className + ' ' + sibling.id).toLowerCase()
+          );
         if (isOtherField) continue;
 
         seen.add(sibling);

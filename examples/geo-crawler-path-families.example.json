@@ -1,0 +1,135 @@
+{
+  "source": "Aviary AI crawler route-family inventory",
+  "schemaVersion": 1,
+  "rows": [
+    {
+      "analysis_index": 1,
+      "source_file": "examples/geo-crawler-route-families.current.synthetic.example.jsonl",
+      "crawler_token": "GPTBot",
+      "provider": "OpenAI",
+      "activity": "training-data-crawl",
+      "path_depth": 2,
+      "path_family": "/blog/geo",
+      "family_requests": 1,
+      "distinct_retained_paths": 1,
+      "successful_2xx_responses": 1,
+      "redirects_3xx": "0",
+      "client_errors_4xx": "0",
+      "server_errors_5xx": "0",
+      "other_responses": 0,
+      "failure_rate_percent": 0,
+      "first_seen_at": "2026-09-30T10:15:00.000Z",
+      "last_seen_at": "2026-09-30T10:15:00.000Z",
+      "family_latest_request_days_before_crawler_latest": 0,
+      "status_codes": [
+        {
+          "status": 200,
+          "requests": 1
+        }
+      ],
+      "status_codes_truncated": false,
+      "response_content_types": [],
+      "response_content_types_truncated": false,
+      "sample_paths": [
+        {
+          "path": "/blog/geo",
+          "requests": 1
+        }
+      ],
+      "retained_path_families_for_crawler": 3,
+      "crawler_unique_paths": 3,
+      "crawler_retained_paths": 3,
+      "crawler_paths_truncated": false,
+      "output_rows_available": 3,
+      "output_rows_emitted": 3,
+      "output_rows_truncated": false,
+      "interpretation_note": "Path families use the first configured path segments; UUID, long numeric, and long hexadecimal segments become :uuid or :id. Rows aggregate only retained per-crawler path detail. A crawler path cap can hide families and requests. Log user-agent labels are not authenticated identities, and request evidence does not establish citation causation or page quality."
+    },
+    {
+      "analysis_index": 1,
+      "source_file": "examples/geo-crawler-route-families.current.synthetic.example.jsonl",
+      "crawler_token": "GPTBot",
+      "provider": "OpenAI",
+      "activity": "training-data-crawl",
+      "path_depth": 2,
+      "path_family": "/guides/ai-search",
+      "family_requests": 1,
+      "distinct_retained_paths": 1,
+      "successful_2xx_responses": 1,
+      "redirects_3xx": "0",
+      "client_errors_4xx": "0",
+      "server_errors_5xx": "0",
+      "other_responses": 0,
+      "failure_rate_percent": 0,
+      "first_seen_at": "2026-09-30T10:00:00.000Z",
+      "last_seen_at": "2026-09-30T10:00:00.000Z",
+      "family_latest_request_days_before_crawler_latest": 0,
+      "status_codes": [
+        {
+          "status": 200,
+          "requests": 1
+        }
+      ],
+      "status_codes_truncated": false,
+      "response_content_types": [],
+      "response_content_types_truncated": false,
+      "sample_paths": [
+        {
+          "path": "/guides/ai-search",
+          "requests": 1
+        }
+      ],
+      "retained_path_families_for_crawler": 3,
+      "crawler_unique_paths": 3,
+      "crawler_retained_paths": 3,
+      "crawler_paths_truncated": false,
+      "output_rows_available": 3,
+      "output_rows_emitted": 3,
+      "output_rows_truncated": false,
+      "interpretation_note": "Path families use the first configured path segments; UUID, long numeric, and long hexadecimal segments become :uuid or :id. Rows aggregate only retained per-crawler path detail. A crawler path cap can hide families and requests. Log user-agent labels are not authenticated identities, and request evidence does not establish citation causation or page quality."
+    },
+    {
+      "analysis_index": 1,
+      "source_file": "examples/geo-crawler-route-families.current.synthetic.example.jsonl",
+      "crawler_token": "GPTBot",
+      "provider": "OpenAI",
+      "activity": "training-data-crawl",
+      "path_depth": 2,
+      "path_family": "/guides/seo",
+      "family_requests": 1,
+      "distinct_retained_paths": 1,
+      "successful_2xx_responses": 1,
+      "redirects_3xx": "0",
+      "client_errors_4xx": "0",
+      "server_errors_5xx": "0",
+      "other_responses": 0,
+      "failure_rate_percent": 0,
+      "first_seen_at": "2026-09-30T10:10:00.000Z",
+      "last_seen_at": "2026-09-30T10:10:00.000Z",
+      "family_latest_request_days_before_crawler_latest": 0,
+      "status_codes": [
+        {
+          "status": 200,
+          "requests": 1
+        }
+      ],
+      "status_codes_truncated": false,
+      "response_content_types": [],
+      "response_content_types_truncated": false,
+      "sample_paths": [
+        {
+          "path": "/guides/seo",
+          "requests": 1
+        }
+      ],
+      "retained_path_families_for_crawler": 3,
+      "crawler_unique_paths": 3,
+      "crawler_retained_paths": 3,
+      "crawler_paths_truncated": false,
+      "output_rows_available": 3,
+      "output_rows_emitted": 3,
+      "output_rows_truncated": false,
+      "interpretation_note": "Path families use the first configured path segments; UUID, long numeric, and long hexadecimal segments become :uuid or :id. Rows aggregate only retained per-crawler path detail. A crawler path cap can hide families and requests. Log user-agent labels are not authenticated identities, and request evidence does not establish citation causation or page quality."
+    }
+  ]
+}

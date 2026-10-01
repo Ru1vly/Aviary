@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary GEO owned-source-share gate assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "assessment"
+  ],
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "assessment": {
+      "$ref": "#/$defs/assessment"
+    }
+  },
+  "$defs": {
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "thresholdPercentagePoints",
+        "lowerCiThresholdPercentagePoints",
+        "signTestAlpha",
+        "signTestDeclineThresholdPercentagePoints",
+        "minimumMatchedPromptGroups",
+        "bootstrapDrawsUsed",
+        "providersEvaluated",
+        "providersOmittedByBudget",
+        "rows",
+        "reasons"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "passed",
+            "regression",
+            "incomplete"
+          ]
+        },
+        "thresholdPercentagePoints": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "lowerCiThresholdPercentagePoints": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "signTestAlpha": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "signTestDeclineThresholdPercentagePoints": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minimumMatchedPromptGroups": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 10000
+        },
+        "bootstrapDrawsUsed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providersEvaluated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providersOmittedByBudget": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/provider"
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "matchedBothCitedPromptGroups",
+        "baselinePromptBalancedOwnedSharePercent",
+        "currentPromptBalancedOwnedSharePercent",
+        "declinePercentagePoints",
+        "declineCi95LowerPercentagePoints",
+        "declineCi95UpperPercentagePoints",
+        "bootstrapResamples",
+        "bootstrapState",
+        "signTestEligiblePromptGroups",
+        "signTestDeclinePromptGroups",
+        "signTestPValue",
+        "signTestHolmAdjustedPValue",
+        "signTestState",
+        "state",
+        "pointThresholdExceeded",
+        "lowerCiThresholdExceeded",
+        "signTestThresholdExceeded"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "matchedBothCitedPromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baselinePromptBalancedOwnedSharePercent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "currentPromptBalancedOwnedSharePercent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "declinePercentagePoints": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -100,
+          "maximum": 100
+        },
+        "declineCi95LowerPercentagePoints": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -100,
+          "maximum": 100
+        },
+        "declineCi95UpperPercentagePoints": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -100,
+          "maximum": 100
+        },
+        "bootstrapResamples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bootstrapState": {
+          "enum": [
+            "available",
+            "not-requested",
+            "incomplete-comparison",
+            "insufficient-support",
+            "budget-limited"
+          ]
+        },
+        "signTestEligiblePromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signTestDeclinePromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signTestPValue": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "signTestHolmAdjustedPValue": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "signTestState": {
+          "enum": [
+            "available",
+            "not-requested",
+            "incomplete-comparison",
+            "insufficient-support",
+            "incomplete-family"
+          ]
+        },
+        "state": {
+          "enum": [
+            "available",
+            "insufficient-support",
+            "incomplete-comparison"
+          ]
+        },
+        "pointThresholdExceeded": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "lowerCiThresholdExceeded": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "signTestThresholdExceeded": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

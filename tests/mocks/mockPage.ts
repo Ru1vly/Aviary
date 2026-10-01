@@ -54,15 +54,21 @@ function escapeText(value: string): string {
  */
 /**
  * Rects/styles to stamp onto elements after the DOM is built, keyed by a
- * `querySelectorAll` selector. happy-dom has no real layout engine — every
- * element's `getBoundingClientRect()` is `{0,0,0,0}` and `getComputedStyle()`
- * returns computed-nothing — so any checker that branches on element size or
- * position (heatmap.ts, mobileUX.ts, spamDetection.ts) needs this to exercise
- * its "found something real" branches at all, not just its zero-element ones.
+ * `querySelectorAll` selector. happy-dom has no real layout engine — client
+ * rects are empty and `getComputedStyle()` returns computed-nothing — so
+ * checkers that inspect visibility, size, or position need this to exercise
+ * their "found something real" branches, not only their zero-element cases.
  */
 export interface MockElementGeometry {
   selector: string;
-  rect?: Partial<{ top: number; left: number; width: number; height: number; right: number; bottom: number }>;
+  rect?: Partial<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+    right: number;
+    bottom: number;
+  }>;
   style?: Partial<CSSStyleDeclaration> & Record<string, string>;
 }
 
@@ -101,28 +107,65 @@ function applyGeometry(doc: Document, win: Window, geometry: MockElementGeometry
     const elements = doc.querySelectorAll(selector);
     elements.forEach((el) => {
       if (rect) {
-        const full = { top: 0, left: 0, width: 0, height: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}), ...rect };
+        const full = {
+          top: 0,
+          left: 0,
+          width: 0,
+          height: 0,
+          right: 0,
+          bottom: 0,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+          ...rect,
+        };
         full.right = rect.right ?? full.left + full.width;
         full.bottom = rect.bottom ?? full.top + full.height;
-        (el as unknown as { getBoundingClientRect: () => DOMRect }).getBoundingClientRect = () => full as DOMRect;
+        const elementWithRects = el as unknown as {
+          getBoundingClientRect: () => DOMRect;
+          getClientRects: () => DOMRectList;
+        };
+        const elementRect = full as DOMRect;
+        elementWithRects.getBoundingClientRect = () => elementRect;
+        elementWithRects.getClientRects = () => [elementRect] as unknown as DOMRectList;
       }
-      if (style) {
-        const computed = { backgroundColor: '', ...style } as CSSStyleDeclaration;
-        (win as unknown as { getComputedStyle: (e: Element) => CSSStyleDeclaration }).getComputedStyle =
-          new Proxy((win as unknown as { getComputedStyle: (e: Element) => CSSStyleDeclaration }).getComputedStyle, {
+      if (rect || style) {
+        const computed = {
+          display: 'block',
+          visibility: 'visible',
+          opacity: '1',
+          backgroundColor: '',
+          ...style,
+        } as CSSStyleDeclaration;
+        (
+          win as unknown as { getComputedStyle: (e: Element) => CSSStyleDeclaration }
+        ).getComputedStyle = new Proxy(
+          (win as unknown as { getComputedStyle: (e: Element) => CSSStyleDeclaration })
+            .getComputedStyle,
+          {
             apply(target, thisArg, args) {
               if (args[0] === el) return computed;
               return Reflect.apply(target, thisArg, args);
             },
-          });
+          }
+        );
       }
     });
   }
 }
 
 export function createMockPage(options: MockPageOptions = {}): Partial<Page> {
-  const { html = '', url = 'https://example.com', title = '', metaTags = {}, headHtml = '', geometry, viewport, htmlAttrs = {}, prepare } =
-    options;
+  const {
+    html = '',
+    url = 'https://example.com',
+    title = '',
+    metaTags = {},
+    headHtml = '',
+    geometry,
+    viewport,
+    htmlAttrs = {},
+    prepare,
+  } = options;
 
   const metaTagsHtml = Object.entries(metaTags)
     .filter((entry): entry is [string, string] => entry[1] !== undefined)
@@ -180,6 +223,7 @@ export function createMockPage(options: MockPageOptions = {}): Partial<Page> {
         getComputedStyle: globals.getComputedStyle,
         performance: globals.performance,
         navigator: globals.navigator,
+        DOMParser: globals.DOMParser,
       };
       globals.document = doc;
       globals.window = window;
@@ -198,11 +242,19 @@ export function createMockPage(options: MockPageOptions = {}): Partial<Page> {
       // module's strict mode ("Cannot set property navigator... which has
       // only a getter") — defineProperty is required to override it.
       const setGlobal = (key: string, value: unknown): void => {
-        Object.defineProperty(globals, key, { value, configurable: true, writable: true, enumerable: true });
+        Object.defineProperty(globals, key, {
+          value,
+          configurable: true,
+          writable: true,
+          enumerable: true,
+        });
       };
-      globals.getComputedStyle = (window as unknown as { getComputedStyle: unknown }).getComputedStyle;
+      globals.getComputedStyle = (
+        window as unknown as { getComputedStyle: unknown }
+      ).getComputedStyle;
       globals.performance = (window as unknown as { performance: unknown }).performance;
       setGlobal('navigator', (window as unknown as { navigator: unknown }).navigator);
+      setGlobal('DOMParser', (window as unknown as { DOMParser: unknown }).DOMParser);
       try {
         return await (pageFunction as (arg?: unknown) => unknown)(arg);
       } finally {
@@ -211,6 +263,7 @@ export function createMockPage(options: MockPageOptions = {}): Partial<Page> {
         globals.getComputedStyle = previous.getComputedStyle;
         globals.performance = previous.performance;
         setGlobal('navigator', previous.navigator);
+        setGlobal('DOMParser', previous.DOMParser);
       }
     }) as Page['evaluate'],
 

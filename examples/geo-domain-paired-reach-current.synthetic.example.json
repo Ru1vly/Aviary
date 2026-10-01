@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 1",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-1"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 2",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-2"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 3",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-3"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 4",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-4"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 5",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-5"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 6",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-6"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 7",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-7"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 8",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-8"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 9",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-9"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Product research",
+      "intent": "Comparison",
+      "prompt": "Which compact camera should I compare for travel use? Prompt 10",
+      "citedUrls": [
+        "https://other-source.example/camera-guide-10"
+      ],
+      "model": "Synthetic GEO fixture",
+      "surface": "Search",
+      "locale": "en-US"
+    }
+  ]
+}

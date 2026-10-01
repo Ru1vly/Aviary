@@ -29,12 +29,14 @@ export class StructuredDataChecker extends BaseChecker {
       }
 
       // Extract schema types
-      const schemaTypes = jsonLdScripts.map((data) => {
-        if (data['@type']) {
-          return Array.isArray(data['@type']) ? data['@type'] : [data['@type']];
-        }
-        return [];
-      }).flat();
+      const schemaTypes = jsonLdScripts
+        .map((data) => {
+          if (data['@type']) {
+            return Array.isArray(data['@type']) ? data['@type'] : [data['@type']];
+          }
+          return [];
+        })
+        .flat();
 
       return this.pass(`Found ${jsonLdScripts.length} JSON-LD structured data block(s)`, {
         count: jsonLdScripts.length,
@@ -42,7 +44,9 @@ export class StructuredDataChecker extends BaseChecker {
         data: jsonLdScripts,
       });
     } catch (error) {
-      return this.fail(`Error checking JSON-LD: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return this.fail(
+        `Error checking JSON-LD: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -119,9 +123,7 @@ export class StructuredDataChecker extends BaseChecker {
         recommendations.push('Consider adding BreadcrumbList schema for better navigation');
       }
 
-      const foundBeneficialTypes = schemaTypes.filter((type) =>
-        beneficialTypes.includes(type)
-      );
+      const foundBeneficialTypes = schemaTypes.filter((type) => beneficialTypes.includes(type));
 
       return {
         passed: foundBeneficialTypes.length > 0,
@@ -136,7 +138,11 @@ export class StructuredDataChecker extends BaseChecker {
         },
       };
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Schema type validation skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Schema type validation skipped due to error',
+      };
     }
   }
 }

@@ -1,0 +1,44 @@
+{
+  "artifactType": "geo-change-gate",
+  "schemaVersion": 1,
+  "scope": {
+    "type": "batch"
+  },
+  "baselineTimestamp": "2026-09-28T09:30:00.000Z",
+  "currentTimestamp": "2026-09-29T09:30:00.000Z",
+  "geoComparedBasis": "search-crawler-access-and-preview-controls",
+  "filters": {
+    "signals": [],
+    "urls": ["https://example.com/article"],
+    "transitions": []
+  },
+  "passed": false,
+  "failureReasons": [
+    {
+      "code": "unassessed-pages",
+      "message": "GEO data unavailable on 1 matched page(s)"
+    },
+    {
+      "code": "selected-changes",
+      "message": "1 matching GEO signal change(s)"
+    },
+    {
+      "code": "current-audit-errors",
+      "message": "GEO audit data unavailable for 1 current page(s)"
+    }
+  ],
+  "matchedPages": 3,
+  "comparablePages": 2,
+  "unassessedPages": 1,
+  "totalChanges": 2,
+  "matchingChanges": [
+    {
+      "url": "https://example.com/article",
+      "signal": "crawler access",
+      "before": "allowed",
+      "after": "blocked"
+    }
+  ],
+  "currentFailedUrls": 1,
+  "baselineFailedUrls": 0
+}

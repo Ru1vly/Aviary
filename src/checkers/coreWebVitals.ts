@@ -120,7 +120,10 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const warnMs = this.threshold('page-load-time-acceptable', 'warnMs', CWV_PAGE_LOAD_WARN_MS);
 
       if (timing.loadTime > failMs) {
-        return this.fail(`Page load time is slow (${timing.loadTimeSeconds}s). Target: < ${failMs / 1000}s`, timing);
+        return this.fail(
+          `Page load time is slow (${timing.loadTimeSeconds}s). Target: < ${failMs / 1000}s`,
+          timing
+        );
       } else if (timing.loadTime > warnMs) {
         return this.pass(`Page load time is acceptable (${timing.loadTimeSeconds}s)`, timing);
       }
@@ -180,7 +183,11 @@ export class CoreWebVitalsChecker extends BaseChecker {
         byType,
       };
 
-      const maxRequests = this.threshold('resource-count-acceptable', 'maxRequests', CWV_MAX_HTTP_REQUESTS);
+      const maxRequests = this.threshold(
+        'resource-count-acceptable',
+        'maxRequests',
+        CWV_MAX_HTTP_REQUESTS
+      );
       const warnRequests = this.threshold(
         'resource-count-acceptable',
         'warnRequests',
@@ -188,7 +195,10 @@ export class CoreWebVitalsChecker extends BaseChecker {
       );
 
       if (resources.total > maxRequests) {
-        return this.fail(`Too many HTTP requests (${resources.total}). Target: < ${warnRequests}`, resources);
+        return this.fail(
+          `Too many HTTP requests (${resources.total}). Target: < ${warnRequests}`,
+          resources
+        );
       } else if (resources.total > warnRequests) {
         return this.pass(`HTTP requests acceptable (${resources.total})`, resources);
       }
@@ -205,11 +215,22 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalSize = entries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const pageSize = { ...formatBytes(totalSize) };
 
-      const failBytes = this.threshold('cwv-page-size-acceptable', 'failBytes', CWV_PAGE_SIZE_FAIL_BYTES);
-      const warnBytes = this.threshold('cwv-page-size-acceptable', 'warnBytes', CWV_PAGE_SIZE_WARN_BYTES);
+      const failBytes = this.threshold(
+        'cwv-page-size-acceptable',
+        'failBytes',
+        CWV_PAGE_SIZE_FAIL_BYTES
+      );
+      const warnBytes = this.threshold(
+        'cwv-page-size-acceptable',
+        'warnBytes',
+        CWV_PAGE_SIZE_WARN_BYTES
+      );
 
       if (pageSize.bytes > failBytes) {
-        return this.fail(`Page size is large (${pageSize.mb}MB). Target: < ${Math.round(warnBytes / 1024 / 1024)}MB`, pageSize);
+        return this.fail(
+          `Page size is large (${pageSize.mb}MB). Target: < ${Math.round(warnBytes / 1024 / 1024)}MB`,
+          pageSize
+        );
       } else if (pageSize.bytes > warnBytes) {
         return this.pass(`Page size is acceptable (${pageSize.mb}MB)`, pageSize);
       }
@@ -227,13 +248,23 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const totalSize = jsEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const jsSize = { count: jsEntries.length, ...formatBytes(totalSize) };
 
-      const failBytes = this.threshold('javascript-size-acceptable', 'failBytes', CWV_JS_SIZE_FAIL_BYTES);
+      const failBytes = this.threshold(
+        'javascript-size-acceptable',
+        'failBytes',
+        CWV_JS_SIZE_FAIL_BYTES
+      );
 
       if (jsSize.bytes > failBytes) {
-        return this.fail(`JavaScript size is large (${jsSize.kb}KB, ${jsSize.count} files). Consider code splitting`, jsSize);
+        return this.fail(
+          `JavaScript size is large (${jsSize.kb}KB, ${jsSize.count} files). Consider code splitting`,
+          jsSize
+        );
       }
 
-      return this.pass(`JavaScript size is acceptable (${jsSize.kb}KB, ${jsSize.count} files)`, jsSize);
+      return this.pass(
+        `JavaScript size is acceptable (${jsSize.kb}KB, ${jsSize.count} files)`,
+        jsSize
+      );
     } catch (error) {
       return this.pass('JavaScript size check skipped');
     }
@@ -242,14 +273,19 @@ export class CoreWebVitalsChecker extends BaseChecker {
   private async checkCSSSize(): Promise<CheckOutcome> {
     try {
       const entries = await this.getResourceTimings();
-      const cssEntries = entries.filter((e) => e.initiatorType === 'link' && e.name.includes('.css'));
+      const cssEntries = entries.filter(
+        (e) => e.initiatorType === 'link' && e.name.includes('.css')
+      );
       const totalSize = cssEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const cssSize = { count: cssEntries.length, ...formatBytes(totalSize) };
 
       const failBytes = this.threshold('css-size-acceptable', 'failBytes', CWV_CSS_SIZE_FAIL_BYTES);
 
       if (cssSize.bytes > failBytes) {
-        return this.fail(`CSS size is large (${cssSize.kb}KB, ${cssSize.count} files). Consider minification`, cssSize);
+        return this.fail(
+          `CSS size is large (${cssSize.kb}KB, ${cssSize.count} files). Consider minification`,
+          cssSize
+        );
       }
 
       return this.pass(`CSS size is acceptable (${cssSize.kb}KB, ${cssSize.count} files)`, cssSize);
@@ -261,20 +297,29 @@ export class CoreWebVitalsChecker extends BaseChecker {
   private async checkImageSize(): Promise<CheckOutcome> {
     try {
       const entries = await this.getResourceTimings();
-      const imageEntries = entries.filter((e) =>
-        e.initiatorType === 'img' ||
-        e.name.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)(\?|$)/i)
+      const imageEntries = entries.filter(
+        (e) => e.initiatorType === 'img' || e.name.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)(\?|$)/i)
       );
       const totalSize = imageEntries.reduce((sum, entry) => sum + entry.transferSize, 0);
       const imageSize = { count: imageEntries.length, ...formatBytes(totalSize) };
 
-      const failBytes = this.threshold('image-size-acceptable', 'failBytes', CWV_IMAGE_SIZE_FAIL_BYTES);
+      const failBytes = this.threshold(
+        'image-size-acceptable',
+        'failBytes',
+        CWV_IMAGE_SIZE_FAIL_BYTES
+      );
 
       if (imageSize.bytes > failBytes) {
-        return this.fail(`Images size is large (${imageSize.mb}MB, ${imageSize.count} images). Optimize images`, imageSize);
+        return this.fail(
+          `Images size is large (${imageSize.mb}MB, ${imageSize.count} images). Optimize images`,
+          imageSize
+        );
       }
 
-      return this.pass(`Images size is acceptable (${imageSize.kb}KB, ${imageSize.count} images)`, imageSize);
+      return this.pass(
+        `Images size is acceptable (${imageSize.kb}KB, ${imageSize.count} images)`,
+        imageSize
+      );
     } catch (error) {
       return this.pass('Image size check skipped');
     }
@@ -283,8 +328,8 @@ export class CoreWebVitalsChecker extends BaseChecker {
   private async checkFontLoading(): Promise<CheckOutcome> {
     try {
       const entries = await this.getResourceTimings();
-      const fontEntries = entries.filter((e) =>
-        e.initiatorType === 'css' && e.name.match(/\.(woff|woff2|ttf|otf|eot)(\?|$)/i)
+      const fontEntries = entries.filter(
+        (e) => e.initiatorType === 'css' && e.name.match(/\.(woff|woff2|ttf|otf|eot)(\?|$)/i)
       );
 
       const preloadedFonts = await this.page.evaluate(
@@ -300,11 +345,17 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const maxFonts = this.threshold('font-loading-optimized', 'maxFonts', CWV_MAX_FONT_FILES);
 
       if (fontData.fontCount > maxFonts) {
-        return this.fail(`Too many font files (${fontData.fontCount}). Consider limiting to 2-3`, fontData);
+        return this.fail(
+          `Too many font files (${fontData.fontCount}). Consider limiting to 2-3`,
+          fontData
+        );
       }
 
       if (fontData.fontCount > 0 && !fontData.hasPreload) {
-        return this.fail(`Fonts not preloaded (${fontData.fontCount} fonts). Add <link rel="preload">`, fontData);
+        return this.fail(
+          `Fonts not preloaded (${fontData.fontCount} fonts). Add <link rel="preload">`,
+          fontData
+        );
       }
 
       return this.pass(
@@ -324,16 +375,15 @@ export class CoreWebVitalsChecker extends BaseChecker {
         const scripts = Array.from(document.querySelectorAll('script[src]'));
         const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
 
-        const blockingScripts = scripts.filter((s) =>
-          !s.hasAttribute('async') &&
-          !s.hasAttribute('defer') &&
-          !s.hasAttribute('type') // Exclude JSON-LD
+        const blockingScripts = scripts.filter(
+          (s) => !s.hasAttribute('async') && !s.hasAttribute('defer') && !s.hasAttribute('type') // Exclude JSON-LD
         );
 
-        const blockingStyles = styles.filter((s) =>
-          !s.hasAttribute('media') ||
-          s.getAttribute('media') === 'all' ||
-          s.getAttribute('media') === 'screen'
+        const blockingStyles = styles.filter(
+          (s) =>
+            !s.hasAttribute('media') ||
+            s.getAttribute('media') === 'all' ||
+            s.getAttribute('media') === 'screen'
         );
 
         return {
@@ -426,8 +476,8 @@ export class CoreWebVitalsChecker extends BaseChecker {
         const inlineStyles = Array.from(document.querySelectorAll('style'));
         const externalStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
 
-        const hasInlineCritical = inlineStyles.some((style) =>
-          (style.textContent?.length || 0) > minLength
+        const hasInlineCritical = inlineStyles.some(
+          (style) => (style.textContent?.length || 0) > minLength
         );
 
         return {
@@ -455,10 +505,11 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
         const async = scripts.filter((s) => s.hasAttribute('async'));
         const defer = scripts.filter((s) => s.hasAttribute('defer'));
-        const neither = scripts.filter((s) =>
-          !s.hasAttribute('async') &&
-          !s.hasAttribute('defer') &&
-          s.getAttribute('type') !== 'application/ld+json'
+        const neither = scripts.filter(
+          (s) =>
+            !s.hasAttribute('async') &&
+            !s.hasAttribute('defer') &&
+            s.getAttribute('type') !== 'application/ld+json'
         );
 
         return {
@@ -469,10 +520,17 @@ export class CoreWebVitalsChecker extends BaseChecker {
         };
       });
 
-      const maxBlocking = this.threshold('async-scripts-used', 'maxBlocking', CWV_MAX_BLOCKING_SCRIPTS);
+      const maxBlocking = this.threshold(
+        'async-scripts-used',
+        'maxBlocking',
+        CWV_MAX_BLOCKING_SCRIPTS
+      );
 
       if (scriptData.blocking > maxBlocking) {
-        return this.fail(`${scriptData.blocking} scripts without async/defer (use async or defer)`, scriptData);
+        return this.fail(
+          `${scriptData.blocking} scripts without async/defer (use async or defer)`,
+          scriptData
+        );
       }
 
       return this.pass('Most scripts use async/defer', scriptData);
@@ -497,11 +555,16 @@ export class CoreWebVitalsChecker extends BaseChecker {
         };
       });
 
-      const total = resourceHints.preload + resourceHints.preconnect +
-                   resourceHints.dnsPrefetch + resourceHints.prefetch;
+      const total =
+        resourceHints.preload +
+        resourceHints.preconnect +
+        resourceHints.dnsPrefetch +
+        resourceHints.prefetch;
 
       return this.pass(
-        total > 0 ? `Resource hints implemented (${total} hints)` : 'No resource hints (consider adding for critical resources)',
+        total > 0
+          ? `Resource hints implemented (${total} hints)`
+          : 'No resource hints (consider adding for critical resources)',
         resourceHints
       );
     } catch (error) {
@@ -523,7 +586,11 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const hasCaching = !!(cacheControl || expires || etag);
 
       if (!hasCaching) {
-        return this.fail('No cache headers found (add Cache-Control)', { cacheControl, expires, etag });
+        return this.fail('No cache headers found (add Cache-Control)', {
+          cacheControl,
+          expires,
+          etag,
+        });
       }
 
       return this.pass('Cache headers present', { cacheControl, expires, etag });
@@ -552,10 +619,16 @@ export class CoreWebVitalsChecker extends BaseChecker {
           responseTime
         );
       } else if (responseTime.ttfb > warnMs) {
-        return this.pass(`Server response time is acceptable (${responseTime.ttfbSeconds}s TTFB)`, responseTime);
+        return this.pass(
+          `Server response time is acceptable (${responseTime.ttfbSeconds}s TTFB)`,
+          responseTime
+        );
       }
 
-      return this.pass(`Server response time is excellent (${responseTime.ttfbSeconds}s TTFB)`, responseTime);
+      return this.pass(
+        `Server response time is excellent (${responseTime.ttfbSeconds}s TTFB)`,
+        responseTime
+      );
     } catch (error) {
       return this.pass('Server response time check skipped');
     }
@@ -570,7 +643,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const goodMs = this.threshold('lcp-good', 'goodMs', CWV_LCP_GOOD_MS);
       const seconds = (metrics.lcp / 1000).toFixed(2);
       if (metrics.lcp > goodMs) {
-        return this.fail(`LCP is slow (${seconds}s). Target: < ${goodMs / 1000}s`, { lcp: metrics.lcp });
+        return this.fail(`LCP is slow (${seconds}s). Target: < ${goodMs / 1000}s`, {
+          lcp: metrics.lcp,
+        });
       }
       return this.pass(`LCP is good (${seconds}s)`, { lcp: metrics.lcp });
     } catch (error) {
@@ -586,7 +661,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       }
       const goodScore = this.threshold('cls-good', 'goodScore', CWV_CLS_GOOD);
       if (metrics.cls > goodScore) {
-        return this.fail(`CLS is high (${metrics.cls.toFixed(3)}). Target: < ${goodScore}`, { cls: metrics.cls });
+        return this.fail(`CLS is high (${metrics.cls.toFixed(3)}). Target: < ${goodScore}`, {
+          cls: metrics.cls,
+        });
       }
       return this.pass(`CLS is good (${metrics.cls.toFixed(3)})`, { cls: metrics.cls });
     } catch (error) {
@@ -603,7 +680,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const goodMs = this.threshold('fcp-good', 'goodMs', CWV_FCP_GOOD_MS);
       const seconds = (metrics.fcp / 1000).toFixed(2);
       if (metrics.fcp > goodMs) {
-        return this.fail(`FCP is slow (${seconds}s). Target: < ${goodMs / 1000}s`, { fcp: metrics.fcp });
+        return this.fail(`FCP is slow (${seconds}s). Target: < ${goodMs / 1000}s`, {
+          fcp: metrics.fcp,
+        });
       }
       return this.pass(`FCP is good (${seconds}s)`, { fcp: metrics.fcp });
     } catch (error) {
@@ -620,7 +699,9 @@ export class CoreWebVitalsChecker extends BaseChecker {
       const goodMs = this.threshold('ttfb-good', 'goodMs', CWV_TTFB_GOOD_MS);
       const seconds = (metrics.ttfb / 1000).toFixed(2);
       if (metrics.ttfb > goodMs) {
-        return this.fail(`TTFB is slow (${seconds}s). Target: < ${goodMs / 1000}s`, { ttfb: metrics.ttfb });
+        return this.fail(`TTFB is slow (${seconds}s). Target: < ${goodMs / 1000}s`, {
+          ttfb: metrics.ttfb,
+        });
       }
       return this.pass(`TTFB is good (${seconds}s)`, { ttfb: metrics.ttfb });
     } catch (error) {

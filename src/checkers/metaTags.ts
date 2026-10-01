@@ -45,7 +45,10 @@ export class MetaTagsChecker extends BaseChecker {
         );
       }
 
-      return this.pass(`Title is optimal (${titleLength} characters)`, { title, length: titleLength });
+      return this.pass(`Title is optimal (${titleLength} characters)`, {
+        title,
+        length: titleLength,
+      });
     } catch (error) {
       return this.fail(`Failed to check title: ${(error as Error).message}`);
     }
@@ -113,9 +116,7 @@ export class MetaTagsChecker extends BaseChecker {
     const hasOgType = !!ogTags['og:type'];
     const hasOgUrl = !!ogTags['og:url'];
 
-    const ogImageIsAbsolute = hasOgImage
-      ? /^https?:\/\//.test(ogTags['og:image'])
-      : true; // no image = separate issue
+    const ogImageIsAbsolute = hasOgImage ? /^https?:\/\//.test(ogTags['og:image']) : true; // no image = separate issue
 
     const missingTags: string[] = [];
     const issues: string[] = [];
@@ -153,19 +154,59 @@ export class MetaTagsChecker extends BaseChecker {
       });
     }
 
-    return this.pass(`Open Graph tags properly configured (${Object.keys(ogTags).length} tags found)`, { ogTags });
+    return this.pass(
+      `Open Graph tags properly configured (${Object.keys(ogTags).length} tags found)`,
+      { ogTags }
+    );
   }
 
   private async checkCanonicalUrl(): Promise<CheckOutcome> {
     const canonical = await this.page.evaluate(() => {
-      return document.querySelector('link[rel="canonical"]')?.getAttribute('href') || null;
+      const links = document.querySelectorAll<HTMLLinkElement>('link[rel~="canonical" i]');
+      const element = links[0];
+      if (!element) return null;
+      return { count: links.length, href: element.getAttribute('href'), url: element.href };
     });
 
     if (!canonical) {
       return this.fail('Canonical URL is missing');
     }
 
-    return this.pass('Canonical URL is present', { canonical });
+    if (canonical.count > 1) {
+      return this.fail(`Multiple canonical URL declarations found (${canonical.count})`, {
+        canonicalCount: canonical.count,
+      });
+    }
+
+    if (!canonical.href) {
+      return this.fail('Canonical URL is missing');
+    }
+
+    try {
+      const resolved = new URL(canonical.url);
+      if (
+        (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') ||
+        resolved.username ||
+        resolved.password
+      ) {
+        return this.fail('Canonical URL must resolve to an HTTP(S) URL without credentials', {
+          canonicalInvalid: true,
+          canonicalProtocol: resolved.protocol,
+          canonicalCount: canonical.count,
+        });
+      }
+    } catch {
+      return this.fail('Canonical URL is invalid', {
+        canonicalInvalid: true,
+        canonicalCount: canonical.count,
+      });
+    }
+
+    return this.pass('Canonical URL is present', {
+      canonical: canonical.href,
+      canonicalUrl: canonical.url,
+      canonicalCount: 1,
+    });
   }
 
   private async checkViewport(): Promise<CheckOutcome> {

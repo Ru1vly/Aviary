@@ -39,7 +39,9 @@ export class ResourceOptimizationChecker extends BaseChecker {
       const minificationData = await this.page.evaluate(() => {
         // Check for minified resources by looking for .min. in filenames
         const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
-        const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+        const stylesheets = Array.from(
+          document.querySelectorAll('link[rel="stylesheet"]')
+        ) as HTMLLinkElement[];
 
         const minifiedScripts = scripts.filter((script) => script.src.includes('.min.'));
         const minifiedStyles = stylesheets.filter((link) => link.href.includes('.min.'));
@@ -52,14 +54,20 @@ export class ResourceOptimizationChecker extends BaseChecker {
         };
       });
 
-      const scriptMinificationRate = minificationData.totalScripts > 0
-        ? (minificationData.minifiedScripts / minificationData.totalScripts) * 100
-        : 100;
+      const scriptMinificationRate =
+        minificationData.totalScripts > 0
+          ? (minificationData.minifiedScripts / minificationData.totalScripts) * 100
+          : 100;
 
-      const styleMinificationRate = minificationData.totalStyles > 0
-        ? (minificationData.minifiedStyles / minificationData.totalStyles) * 100
-        : 100;
-      const minRate = this.threshold('minification-adequate', 'minRatePercent', MIN_MINIFICATION_RATE_PERCENT);
+      const styleMinificationRate =
+        minificationData.totalStyles > 0
+          ? (minificationData.minifiedStyles / minificationData.totalStyles) * 100
+          : 100;
+      const minRate = this.threshold(
+        'minification-adequate',
+        'minRatePercent',
+        MIN_MINIFICATION_RATE_PERCENT
+      );
 
       if (scriptMinificationRate < minRate || styleMinificationRate < minRate) {
         return this.fail(
@@ -90,7 +98,11 @@ export class ResourceOptimizationChecker extends BaseChecker {
       });
 
       const issues: string[] = [];
-      const maxScripts = this.threshold('resource-combining-adequate', 'maxScripts', MAX_SEPARATE_SCRIPTS);
+      const maxScripts = this.threshold(
+        'resource-combining-adequate',
+        'maxScripts',
+        MAX_SEPARATE_SCRIPTS
+      );
       const maxStylesheets = this.threshold(
         'resource-combining-adequate',
         'maxStylesheets',
@@ -122,13 +134,25 @@ export class ResourceOptimizationChecker extends BaseChecker {
     try {
       const cdnData = await this.page.evaluate(() => {
         const cdnDomains = [
-          'cdn.', 'cloudfront.net', 'cloudflare.com', 'fastly.net', 'akamaized.net',
-          'jsdelivr.net', 'unpkg.com', 'cdnjs.cloudflare.com', 'googleapis.com',
-          'gstatic.com', 'bootstrapcdn.com', 'imgix.net', 'cloudinary.com',
+          'cdn.',
+          'cloudfront.net',
+          'cloudflare.com',
+          'fastly.net',
+          'akamaized.net',
+          'jsdelivr.net',
+          'unpkg.com',
+          'cdnjs.cloudflare.com',
+          'googleapis.com',
+          'gstatic.com',
+          'bootstrapcdn.com',
+          'imgix.net',
+          'cloudinary.com',
         ];
 
         const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
-        const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+        const stylesheets = Array.from(
+          document.querySelectorAll('link[rel="stylesheet"]')
+        ) as HTMLLinkElement[];
         const images = Array.from(document.querySelectorAll('img[src]')) as HTMLImageElement[];
 
         const cdnScripts = scripts.filter((script) =>
@@ -151,7 +175,10 @@ export class ResourceOptimizationChecker extends BaseChecker {
       });
 
       if (!cdnData.usingCDN) {
-        return this.fail('No CDN usage detected (consider using CDN for better performance)', cdnData);
+        return this.fail(
+          'No CDN usage detected (consider using CDN for better performance)',
+          cdnData
+        );
       }
 
       const cdnRate = (cdnData.cdnResources / cdnData.totalResources) * 100;
@@ -203,11 +230,16 @@ export class ResourceOptimizationChecker extends BaseChecker {
       );
 
       if (modernRate < minRate && formatData.totalImages > minImageCount) {
-        return this.fail(`Only ${modernRate.toFixed(0)}% of images use modern formats (WebP/AVIF)`, formatData);
+        return this.fail(
+          `Only ${modernRate.toFixed(0)}% of images use modern formats (WebP/AVIF)`,
+          formatData
+        );
       }
 
       return this.pass(
-        modernRate > 0 ? `${modernRate.toFixed(0)}% of images use modern formats` : 'Image formats acceptable',
+        modernRate > 0
+          ? `${modernRate.toFixed(0)}% of images use modern formats`
+          : 'Image formats acceptable',
         formatData
       );
     } catch (error) {
@@ -218,8 +250,12 @@ export class ResourceOptimizationChecker extends BaseChecker {
   private async checkFontOptimization(): Promise<CheckOutcome> {
     try {
       const fontData = await this.page.evaluate(() => {
-        const fontLinks = Array.from(document.querySelectorAll('link[rel*="font"], link[href*="fonts"]')) as HTMLLinkElement[];
-        const fontPreloads = Array.from(document.querySelectorAll('link[rel="preload"][as="font"]')) as HTMLLinkElement[];
+        const fontLinks = Array.from(
+          document.querySelectorAll('link[rel*="font"], link[href*="fonts"]')
+        ) as HTMLLinkElement[];
+        const fontPreloads = Array.from(
+          document.querySelectorAll('link[rel="preload"][as="font"]')
+        ) as HTMLLinkElement[];
 
         const hasFontDisplay = Array.from(document.styleSheets).some((sheet) => {
           try {
@@ -259,7 +295,10 @@ export class ResourceOptimizationChecker extends BaseChecker {
         return this.fail(`Font optimization issues: ${issues.join(', ')}`, fontData);
       }
 
-      return this.pass(`${fontData.fontLinks} fonts optimized with preload and font-display`, fontData);
+      return this.pass(
+        `${fontData.fontLinks} fonts optimized with preload and font-display`,
+        fontData
+      );
     } catch (error) {
       return this.pass('Font optimization check skipped');
     }
@@ -268,10 +307,14 @@ export class ResourceOptimizationChecker extends BaseChecker {
   private async checkCSSOptimization(): Promise<CheckOutcome> {
     try {
       const cssData = await this.page.evaluate(() => {
-        const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+        const stylesheets = Array.from(
+          document.querySelectorAll('link[rel="stylesheet"]')
+        ) as HTMLLinkElement[];
         const inlineStyles = Array.from(document.querySelectorAll('style'));
 
-        const asyncStyles = stylesheets.filter((link) => link.media === 'print' || link.hasAttribute('media'));
+        const asyncStyles = stylesheets.filter(
+          (link) => link.media === 'print' || link.hasAttribute('media')
+        );
 
         return {
           totalStylesheets: stylesheets.length,
@@ -328,10 +371,16 @@ export class ResourceOptimizationChecker extends BaseChecker {
       );
 
       if (optimizationRate < minRate) {
-        return this.fail(`Only ${optimizationRate.toFixed(0)}% of scripts use async/defer (blocks rendering)`, jsData);
+        return this.fail(
+          `Only ${optimizationRate.toFixed(0)}% of scripts use async/defer (blocks rendering)`,
+          jsData
+        );
       }
 
-      return this.pass(`${optimizationRate.toFixed(0)}% of scripts optimized with async/defer`, jsData);
+      return this.pass(
+        `${optimizationRate.toFixed(0)}% of scripts optimized with async/defer`,
+        jsData
+      );
     } catch (error) {
       return this.pass('JavaScript optimization check skipped');
     }
@@ -355,10 +404,16 @@ export class ResourceOptimizationChecker extends BaseChecker {
       });
 
       if (hintsData.total === 0) {
-        return this.fail('No resource hints (preconnect, dns-prefetch, preload, prefetch)', hintsData);
+        return this.fail(
+          'No resource hints (preconnect, dns-prefetch, preload, prefetch)',
+          hintsData
+        );
       }
 
-      return this.pass(`Resource hints in use (${hintsData.preload} preload, ${hintsData.preconnect} preconnect)`, hintsData);
+      return this.pass(
+        `Resource hints in use (${hintsData.preload} preload, ${hintsData.preconnect} preconnect)`,
+        hintsData
+      );
     } catch (error) {
       return this.pass('Resource hints check skipped');
     }
@@ -372,12 +427,14 @@ export class ResourceOptimizationChecker extends BaseChecker {
         INLINE_CONTENT_NONTRIVIAL_LENGTH
       );
       const criticalData = await this.page.evaluate((minCriticalCSSLength) => {
-        const criticalCSS = Array.from(document.querySelectorAll('style')).some((style) =>
-          style.textContent?.length && style.textContent.length > minCriticalCSSLength
+        const criticalCSS = Array.from(document.querySelectorAll('style')).some(
+          (style) => style.textContent?.length && style.textContent.length > minCriticalCSSLength
         );
 
         const preloadedResources = document.querySelectorAll('link[rel="preload"]');
-        const criticalImages = Array.from(document.querySelectorAll('img[loading="eager"], img:not([loading])')).slice(0, 3);
+        const criticalImages = Array.from(
+          document.querySelectorAll('img[loading="eager"], img:not([loading])')
+        ).slice(0, 3);
 
         return {
           hasCriticalCSS: criticalCSS,
@@ -402,7 +459,9 @@ export class ResourceOptimizationChecker extends BaseChecker {
         const currentDomain = window.location.hostname;
 
         const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
-        const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+        const stylesheets = Array.from(
+          document.querySelectorAll('link[rel="stylesheet"]')
+        ) as HTMLLinkElement[];
 
         const thirdPartyScripts = scripts.filter((script) => {
           try {
@@ -430,8 +489,10 @@ export class ResourceOptimizationChecker extends BaseChecker {
         };
       });
 
-      const thirdPartyRate = ((thirdPartyData.thirdPartyScripts + thirdPartyData.thirdPartyStyles) /
-        (thirdPartyData.totalScripts + thirdPartyData.totalStyles)) * 100;
+      const thirdPartyRate =
+        ((thirdPartyData.thirdPartyScripts + thirdPartyData.thirdPartyStyles) /
+          (thirdPartyData.totalScripts + thirdPartyData.totalStyles)) *
+        100;
       const maxRate = this.threshold(
         'third-party-resources-limited',
         'maxRatePercent',
@@ -439,10 +500,16 @@ export class ResourceOptimizationChecker extends BaseChecker {
       );
 
       if (thirdPartyRate > maxRate) {
-        return this.fail(`High third-party resource usage (${thirdPartyRate.toFixed(0)}%) may impact performance`, thirdPartyData);
+        return this.fail(
+          `High third-party resource usage (${thirdPartyRate.toFixed(0)}%) may impact performance`,
+          thirdPartyData
+        );
       }
 
-      return this.pass(`Third-party resources: ${thirdPartyRate.toFixed(0)}% of total`, thirdPartyData);
+      return this.pass(
+        `Third-party resources: ${thirdPartyRate.toFixed(0)}% of total`,
+        thirdPartyData
+      );
     } catch (error) {
       return this.pass('Third-party resources check skipped');
     }
@@ -453,7 +520,9 @@ export class ResourceOptimizationChecker extends BaseChecker {
       // This check is limited - we can only check for cache-busting patterns
       const cachingData = await this.page.evaluate(() => {
         const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
-        const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+        const stylesheets = Array.from(
+          document.querySelectorAll('link[rel="stylesheet"]')
+        ) as HTMLLinkElement[];
         const images = Array.from(document.querySelectorAll('img[src]')) as HTMLImageElement[];
 
         const hasCacheBusting = (url: string) => {
@@ -465,7 +534,8 @@ export class ResourceOptimizationChecker extends BaseChecker {
         const imagesWithCache = images.filter((img) => hasCacheBusting(img.src));
 
         const totalResources = scripts.length + stylesheets.length + images.length;
-        const cachedResources = scriptsWithCache.length + stylesWithCache.length + imagesWithCache.length;
+        const cachedResources =
+          scriptsWithCache.length + stylesWithCache.length + imagesWithCache.length;
 
         return {
           totalResources,
@@ -533,7 +603,10 @@ export class ResourceOptimizationChecker extends BaseChecker {
       );
 
       if (inlineData.totalInlineSize > maxTotalBytes) {
-        return this.fail(`Large inline resources (${inlineData.totalInlineSizeKB}KB) - consider externalizing`, inlineData);
+        return this.fail(
+          `Large inline resources (${inlineData.totalInlineSizeKB}KB) - consider externalizing`,
+          inlineData
+        );
       }
 
       return this.pass(
@@ -552,14 +625,20 @@ export class ResourceOptimizationChecker extends BaseChecker {
       const unusedData = await this.page.evaluate(() => {
         // This is a simplified check - we look for resources that might be unused
         const scripts = Array.from(document.querySelectorAll('script[src]')) as HTMLScriptElement[];
-        const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+        const stylesheets = Array.from(
+          document.querySelectorAll('link[rel="stylesheet"]')
+        ) as HTMLLinkElement[];
 
         // Check for duplicate resources
         const scriptSrcs = scripts.map((s) => s.src);
         const styleSrcs = stylesheets.map((l) => l.href);
 
-        const duplicateScripts = scriptSrcs.filter((src, index) => scriptSrcs.indexOf(src) !== index);
-        const duplicateStyles = styleSrcs.filter((href, index) => styleSrcs.indexOf(href) !== index);
+        const duplicateScripts = scriptSrcs.filter(
+          (src, index) => scriptSrcs.indexOf(src) !== index
+        );
+        const duplicateStyles = styleSrcs.filter(
+          (href, index) => styleSrcs.indexOf(href) !== index
+        );
 
         return {
           totalScripts: scripts.length,
@@ -585,10 +664,15 @@ export class ResourceOptimizationChecker extends BaseChecker {
   private async checkResourcePriority(): Promise<CheckOutcome> {
     try {
       const priorityData = await this.page.evaluate(() => {
-        const highPriorityResources = document.querySelectorAll('link[rel="preload"], link[rel="preconnect"]');
-        const lowPriorityResources = document.querySelectorAll('link[rel="prefetch"], script[defer], script[async]');
+        const highPriorityResources = document.querySelectorAll(
+          'link[rel="preload"], link[rel="preconnect"]'
+        );
+        const lowPriorityResources = document.querySelectorAll(
+          'link[rel="prefetch"], script[defer], script[async]'
+        );
 
-        const hasImportance = Array.from(document.querySelectorAll('[importance], [fetchpriority]')).length > 0;
+        const hasImportance =
+          Array.from(document.querySelectorAll('[importance], [fetchpriority]')).length > 0;
 
         return {
           highPriority: highPriorityResources.length,
@@ -599,7 +683,10 @@ export class ResourceOptimizationChecker extends BaseChecker {
       });
 
       if (!priorityData.hasPrioritization) {
-        return this.fail('No resource prioritization (use preload, prefetch, async, defer)', priorityData);
+        return this.fail(
+          'No resource prioritization (use preload, prefetch, async, defer)',
+          priorityData
+        );
       }
 
       return this.pass(
@@ -618,7 +705,9 @@ export class ResourceOptimizationChecker extends BaseChecker {
         const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
 
         const http2Resources = resources.filter((resource) => {
-          return resource.nextHopProtocol?.startsWith('h2') || resource.nextHopProtocol === 'http/2';
+          return (
+            resource.nextHopProtocol?.startsWith('h2') || resource.nextHopProtocol === 'http/2'
+          );
         });
 
         return {
@@ -630,10 +719,16 @@ export class ResourceOptimizationChecker extends BaseChecker {
       });
 
       if (!http2Data.supportsHTTP2) {
-        return this.fail('No HTTP/2 support detected (upgrade server for better performance)', http2Data);
+        return this.fail(
+          'No HTTP/2 support detected (upgrade server for better performance)',
+          http2Data
+        );
       }
 
-      return this.pass(`HTTP/2 in use (${http2Data.http2Rate.toFixed(0)}% of resources)`, http2Data);
+      return this.pass(
+        `HTTP/2 in use (${http2Data.http2Rate.toFixed(0)}% of resources)`,
+        http2Data
+      );
     } catch (error) {
       return this.pass('HTTP/2 support check skipped');
     }

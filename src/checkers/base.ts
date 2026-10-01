@@ -8,6 +8,8 @@ export interface BaseCheckerDeps {
   page: Page;
   response?: Response | null;
   config?: SEOConfig;
+  /** @internal Batch URL positions used only by site-wide link analysis. */
+  sitewideTargetIndexes?: ReadonlyMap<string, number>;
   /** Registry key this checker is listed under — used to resolve per-rule config. */
   checkerKey: CheckerKey;
 }
@@ -35,20 +37,23 @@ export interface CheckOutcome {
  * `name`, which is what makes per-rule config (`{enabled: false}` on one
  * specific rule, not just the whole checker) actually resolvable.
  *
- * Not adopted by any checker yet — this is infrastructure for the 28-file
- * migration, done in small batches, not applied all at once.
+ * Checkers have migrated to this base incrementally. Keep new checkers on
+ * this path, and migrate older checkers as focused changes rather than
+ * rewriting all 29 checkers at once.
  */
 export abstract class BaseChecker {
   protected page: Page;
   protected response: Response | null;
   protected config: SEOConfig;
   protected checkerKey: CheckerKey;
+  protected sitewideTargetIndexes?: ReadonlyMap<string, number>;
 
   constructor(deps: BaseCheckerDeps) {
     this.page = deps.page;
     this.response = deps.response ?? null;
     this.config = deps.config ?? {};
     this.checkerKey = deps.checkerKey;
+    this.sitewideTargetIndexes = deps.sitewideTargetIndexes;
   }
 
   /** Shorthand for a passing CheckOutcome. */

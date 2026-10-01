@@ -1,0 +1,8 @@
+User-agent: GPTBot
+Disallow: /guides/answer-capture
+
+User-agent: OAI-SearchBot
+Disallow: /guides/answer-capture
+
+User-agent: *
+Allow: /

@@ -1,0 +1,436 @@
+openapi: 3.1.0
+info:
+  title: Aviary Audit API
+  version: 0.1.1
+  description: >-
+    Submit bounded, asynchronous SEO audit jobs and poll their resources. The
+    bundled server binds to loopback by default. Non-loopback listeners require
+    bearer authentication and TLS.
+servers:
+  - url: http://127.0.0.1:3333
+    description: Local default. Configure an HTTPS server URL when TLS is enabled.
+tags:
+  - name: Health
+  - name: Audits
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Check API availability
+      operationId: getHealth
+      responses:
+        '200':
+          description: API is available.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service, version]
+                properties:
+                  status: { const: ok }
+                  service: { const: aviary-api }
+                  version: { type: string }
+  /openapi.yaml:
+    get:
+      tags: [Health]
+      summary: Read the OpenAPI contract
+      operationId: getOpenApi
+      responses:
+        '200':
+          description: OpenAPI 3.1 YAML document.
+          content:
+            application/yaml:
+              schema: { type: string }
+  /v1/audits:
+    post:
+      tags: [Audits]
+      summary: Queue a batch SEO audit
+      operationId: createAudit
+      security:
+        - bearerAuth: []
+        - {}
+      description: >-
+        Submit a URL array, a sitemap URL, or a crawl start URL. The server accepts HTTP and HTTPS
+        addresses only, limits each URL to 2,048 characters, rejects embedded
+        credentials and duplicates, and returns a job resource. Sitemap scans
+        follow same-origin nested indexes, support gzip-compressed files, and
+        filter page URLs through robots.txt. Link
+        crawls read static HTML anchors, honor nofollow directives and the
+        robots.txt policy for AviaryBot, and use that User-Agent for discovery
+        and page audits. They do not execute JavaScript.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditRequest'
+            examples:
+              urls:
+                summary: Audit an explicit URL list
+                value:
+                  urls: [https://example.com/, https://example.com/about]
+                  concurrency: 2
+                  categories: [metaTags, accessibility]
+              sitemap:
+                summary: Discover a bounded set of pages from a sitemap
+                value:
+                  sitemap: https://example.com/sitemap.xml
+                  maxUrls: 250
+                  concurrency: 3
+              crawl:
+                summary: Discover same-origin pages from a starting page's HTML links
+                value:
+                  crawl: https://example.com/
+                  maxUrls: 250
+                  maxDepth: 2
+                  concurrency: 2
+      responses:
+        '202':
+          description: Job accepted. Poll the returned resource URL for progress and results.
+          headers:
+            Location:
+              description: Relative URL of the new audit job.
+              schema: { type: string }
+            X-RateLimit-Limit: { $ref: '#/components/headers/RateLimitLimit' }
+            X-RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' }
+            X-RateLimit-Reset: { $ref: '#/components/headers/RateLimitReset' }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status, revision, createdAt, links]
+                properties:
+                  id: { type: string, format: uuid }
+                  status:
+                    type: string
+                    enum: [queued, running, completed, failed]
+                  revision: { type: integer, minimum: 0 }
+                  createdAt: { type: string, format: date-time }
+                  links:
+                    type: object
+                    required: [self]
+                    properties:
+                      self: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/RequestTooLarge' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503':
+          description: Pending queue, retained job store, or rate-limit capacity is full.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /v1/audits/{id}/events:
+    get:
+      tags: [Audits]
+      summary: Stream audit progress updates
+      operationId: streamAuditEvents
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      description: >-
+        Server-Sent Events stream. It sends the current job state first, then
+        progress revisions including cancelRequested when relevant, and closes when the job reaches a terminal state.
+        At most 100 event streams may be open at once.
+      responses:
+        '200':
+          description: UTF-8 Server-Sent Events containing JSON update events.
+          content:
+            text/event-stream:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Job does not exist or has expired from in-memory retention.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503':
+          description: Event stream connection limit reached.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /v1/audits/{id}:
+    get:
+      tags: [Audits]
+      summary: Read audit job status or result
+      operationId: getAudit
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Queued, running, completed, failed, or cancelled audit job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditJob'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Job does not exist or has expired from in-memory retention.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      tags: [Audits]
+      summary: Cancel a queued or running audit
+      operationId: cancelAudit
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      description: Cancels a queued job immediately or requests cancellation of a running sitemap discovery or page batch. Running jobs return a partial report when available.
+      responses:
+        '204':
+          description: Queued audit was cancelled.
+        '202':
+          description: Running audit accepted the cancellation request and is stopping. Poll the job or stream events until status is cancelled.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditJob' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: Job does not exist or has expired from in-memory retention.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Audit has already reached a terminal state.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque API key
+  headers:
+    RateLimitLimit:
+      description: Maximum requests allowed in the current fixed window.
+      schema: { type: integer }
+    RateLimitRemaining:
+      description: Requests remaining in the current fixed window.
+      schema: { type: integer }
+    RateLimitReset:
+      description: Unix timestamp in seconds when the current window resets.
+      schema: { type: integer }
+  schemas:
+    AuditRequest:
+      type: object
+      additionalProperties: false
+      oneOf:
+        - required: [urls]
+        - required: [sitemap]
+        - required: [crawl]
+      allOf:
+        - if:
+            required: [urls]
+          then:
+            not:
+              anyOf:
+                - required: [maxUrls]
+                - required: [maxDepth]
+                - required: [maxPageBytes]
+                - required: [maxTotalBytes]
+        - if:
+            required: [sitemap]
+          then:
+            not:
+              anyOf:
+                - required: [maxDepth]
+                - required: [maxPageBytes]
+                - required: [maxTotalBytes]
+        - if:
+            required: [crawl]
+          then:
+            not:
+              required: [sitemap]
+      properties:
+        urls:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            type: string
+            format: uri
+            maxLength: 2048
+            pattern: '^https?://'
+          description: Unique HTTP or HTTPS URLs without embedded credentials. The server default limit is 100 URLs; deployments can raise it to 1,000.
+        sitemap:
+          type: string
+          format: uri
+          maxLength: 2048
+          pattern: '^https?://'
+          description: HTTP or HTTPS sitemap URL. Discovered page and nested sitemap URLs stay on the sitemap origin.
+        crawl:
+          type: string
+          format: uri
+          maxLength: 2048
+          pattern: '^https?://'
+          description: Starting page for bounded same-origin HTML link discovery. Each page is limited to 2 MiB by default and 10,000 candidate anchors. Discovery and page audits honor robots.txt rules for AviaryBot; JavaScript is not executed.
+        maxUrls:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          description: Maximum sitemap or link-crawl page URLs to audit; defaults to the configured API batch limit.
+        maxDepth:
+          type: integer
+          minimum: 0
+          maximum: 32
+          default: 2
+          description: Maximum link hops from the crawl start URL. Crawl requests only.
+        maxPageBytes:
+          type: integer
+          minimum: 1
+          maximum: 10485760
+          default: 2097152
+          description: Maximum HTML response body size per crawled page, defaults to 2 MiB. Crawl requests only.
+        maxTotalBytes:
+          type: integer
+          minimum: 1
+          maximum: 1073741824
+          default: 104857600
+          description: Combined HTML response body limit for link discovery, defaults to 100 MiB. If reached before discovery completes, the job fails. Crawl requests only.
+        concurrency:
+          type: integer
+          minimum: 1
+          maximum: 8
+          default: 2
+        timeout:
+          type: integer
+          minimum: 1
+          maximum: 300000
+          description: Navigation timeout in milliseconds.
+        navigationWaitUntil:
+          type: string
+          enum: [domcontentloaded, load, networkidle]
+          default: networkidle
+          description: Browser navigation readiness condition. Earlier events can accommodate pages with persistent requests but may precede late client-rendered content.
+        settleAfterNavigationMs:
+          type: integer
+          minimum: 0
+          maximum: 30000
+          default: 1000
+          description: Fixed delay after navigation readiness, allowing client-rendered content to settle.
+        preset:
+          type: string
+          enum: [basic, advanced, strict, geo]
+        categories:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - metaTags
+              - headings
+              - images
+              - performance
+              - robotsTxt
+              - sitemap
+              - security
+              - structuredData
+              - socialMedia
+              - content
+              - links
+              - uiElements
+              - technical
+              - accessibility
+              - urlFactors
+              - spamDetection
+              - pageQuality
+              - advancedImages
+              - multimedia
+              - coreWebVitals
+              - analytics
+              - mobileUX
+              - schemaValidation
+              - resourceOptimization
+              - legalCompliance
+              - ecommerce
+              - internationalization
+              - heatmap
+              - geo
+    AuditJob:
+      type: object
+      required: [id, status, revision, createdAt, updatedAt, progress]
+      properties:
+        id: { type: string, format: uuid }
+        revision: { type: integer, minimum: 0 }
+        status:
+          type: string
+          enum: [queued, running, completed, failed, cancelled]
+        cancelRequested:
+          type: boolean
+          description: True after an accepted cancellation request; running jobs may still be stopping.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        progress:
+          type: object
+          required: [completedUrls, requestedUrls]
+          properties:
+            completedUrls: { type: integer, minimum: 0 }
+            requestedUrls: { type: integer, minimum: 0 }
+            lastUrl: { type: string, format: uri }
+        report:
+          type: object
+          description: Aviary SEOAuditBatchReport, present after completed page auditing and on cancellation when page results are available. Successful page reports include navigationWaitUntil and settleAfterNavigationMs. It may be absent when cancellation stops sitemap discovery. Inline base64 heatmap screenshots are omitted; point and zone details remain.
+          additionalProperties: true
+        error:
+          type: string
+          description: Present only if the audit job could not complete.
+    Problem:
+      type: object
+      required: [type, title, status, detail, instance]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+  responses:
+    BadRequest:
+      description: Request body is malformed or fails validation.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthorized:
+      description: A valid bearer token is required when API key authentication is enabled.
+      headers:
+        WWW-Authenticate:
+          schema: { type: string }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RequestTooLarge:
+      description: Request body is larger than 3 MiB.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RateLimited:
+      description: Client exceeded the configured requests per time window.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+        X-RateLimit-Limit: { $ref: '#/components/headers/RateLimitLimit' }
+        X-RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' }
+        X-RateLimit-Reset: { $ref: '#/components/headers/RateLimitReset' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }

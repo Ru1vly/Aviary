@@ -36,13 +36,21 @@ export class MobileUXChecker extends BaseChecker {
 
   private async checkTapTargetSize(): Promise<CheckOutcome> {
     try {
-      const minSize = this.threshold('tap-target-size-adequate', 'minSizePx', TAP_TARGET_MIN_SIZE_PX);
+      const minSize = this.threshold(
+        'tap-target-size-adequate',
+        'minSizePx',
+        TAP_TARGET_MIN_SIZE_PX
+      );
       const tapData = await this.page.evaluate((minSize) => {
-        const interactive = Array.from(document.querySelectorAll('a, button, input[type="button"], input[type="submit"]'));
+        const interactive = Array.from(
+          document.querySelectorAll('a, button, input[type="button"], input[type="submit"]')
+        );
 
         const tooSmall = interactive.filter((el) => {
           const rect = el.getBoundingClientRect();
-          return (rect.width > 0 && rect.width < minSize) || (rect.height > 0 && rect.height < minSize);
+          return (
+            (rect.width > 0 && rect.width < minSize) || (rect.height > 0 && rect.height < minSize)
+          );
         });
 
         return {
@@ -122,8 +130,10 @@ export class MobileUXChecker extends BaseChecker {
           const verticalDistance = Math.abs(rect.top - prevRect.bottom);
           const horizontalDistance = Math.abs(rect.left - prevRect.right);
 
-          return (verticalDistance > 0 && verticalDistance < minSpacing) ||
-                 (horizontalDistance > 0 && horizontalDistance < minSpacing);
+          return (
+            (verticalDistance > 0 && verticalDistance < minSpacing) ||
+            (horizontalDistance > 0 && horizontalDistance < minSpacing)
+          );
         });
 
         return {
@@ -139,7 +149,10 @@ export class MobileUXChecker extends BaseChecker {
       );
 
       if (spacingData.closeTogether > maxClosePairs) {
-        return this.fail(`${spacingData.closeTogether} elements too close together for touch`, spacingData);
+        return this.fail(
+          `${spacingData.closeTogether} elements too close together for touch`,
+          spacingData
+        );
       }
 
       return this.pass('Touch-friendly spacing detected', spacingData);
@@ -190,7 +203,9 @@ export class MobileUXChecker extends BaseChecker {
   private async checkMobileNavigation(): Promise<CheckOutcome> {
     try {
       const navData = await this.page.evaluate(() => {
-        const hamburger = document.querySelector('[class*="hamburger"], [class*="menu-toggle"], [class*="mobile-menu"]');
+        const hamburger = document.querySelector(
+          '[class*="hamburger"], [class*="menu-toggle"], [class*="mobile-menu"]'
+        );
         const nav = document.querySelector('nav');
         const hasFixedHeader = Array.from(document.querySelectorAll('header, nav')).some((el) => {
           const style = window.getComputedStyle(el);
@@ -232,12 +247,14 @@ export class MobileUXChecker extends BaseChecker {
           const bodyStyle = window.getComputedStyle(document.body);
           const fontSize = parseInt(bodyStyle.fontSize);
 
-          const smallText = Array.from(document.querySelectorAll('p, li, span, div')).filter((el) => {
-            const style = window.getComputedStyle(el);
-            const size = parseInt(style.fontSize);
-            const hasText = (el.textContent?.trim().length || 0) > realContentMinLength;
-            return hasText && size < smallFontMax;
-          });
+          const smallText = Array.from(document.querySelectorAll('p, li, span, div')).filter(
+            (el) => {
+              const style = window.getComputedStyle(el);
+              const size = parseInt(style.fontSize);
+              const hasText = (el.textContent?.trim().length || 0) > realContentMinLength;
+              return hasText && size < smallFontMax;
+            }
+          );
 
           return {
             bodyFontSize: fontSize,
@@ -317,7 +334,9 @@ export class MobileUXChecker extends BaseChecker {
   private async checkMobilePopups(): Promise<CheckOutcome> {
     try {
       const popupData = await this.page.evaluate(() => {
-        const modals = Array.from(document.querySelectorAll('[class*="modal"], [class*="popup"], [class*="overlay"]'));
+        const modals = Array.from(
+          document.querySelectorAll('[class*="modal"], [class*="popup"], [class*="overlay"]')
+        );
         const visible = modals.filter((el) => {
           const style = window.getComputedStyle(el);
           return style.display !== 'none' && style.visibility !== 'hidden';
@@ -345,10 +364,16 @@ export class MobileUXChecker extends BaseChecker {
   private async checkOrientationSupport(): Promise<CheckOutcome> {
     try {
       const orientationData = await this.page.evaluate(() => {
-        const hasOrientationCSS = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).some((el) => {
+        const hasOrientationCSS = Array.from(
+          document.querySelectorAll('style, link[rel="stylesheet"]')
+        ).some((el) => {
           const content = el.textContent || '';
-          return content.includes('@media') &&
-                 (content.includes('orientation') || content.includes('landscape') || content.includes('portrait'));
+          return (
+            content.includes('@media') &&
+            (content.includes('orientation') ||
+              content.includes('landscape') ||
+              content.includes('portrait'))
+          );
         });
 
         return {
@@ -389,8 +414,8 @@ export class MobileUXChecker extends BaseChecker {
         iconData.hasAppleTouchIcon && iconData.hasManifest
           ? 'Touch icons and manifest present'
           : iconData.hasAppleTouchIcon
-          ? 'Touch icons present (consider adding web manifest)'
-          : 'Web manifest present (consider adding apple-touch-icon)',
+            ? 'Touch icons present (consider adding web manifest)'
+            : 'Web manifest present (consider adding apple-touch-icon)',
         iconData
       );
     } catch (error) {
@@ -401,8 +426,9 @@ export class MobileUXChecker extends BaseChecker {
   private async checkAMPImplementation(): Promise<CheckOutcome> {
     try {
       const ampData = await this.page.evaluate(() => {
-        const isAMP = document.documentElement.hasAttribute('amp') ||
-                      document.documentElement.hasAttribute('⚡');
+        const isAMP =
+          document.documentElement.hasAttribute('amp') ||
+          document.documentElement.hasAttribute('⚡');
         const ampLink = document.querySelector('link[rel="amphtml"]');
 
         return {
@@ -416,8 +442,8 @@ export class MobileUXChecker extends BaseChecker {
         ampData.isAMPPage
           ? 'This is an AMP page'
           : ampData.hasAMPVersion
-          ? 'AMP version available'
-          : 'No AMP (optional for mobile speed)',
+            ? 'AMP version available'
+            : 'No AMP (optional for mobile speed)',
         ampData
       );
     } catch (error) {
@@ -447,7 +473,9 @@ export class MobileUXChecker extends BaseChecker {
       if (pwaData.hasThemeColor) features.push('theme color');
 
       return this.pass(
-        features.length > 0 ? `PWA features detected: ${features.join(', ')}` : 'No PWA features (optional)',
+        features.length > 0
+          ? `PWA features detected: ${features.join(', ')}`
+          : 'No PWA features (optional)',
         pwaData
       );
     } catch (error) {
@@ -491,7 +519,11 @@ export class MobileUXChecker extends BaseChecker {
         };
       });
 
-      const maxLoadTimeMs = this.threshold('mobile-performance-acceptable', 'maxLoadTimeMs', PAGE_LOAD_TIME_MS);
+      const maxLoadTimeMs = this.threshold(
+        'mobile-performance-acceptable',
+        'maxLoadTimeMs',
+        PAGE_LOAD_TIME_MS
+      );
 
       if (perfData.loadTime > maxLoadTimeMs) {
         return this.fail(
@@ -500,7 +532,10 @@ export class MobileUXChecker extends BaseChecker {
         );
       }
 
-      return this.pass(`Mobile performance acceptable (${perfData.loadTimeSeconds}s load)`, perfData);
+      return this.pass(
+        `Mobile performance acceptable (${perfData.loadTimeSeconds}s load)`,
+        perfData
+      );
     } catch (error) {
       return this.pass('Mobile performance check skipped');
     }

@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Ru1vly/Aviary/blob/main/docs/geo-source-category-monthly-gates.schema.json",
+  "title": "Aviary monthly source-category gate assessments",
+  "description": "Versioned collection of enabled monthly source-category gate decisions, each retaining its gate-specific support, completeness, and exceedance fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "schemaVersion", "checks"],
+  "properties": {
+    "source": { "const": "Aviary monthly source-category gate assessments" },
+    "schemaVersion": { "const": 1 },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/monthlyJsdCheck" },
+          { "$ref": "#/$defs/monthlyHhiRiseAllCheck" },
+          { "$ref": "#/$defs/monthlyHhiRiseTopThreeCheck" },
+          { "$ref": "#/$defs/monthlyAbsoluteHhiAllCheck" },
+          { "$ref": "#/$defs/monthlyAbsoluteHhiTopThreeCheck" },
+          { "$ref": "#/$defs/monthlyShareDropCheck" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "cohortTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["month", "previousMonth", "provider", "previousHhi", "currentHhi", "rise"],
+      "properties": {
+        "month": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+        "previousMonth": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+        "provider": { "type": "string", "minLength": 1 },
+        "topic": { "type": "string" },
+        "intent": { "type": "string" },
+        "previousHhi": { "type": "number", "minimum": 0, "maximum": 1 },
+        "currentHhi": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rise": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "cohortMonth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["month", "provider", "hhi", "mappedCitationEvents"],
+      "properties": {
+        "month": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+        "provider": { "type": "string", "minLength": 1 },
+        "topic": { "type": "string" },
+        "intent": { "type": "string" },
+        "hhi": { "type": "number", "minimum": 0, "maximum": 1 },
+        "mappedCitationEvents": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cohortJsdTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["month", "previousMonth", "provider", "jsdBits"],
+      "properties": {
+        "month": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+        "previousMonth": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+        "provider": { "type": "string", "minLength": 1 },
+        "topic": { "type": "string" },
+        "intent": { "type": "string" },
+        "jsdBits": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "monthlyJsdAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["thresholdBits", "minimumMappedCitationEvents", "comparableCohortMonths", "exceededCohortMonthCount", "exceededCohortMonths", "incompleteCohortMonths", "belowSupportCohortMonths", "monthlyCohortProfilesTruncated", "trendRowsTruncated", "complete"],
+      "properties": {
+        "thresholdBits": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumMappedCitationEvents": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "comparableCohortMonths": { "type": "integer", "minimum": 0 },
+        "exceededCohortMonthCount": { "type": "integer", "minimum": 0 },
+        "exceededCohortMonths": { "type": "array", "items": { "$ref": "#/$defs/cohortJsdTransition" } },
+        "incompleteCohortMonths": { "type": "integer", "minimum": 0 },
+        "belowSupportCohortMonths": { "type": "integer", "minimum": 0 },
+        "monthlyCohortProfilesTruncated": { "type": "boolean" },
+        "trendRowsTruncated": { "type": "boolean" },
+        "complete": { "type": "boolean" }
+      }
+    },
+    "monthlyHhiRiseAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "thresholdRise", "minimumMappedCitationEvents", "comparableCohortMonths", "exceededCohortMonthCount", "exceededCohortMonths", "incompleteCohortMonths", "belowSupportCohortMonths", "monthlyCohortProfilesTruncated", "trendRowsTruncated", "complete"],
+      "properties": {
+        "basis": { "enum": ["all-citations", "top-three"] },
+        "thresholdRise": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumMappedCitationEvents": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "comparableCohortMonths": { "type": "integer", "minimum": 0 },
+        "exceededCohortMonthCount": { "type": "integer", "minimum": 0 },
+        "exceededCohortMonths": { "type": "array", "items": { "$ref": "#/$defs/cohortTransition" } },
+        "incompleteCohortMonths": { "type": "integer", "minimum": 0 },
+        "belowSupportCohortMonths": { "type": "integer", "minimum": 0 },
+        "monthlyCohortProfilesTruncated": { "type": "boolean" },
+        "trendRowsTruncated": { "type": "boolean" },
+        "complete": { "type": "boolean" }
+      }
+    },
+    "monthlyAbsoluteHhiAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis", "thresholdHhi", "minimumMappedCitationEvents", "evaluatedCohortMonths", "exceededCohortMonthCount", "exceededCohortMonths", "incompleteCohortMonths", "belowSupportCohortMonths", "monthlyCohortProfilesTruncated", "trendRowsTruncated", "complete"],
+      "properties": {
+        "basis": { "enum": ["all-citations", "top-three"] },
+        "thresholdHhi": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumMappedCitationEvents": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "evaluatedCohortMonths": { "type": "integer", "minimum": 0 },
+        "exceededCohortMonthCount": { "type": "integer", "minimum": 0 },
+        "exceededCohortMonths": { "type": "array", "items": { "$ref": "#/$defs/cohortMonth" } },
+        "incompleteCohortMonths": { "type": "integer", "minimum": 0 },
+        "belowSupportCohortMonths": { "type": "integer", "minimum": 0 },
+        "monthlyCohortProfilesTruncated": { "type": "boolean" },
+        "trendRowsTruncated": { "type": "boolean" },
+        "complete": { "type": "boolean" }
+      }
+    },
+    "monthlyShareDropAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["thresholdPercentagePoints", "minimumMappedCitationEvents", "comparableCategoryCohortMonths", "exceededCategoryCohortMonthCount", "exceededCategoryCohortMonths", "incompleteCategoryCohortMonths", "belowSupportCategoryCohortMonths", "monthlyCohortProfilesTruncated", "trendRowsTruncated", "complete"],
+      "properties": {
+        "thresholdPercentagePoints": { "type": "number", "minimum": 0, "maximum": 100 },
+        "minimumMappedCitationEvents": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "comparableCategoryCohortMonths": { "type": "integer", "minimum": 0 },
+        "exceededCategoryCohortMonthCount": { "type": "integer", "minimum": 0 },
+        "exceededCategoryCohortMonths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["month", "previousMonth", "provider", "category", "declinePercentagePoints"],
+            "properties": {
+              "month": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+              "previousMonth": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+              "provider": { "type": "string", "minLength": 1 },
+              "topic": { "type": "string" },
+              "intent": { "type": "string" },
+              "category": { "type": "string", "minLength": 1 },
+              "declinePercentagePoints": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          }
+        },
+        "incompleteCategoryCohortMonths": { "type": "integer", "minimum": 0 },
+        "belowSupportCategoryCohortMonths": { "type": "integer", "minimum": 0 },
+        "monthlyCohortProfilesTruncated": { "type": "boolean" },
+        "trendRowsTruncated": { "type": "boolean" },
+        "complete": { "type": "boolean" }
+      }
+    },
+    "monthlyJsdCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "assessment"],
+      "properties": {
+        "name": { "const": "monthly-jsd" },
+        "assessment": { "$ref": "#/$defs/monthlyJsdAssessment" }
+      }
+    },
+    "monthlyHhiRiseAllCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "assessment"],
+      "properties": {
+        "name": { "const": "monthly-hhi-rise-all-citations" },
+        "assessment": {
+          "allOf": [
+            { "$ref": "#/$defs/monthlyHhiRiseAssessment" },
+            { "properties": { "basis": { "const": "all-citations" } } }
+          ]
+        }
+      }
+    },
+    "monthlyHhiRiseTopThreeCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "assessment"],
+      "properties": {
+        "name": { "const": "monthly-hhi-rise-top-three" },
+        "assessment": {
+          "allOf": [
+            { "$ref": "#/$defs/monthlyHhiRiseAssessment" },
+            { "properties": { "basis": { "const": "top-three" } } }
+          ]
+        }
+      }
+    },
+    "monthlyAbsoluteHhiAllCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "assessment"],
+      "properties": {
+        "name": { "const": "monthly-hhi-absolute-all-citations" },
+        "assessment": {
+          "allOf": [
+            { "$ref": "#/$defs/monthlyAbsoluteHhiAssessment" },
+            { "properties": { "basis": { "const": "all-citations" } } }
+          ]
+        }
+      }
+    },
+    "monthlyAbsoluteHhiTopThreeCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "assessment"],
+      "properties": {
+        "name": { "const": "monthly-hhi-absolute-top-three" },
+        "assessment": {
+          "allOf": [
+            { "$ref": "#/$defs/monthlyAbsoluteHhiAssessment" },
+            { "properties": { "basis": { "const": "top-three" } } }
+          ]
+        }
+      }
+    },
+    "monthlyShareDropCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "assessment"],
+      "properties": {
+        "name": { "const": "monthly-share-drop" },
+        "assessment": { "$ref": "#/$defs/monthlyShareDropAssessment" }
+      }
+    }
+  }
+}

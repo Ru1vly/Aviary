@@ -65,10 +65,10 @@ describe('LegalComplianceChecker', () => {
     expect(byName(none, 'ccpa-compliance-indicated').message).toMatch(/no ccpa/i);
 
     const gdpr = await checkerFor({ html: '<p>See our GDPR data protection notice</p>' }).checkAll();
-    expect(byName(gdpr, 'gdpr-compliance-indicated').message).toMatch(/gdpr compliance indicators found/i);
+    expect(byName(gdpr, 'gdpr-compliance-indicated').message).toMatch(/gdpr-related indicators found/i);
 
     const ccpa = await checkerFor({ html: '<p>California residents may exercise their right: Do Not Sell my info</p>' }).checkAll();
-    expect(byName(ccpa, 'ccpa-compliance-indicated').message).toMatch(/do not sell/i);
+    expect(byName(ccpa, 'ccpa-compliance-indicated').message).toMatch(/ccpa-related indicators found/i);
   });
 
   it('detects an accessibility statement link and contact info via mailto/phone/email', async () => {

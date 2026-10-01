@@ -1,0 +1,498 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary GEO robots policy replay",
+  "description": "Offline evaluation of saved audit or sitemap URLs against a caller-supplied robots.txt snapshot. Sitemap discovery is a separate bounded network operation; page content is not fetched for replay. Decisions describe parsed policy and do not authenticate crawler requests.",
+  "type": "object",
+  "required": [
+    "source",
+    "schemaVersion",
+    "robotsSha256",
+    "origin",
+    "uniqueAuditUrls",
+    "pagesOnOrigin",
+    "pagesSkipped",
+    "auditPagesUnavailable",
+    "crawlerPolicies",
+    "rows",
+    "rowsTruncated",
+    "note"
+  ],
+  "properties": {
+    "source": {
+      "enum": [
+        "Aviary GEO robots policy URL replay",
+        "Aviary GEO robots policy audit replay"
+      ]
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "targetSource": {
+      "enum": [
+        "saved-audit",
+        "sitemap"
+      ]
+    },
+    "sourceFile": {
+      "type": "string"
+    },
+    "sitemapUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "robotsFile": {
+      "type": "string"
+    },
+    "robotsModifiedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "robotsSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "origin": {
+      "type": "string",
+      "format": "uri"
+    },
+    "auditTimestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "uniqueTargetUrls": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "targetsMayBeTruncated": {
+      "type": "boolean"
+    },
+    "uniqueAuditUrls": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pagesOnOrigin": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pagesSkipped": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "auditPagesUnavailable": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "crawlerPolicies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "token",
+          "provider",
+          "activity",
+          "customToken",
+          "pagesEvaluated",
+          "pagesAllowed",
+          "pagesBlocked",
+          "blockedUrls",
+          "blockedUrlsTruncated"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "activity": {
+            "enum": [
+              "search-crawl",
+              "user-initiated-fetch",
+              "training-data-crawl",
+              "unclassified",
+              "data-use-policy",
+              "data-use-crawl"
+            ]
+          },
+          "customToken": {
+            "type": "boolean"
+          },
+          "pagesEvaluated": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pagesAllowed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pagesBlocked": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "blockedUrls": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 8192
+            }
+          },
+          "blockedUrlsTruncated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rows": {
+      "type": "array",
+      "maxItems": 50000,
+      "items": {
+        "type": "object",
+        "required": [
+          "auditUrlIndex",
+          "url",
+          "queryStringEvaluated",
+          "queryParametersEvaluated",
+          "crawlerToken",
+          "provider",
+          "activity",
+          "customToken",
+          "allowed",
+          "selectedAgents"
+        ],
+        "properties": {
+          "auditUrlIndex": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 8192
+          },
+          "queryStringEvaluated": {
+            "type": "boolean"
+          },
+          "queryParametersEvaluated": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "crawlerToken": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "activity": {
+            "enum": [
+              "search-crawl",
+              "user-initiated-fetch",
+              "training-data-crawl",
+              "unclassified",
+              "data-use-policy",
+              "data-use-crawl"
+            ]
+          },
+          "customToken": {
+            "type": "boolean"
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "selectedAgents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "matchedRule": {
+            "type": "object",
+            "required": [
+              "directive",
+              "pattern",
+              "specificity",
+              "line"
+            ],
+            "properties": {
+              "directive": {
+                "enum": [
+                  "allow",
+                  "disallow"
+                ]
+              },
+              "pattern": {
+                "type": "string"
+              },
+              "specificity": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rowsTruncated": {
+      "type": "boolean"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparison": {
+      "$ref": "#/$defs/comparison"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "robotsFile": {
+          "type": "string"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "required": [
+        "source",
+        "schemaVersion",
+        "origin",
+        "baselineSnapshot",
+        "currentSnapshot",
+        "urlTokenPairsCompared",
+        "urlTokenPairsNewlyBlocked",
+        "urlTokenPairsNewlyAllowed",
+        "urlTokenPairsWithRuleChanges",
+        "urlTokenPairsUnchanged",
+        "urlTokenPairsNotComparable",
+        "urlTokenPairsMissingFromBaseline",
+        "urlTokenPairsMissingFromCurrent",
+        "inputRowsTruncated",
+        "changes",
+        "changesTruncated",
+        "note"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "Aviary GEO robots policy URL replay comparison",
+            "Aviary GEO robots audit replay comparison"
+          ]
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri"
+        },
+        "targetSource": {
+          "enum": [
+            "saved-audit",
+            "sitemap"
+          ]
+        },
+        "baselineSnapshot": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "currentSnapshot": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "baselineAuditTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "currentAuditTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "urlTokenPairsCompared": {
+          "$ref": "#/$defs/count"
+        },
+        "urlTokenPairsNewlyBlocked": {
+          "$ref": "#/$defs/count"
+        },
+        "urlTokenPairsNewlyAllowed": {
+          "$ref": "#/$defs/count"
+        },
+        "urlTokenPairsWithRuleChanges": {
+          "$ref": "#/$defs/count"
+        },
+        "urlTokenPairsUnchanged": {
+          "$ref": "#/$defs/count"
+        },
+        "urlTokenPairsNotComparable": {
+          "$ref": "#/$defs/count"
+        },
+        "urlTokenPairsMissingFromBaseline": {
+          "$ref": "#/$defs/count"
+        },
+        "urlTokenPairsMissingFromCurrent": {
+          "$ref": "#/$defs/count"
+        },
+        "inputRowsTruncated": {
+          "type": "boolean"
+        },
+        "changes": {
+          "type": "array",
+          "maxItems": 50000,
+          "items": {
+            "$ref": "#/$defs/change"
+          }
+        },
+        "changesTruncated": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "change": {
+      "type": "object",
+      "required": [
+        "auditUrlIndex",
+        "url",
+        "queryStringEvaluated",
+        "queryParametersEvaluated",
+        "crawlerToken",
+        "provider",
+        "activity",
+        "customToken",
+        "allowed",
+        "selectedAgents",
+        "change"
+      ],
+      "properties": {
+        "auditUrlIndex": {
+          "$ref": "#/$defs/count"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 8192
+        },
+        "queryStringEvaluated": {
+          "type": "boolean"
+        },
+        "queryParametersEvaluated": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-policy",
+            "data-use-crawl"
+          ]
+        },
+        "customToken": {
+          "type": "boolean"
+        },
+        "allowed": {
+          "type": "boolean"
+        },
+        "selectedAgents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "matchedRule": {
+          "$ref": "#/$defs/rule"
+        },
+        "change": {
+          "enum": [
+            "newly-blocked",
+            "newly-allowed",
+            "rule-changed",
+            "unchanged",
+            "not-comparable"
+          ]
+        },
+        "baselineAllowed": {
+          "type": "boolean"
+        },
+        "baselineSelectedAgents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "baselineMatchedRule": {
+          "$ref": "#/$defs/rule"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "required": [
+        "directive",
+        "pattern",
+        "specificity",
+        "line"
+      ],
+      "properties": {
+        "directive": {
+          "enum": [
+            "allow",
+            "disallow"
+          ]
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "specificity": {
+          "$ref": "#/$defs/count"
+        },
+        "line": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

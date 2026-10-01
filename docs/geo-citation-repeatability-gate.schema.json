@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-citation-repeatability-gate.schema.json",
+  "title": "Aviary GEO Citation Repeatability Gate Report",
+  "type": "object",
+  "required": ["schemaVersion", "method", "comparisonInput", "rulesInput", "status", "ruleCount", "rules"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "method": {
+      "type": "object",
+      "required": ["decision", "insufficientSupport", "missingMatch", "multipleComparisonAdjustment", "signTestFamily", "exitNonzeroStatuses"],
+      "properties": {
+        "decision": { "type": "string" },
+        "insufficientSupport": { "const": "inconclusive" },
+        "missingMatch": { "const": "inconclusive" },
+        "multipleComparisonAdjustment": { "const": "bootstrap intervals remain nominal; rules may additionally require the report-wide Holm-adjusted exact sign test" },
+        "signTestFamily": {
+          "type": "object",
+          "required": ["state", "familySize", "workTerms", "maximumWorkTerms"],
+          "properties": {
+            "state": { "enum": ["complete", "no-testable-rows", "suppressed-work-cap"] },
+            "familySize": { "type": "integer", "minimum": 0 },
+            "workTerms": { "type": "integer", "minimum": 0 },
+            "maximumWorkTerms": { "const": 5000000 }
+          },
+          "additionalProperties": false
+        },
+        "exitNonzeroStatuses": { "const": ["failed", "inconclusive"] }
+      },
+      "additionalProperties": false
+    },
+    "comparisonInput": { "type": "string" },
+    "rulesInput": { "type": "string" },
+    "status": { "enum": ["passed", "failed", "inconclusive"] },
+    "ruleCount": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "configuration", "status", "matchedRows", "evaluations"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "configuration": {
+            "type": "object",
+            "required": ["id", "metric", "maxDecline", "minimumComparablePrompts"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "provider": { "type": "string", "maxLength": 500 }, "model": { "type": "string", "maxLength": 500 },
+              "surface": { "type": "string", "maxLength": 500 }, "locale": { "type": "string", "maxLength": 500 },
+              "topic": { "type": "string", "maxLength": 500 }, "intent": { "type": "string", "maxLength": 500 },
+              "metric": { "enum": ["citationSetJaccard", "topThreeJaccard", "citationDomainJaccard", "topThreeDomainJaccard", "citationUrlRboP90", "citationDomainRboP90", "ownedCitationPresenceAgreement", "ownedFirstPositionPersistence"] },
+              "maxDecline": { "type": "number", "minimum": 0, "maximum": 1 },
+              "minimumComparablePrompts": { "type": "integer", "minimum": 2, "maximum": 200000 },
+              "requireHolmSignTest": { "type": "boolean" }, "alpha": { "type": "number", "minimum": 0, "maximum": 1 }
+            },
+            "additionalProperties": false
+          },
+          "status": { "enum": ["passed", "failed", "inconclusive"] },
+          "matchedRows": { "type": "integer", "minimum": 0 },
+          "evaluations": {
+            "type": "array", "minItems": 1,
+            "items": {
+              "type": "object", "required": ["metric", "status", "reason"],
+              "properties": {
+                "provider": { "type": "string" }, "model": { "type": "string" }, "surface": { "type": "string" },
+                "locale": { "type": "string" }, "topic": { "type": "string" }, "intent": { "type": "string" },
+                "metric": { "type": "string" }, "maxDecline": { "type": "number", "minimum": 0, "maximum": 1 },
+                "minimumComparablePrompts": { "type": "integer", "minimum": 2 }, "comparablePrompts": { "type": "integer", "minimum": 0 },
+                "requireHolmSignTest": { "type": "boolean" }, "alpha": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+                "positivePromptChanges": { "type": "integer", "minimum": 0 }, "negativePromptChanges": { "type": "integer", "minimum": 0 }, "tiedPromptChanges": { "type": "integer", "minimum": 0 },
+                "signTestNonTiedPrompts": { "type": "integer", "minimum": 0 }, "signTestTwoSidedPValue": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+                "meanPromptDelta": { "type": ["number", "null"] }, "ci95Lower": { "type": ["number", "null"] }, "ci95Upper": { "type": ["number", "null"] },
+                "signTestHolmAdjustedPValue": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }, "signTestState": { "enum": ["available", "insufficient-nontied-prompts", "suppressed-work-cap"] },
+                "intervalState": { "enum": ["estimated", "one-prompt", "no-comparable-prompts", "work-budget-exceeded"] }, "status": { "enum": ["passed", "failed", "inconclusive"] },
+                "reason": { "enum": ["interval-unavailable", "holm-sign-test-unavailable", "insufficient-comparable-prompts", "supported-decline-exceeds-threshold", "decline-not-confirmed-after-holm", "decline-not-supported-at-threshold", "no-matching-comparison-rows"] }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

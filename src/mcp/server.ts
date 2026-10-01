@@ -15,6 +15,7 @@ import { z } from 'zod';
 
 import { SEOChecker } from '../index';
 import { CHECKER_REGISTRY, CheckerKey } from '../checkers/registry';
+import { loadSettleAfterNavigationMs } from '../config/env';
 
 // Single source of truth for valid category names, instead of a hand-typed
 // list that drifts from the real 28-checker registry (the old version only
@@ -31,27 +32,49 @@ function gradeFor(score: number | null): 'A' | 'B' | 'C' | 'D' | 'F' | 'N/A' {
 }
 
 function createServer(): McpServer {
+  const defaultSettleAfterNavigationMs = loadSettleAfterNavigationMs();
+  if (
+    defaultSettleAfterNavigationMs !== undefined &&
+    (!Number.isInteger(defaultSettleAfterNavigationMs) ||
+      defaultSettleAfterNavigationMs < 0 ||
+      defaultSettleAfterNavigationMs > 30_000)
+  ) {
+    throw new Error('AVIARY_SETTLE_AFTER_NAVIGATION_MS must be an integer from 0 to 30000.');
+  }
   const server = new McpServer({ name: 'aviary', version: '0.1.1' });
 
   server.registerTool(
     'seo_audit',
     {
-      description: `Run a comprehensive SEO audit on a URL. Returns detailed check results across ${CHECKER_REGISTRY.length} categories including meta tags, headings, performance, accessibility, security, and more.`,
+      description: `Run a real-browser SEO audit on a URL. Returns detailed results for enabled categories; use the geo preset to run only AI discoverability checks.`,
       inputSchema: z.object({
         url: z.string().url('Must be a valid URL starting with http:// or https://'),
         preset: z
-          .enum(['basic', 'advanced', 'strict'])
+          .enum(['basic', 'advanced', 'strict', 'geo'])
           .optional()
           .default('advanced')
-          .describe('Audit preset (default: advanced)'),
+          .describe('Audit preset (default: advanced; geo runs only AI discoverability checks)'),
         categories: z
           .array(z.enum(CATEGORY_KEYS))
           .optional()
           .describe('Specific categories to check (optional, runs all if omitted)'),
+        settleAfterNavigationMs: z
+          .number()
+          .int()
+          .min(0)
+          .max(30_000)
+          .optional()
+          .describe('Fixed delay after navigation readiness, in milliseconds (default: 1000)'),
       }),
     },
-    async ({ url, preset, categories }) => {
-      const checker = new SEOChecker({ url, headless: true, config: { preset }, categories });
+    async ({ url, preset, categories, settleAfterNavigationMs }) => {
+      const checker = new SEOChecker({
+        url,
+        headless: true,
+        config: { preset },
+        categories,
+        settleAfterNavigationMs: settleAfterNavigationMs ?? defaultSettleAfterNavigationMs,
+      });
       const report = await checker.check();
       return { content: [{ type: 'text', text: JSON.stringify(report, null, 2) }] };
     }
@@ -60,16 +83,30 @@ function createServer(): McpServer {
   server.registerTool(
     'seo_score',
     {
-      description: 'Get a quick SEO score for a URL without full details. Returns score 0-100 and grade (A-F).',
+      description:
+        'Get a quick SEO score for a URL without full details. Returns score 0-100 and grade (A-F).',
       inputSchema: z.object({
         url: z.string().url('Must be a valid URL'),
+        settleAfterNavigationMs: z
+          .number()
+          .int()
+          .min(0)
+          .max(30_000)
+          .optional()
+          .describe('Fixed delay after navigation readiness, in milliseconds (default: 1000)'),
       }),
     },
-    async ({ url }) => {
-      const checker = new SEOChecker({ url, headless: true });
+    async ({ url, settleAfterNavigationMs }) => {
+      const checker = new SEOChecker({
+        url,
+        headless: true,
+        settleAfterNavigationMs: settleAfterNavigationMs ?? defaultSettleAfterNavigationMs,
+      });
       const report = await checker.check();
       const summary = {
         url,
+        navigationWaitUntil: report.navigationWaitUntil,
+        settleAfterNavigationMs: report.settleAfterNavigationMs,
         score: report.score,
         grade: gradeFor(report.score),
         passed: report.summary.passed,
@@ -83,22 +120,48 @@ function createServer(): McpServer {
   server.registerTool(
     'seo_check_category',
     {
-      description: 'Run SEO checks for a specific category only (e.g., metaTags, security, performance).',
+      description:
+        'Run SEO checks for a specific category only (e.g., metaTags, security, performance).',
       inputSchema: z.object({
         url: z.string().url('Must be a valid URL'),
         category: z.enum(CATEGORY_KEYS).describe('Category to check'),
+        settleAfterNavigationMs: z
+          .number()
+          .int()
+          .min(0)
+          .max(30_000)
+          .optional()
+          .describe('Fixed delay after navigation readiness, in milliseconds (default: 1000)'),
       }),
     },
-    async ({ url, category }) => {
+    async ({ url, category, settleAfterNavigationMs }) => {
       const checker = new SEOChecker({
         url,
         headless: true,
         config: { preset: 'advanced' },
         categories: [category],
+        settleAfterNavigationMs: settleAfterNavigationMs ?? defaultSettleAfterNavigationMs,
       });
       const report = await checker.check();
       const checks = report.checks[category];
-      return { content: [{ type: 'text', text: JSON.stringify({ url, category, checks }, null, 2) }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                url,
+                category,
+                navigationWaitUntil: report.navigationWaitUntil,
+                settleAfterNavigationMs: report.settleAfterNavigationMs,
+                checks,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
     }
   );
 

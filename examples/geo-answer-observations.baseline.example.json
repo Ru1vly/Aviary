@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-08-27T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Accessibility",
+      "intent": "How-to",
+      "prompt": "How do I choose an accessible color palette?",
+      "citedUrls": [],
+      "model": "Sample model A",
+      "surface": "Search",
+      "locale": "en-US"
+    }
+  ]
+}

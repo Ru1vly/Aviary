@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-crawler-path-family-failure-gate.schema.json",
+  "title": "Aviary AI crawler route-family failure gate",
+  "description": "Versioned comparison of matched crawler route-family HTTP failure rates.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "schemaVersion",
+    "thresholdPercentagePoints",
+    "minimumRequestsPerPeriod",
+    "matchedFamilies",
+    "matchedFamiliesBelowSupport",
+    "matchedFamiliesCompared",
+    "supportInsufficient",
+    "familiesAboveThreshold",
+    "baselinePathCatalogTruncated",
+    "currentPathCatalogTruncated",
+    "baselineOutputRowsTruncated",
+    "currentOutputRowsTruncated",
+    "incomplete"
+  ],
+  "properties": {
+    "source": { "const": "Aviary AI crawler route-family failure gate" },
+    "schemaVersion": { "const": 1 },
+    "thresholdPercentagePoints": { "type": "number", "minimum": 0, "maximum": 100 },
+    "minimumRequestsPerPeriod": { "type": "integer", "minimum": 1 },
+    "matchedFamilies": { "type": "integer", "minimum": 0 },
+    "matchedFamiliesBelowSupport": { "type": "integer", "minimum": 0 },
+    "matchedFamiliesCompared": { "type": "integer", "minimum": 0 },
+    "supportInsufficient": { "type": "boolean" },
+    "familiesAboveThreshold": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "analysisIndex",
+          "crawlerToken",
+          "pathFamily",
+          "baselineRequests",
+          "currentRequests",
+          "baselineFailureRatePercent",
+          "currentFailureRatePercent",
+          "increasePercentagePoints"
+        ],
+        "properties": {
+          "analysisIndex": { "type": "integer", "minimum": 0 },
+          "crawlerToken": { "type": "string", "minLength": 1 },
+          "pathFamily": { "type": "string", "minLength": 1 },
+          "baselineRequests": { "type": "integer", "minimum": 0 },
+          "currentRequests": { "type": "integer", "minimum": 0 },
+          "baselineFailureRatePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "currentFailureRatePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "increasePercentagePoints": { "type": "number", "minimum": 0, "maximum": 100 }
+        }
+      }
+    },
+    "baselinePathCatalogTruncated": { "type": "boolean" },
+    "currentPathCatalogTruncated": { "type": "boolean" },
+    "baselineOutputRowsTruncated": { "type": "boolean" },
+    "currentOutputRowsTruncated": { "type": "boolean" },
+    "incomplete": { "type": "boolean" }
+  }
+}

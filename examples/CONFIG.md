@@ -84,11 +84,12 @@ The tool includes three built-in presets:
 - **Checks:** Essential SEO checks only
 - **Disabled:** Advanced checkers (structured data, schema validation, etc.)
 
-### Advanced Preset (Default)
+### Advanced Preset
 - **Best for:** Production websites, thorough audits
 - **Severity:** Warning
 - **Checks:** Comprehensive SEO checks across all categories
 - **Disabled:** None
+- `aviary --init-config` selects this preset unless another preset is provided.
 
 ### Strict Preset
 - **Best for:** Enterprise websites, SEO agencies, critical launches
@@ -199,15 +200,11 @@ The following checkers are available:
 - `ecommerce` - E-commerce specific checks
 - `internationalization` - Internationalization
 - `heatmap` - Predictive click/scroll/attention heatmap heuristics
+- `geo` - AI-search crawler controls, snippet restrictions, answer/citation profiles, and optional llms.txt inventory
 
 ## Example Configurations
 
-See the `examples/` directory for sample configuration files:
-
-- `.aviary.basic.json` - Basic preset example
-- `.aviary.advanced.json` - Advanced preset example
-- `.aviary.strict.yaml` - Strict preset example
-- `.aviary.custom.yaml` - Custom configuration example
+See [`aviary.example.json`](./aviary.example.json) for an example. Generate a starter file with `aviary --init-config --preset basic`, `--preset advanced`, or `--preset strict`.
 
 ## Configuration File Discovery
 
@@ -222,10 +219,16 @@ The tool automatically searches for configuration files in the following order:
 
 You can override this by using the `--config` flag.
 
+## Precedence
+
+For CLI audits, an explicit `--config` file takes precedence over `--preset`. If `--config` is omitted, `--preset` takes precedence over a discovered config file. Without either option, Aviary searches the current directory in the order above; if it finds no file, every checker runs with warning severity. This default runs the full checker registry, while the `advanced` preset also assigns stronger severities to selected rules.
+
+CLI flags override their corresponding environment variables. See the [README environment-variable reference](../README.md#environment-variables-12-factor-config) for supported `AVIARY_*` settings.
+
 ## Programmatic Usage
 
 ```javascript
-import { SEOChecker } from 'aviary';
+import { SEOChecker } from '@ru1vly/aviary';
 
 const checker = new SEOChecker({
   url: 'https://example.com',
@@ -246,7 +249,7 @@ const report = await checker.check();
 Or use a config file:
 
 ```javascript
-import { SEOChecker } from 'aviary';
+import { SEOChecker } from '@ru1vly/aviary';
 
 const checker = new SEOChecker({
   url: 'https://example.com',

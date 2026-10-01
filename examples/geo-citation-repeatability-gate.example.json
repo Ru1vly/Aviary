@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "provider-domain-stability",
+      "provider": "Example AI",
+      "model": "sample-model",
+      "surface": "search",
+      "locale": "en-US",
+      "topic": "sample-topic",
+      "intent": "research",
+      "metric": "citationDomainRboP90",
+      "maxDecline": 0.15,
+      "minimumComparablePrompts": 20,
+      "requireHolmSignTest": true,
+      "alpha": 0.05
+    }
+  ]
+}

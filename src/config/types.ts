@@ -1,5 +1,5 @@
 export type RuleSeverity = 'error' | 'warning' | 'info';
-export type PresetName = 'basic' | 'advanced' | 'strict';
+export type PresetName = 'basic' | 'advanced' | 'strict' | 'geo';
 
 export interface RuleConfig {
   enabled: boolean;
@@ -63,6 +63,7 @@ export interface SEOConfig {
     ecommerce?: CheckerConfig;
     internationalization?: CheckerConfig;
     heatmap?: CheckerConfig;
+    geo?: CheckerConfig;
   };
 
   // Custom rules (extensibility for future)

@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary GEO source portfolio attribution report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "summary", "providerRows", "domainRows"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "summary": { "$ref": "#/$defs/summary" },
+    "providerRows": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/providerRow" }
+    },
+    "domainRows": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/domainRow" }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_type", "weighting", "baseline_providers_available", "current_providers_available",
+        "providers_available", "providers_evaluated", "providers_omitted_by_budget",
+        "prompt_comparisons_evaluated", "domain_rows_available", "domain_rows_emitted",
+        "output_rows_truncated", "bootstrap_values_stored", "bootstrap_values_budget",
+        "bootstrap_draws_used", "bootstrap_draws_budget", "bootstrap_intervals_available",
+        "bootstrap_iterations_per_interval", "bootstrap_minimum_iterations",
+        "owned_domain_configuration_compatible", "owned_domain_scope_available",
+        "comparison_complete", "interpretation_note"
+      ],
+      "properties": {
+        "row_type": { "const": "summary" },
+        "weighting": { "const": "citation-events + reciprocal-log-rank" },
+        "baseline_providers_available": { "type": "integer", "minimum": 0 },
+        "current_providers_available": { "type": "integer", "minimum": 0 },
+        "providers_available": { "type": "integer", "minimum": 0 },
+        "providers_evaluated": { "type": "integer", "minimum": 0 },
+        "providers_omitted_by_budget": { "type": "integer", "minimum": 0 },
+        "prompt_comparisons_evaluated": { "type": "integer", "minimum": 0 },
+        "domain_rows_available": { "type": "integer", "minimum": 0 },
+        "domain_rows_emitted": { "type": "integer", "minimum": 0 },
+        "output_rows_truncated": { "type": "boolean" },
+        "bootstrap_values_stored": { "type": "integer", "minimum": 0 },
+        "bootstrap_values_budget": { "type": "integer", "minimum": 0 },
+        "bootstrap_draws_used": { "type": "integer", "minimum": 0 },
+        "bootstrap_draws_budget": { "type": "integer", "minimum": 0 },
+        "bootstrap_intervals_available": { "type": "integer", "minimum": 0 },
+        "bootstrap_iterations_per_interval": { "type": "integer", "minimum": 0 },
+        "bootstrap_minimum_iterations": { "type": "integer", "minimum": 0 },
+        "owned_domain_configuration_compatible": { "type": "boolean" },
+        "owned_domain_scope_available": { "type": "boolean" },
+        "comparison_complete": { "type": "boolean" },
+        "interpretation_note": { "type": "string" }
+      }
+    },
+    "providerRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_type", "provider", "weighting", "baseline_provider_present", "current_provider_present",
+        "baseline_prompt_groups", "current_prompt_groups", "shared_exact_prompt_groups",
+        "source_detail_comparable_prompt_groups", "both_cited_prompt_groups",
+        "one_period_uncited_prompt_groups", "both_uncited_prompt_groups",
+        "source_detail_unknown_prompt_groups", "domains_available", "domains_emitted",
+        "domain_rows_truncated", "baseline_catalog_complete", "current_catalog_complete",
+        "source_detail_complete", "comparison_state", "comparison_complete"
+      ],
+      "properties": {
+        "row_type": { "const": "provider_summary" },
+        "provider": { "type": "string", "minLength": 1 },
+        "weighting": { "$ref": "#/$defs/weighting" },
+        "baseline_provider_present": { "type": "boolean" },
+        "current_provider_present": { "type": "boolean" },
+        "baseline_prompt_groups": { "type": "integer", "minimum": 0 },
+        "current_prompt_groups": { "type": "integer", "minimum": 0 },
+        "shared_exact_prompt_groups": { "type": "integer", "minimum": 0 },
+        "source_detail_comparable_prompt_groups": { "type": "integer", "minimum": 0 },
+        "both_cited_prompt_groups": { "type": "integer", "minimum": 0 },
+        "one_period_uncited_prompt_groups": { "type": "integer", "minimum": 0 },
+        "both_uncited_prompt_groups": { "type": "integer", "minimum": 0 },
+        "source_detail_unknown_prompt_groups": { "type": "integer", "minimum": 0 },
+        "domains_available": { "type": "integer", "minimum": 0 },
+        "domains_emitted": { "type": "integer", "minimum": 0 },
+        "domain_rows_truncated": { "type": "boolean" },
+        "baseline_catalog_complete": { "type": "boolean" },
+        "current_catalog_complete": { "type": "boolean" },
+        "source_detail_complete": { "type": "boolean" },
+        "comparison_state": { "$ref": "#/$defs/comparisonState" },
+        "comparison_complete": { "type": "boolean" }
+      }
+    },
+    "domainRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_type", "provider", "weighting", "domain", "owned_domain_scope",
+        "shared_exact_prompt_groups", "source_detail_comparable_prompt_groups", "both_cited_prompt_groups",
+        "one_period_uncited_prompt_groups", "both_uncited_prompt_groups", "source_detail_unknown_prompt_groups",
+        "baseline_mean_prompt_share_percent", "current_mean_prompt_share_percent",
+        "mean_prompt_share_change_percentage_points", "mean_prompt_share_change_ci95_lower",
+        "mean_prompt_share_change_ci95_upper", "bootstrap_resamples", "bootstrap_state",
+        "mean_absolute_prompt_share_change_percentage_points", "baseline_pooled_share_percent",
+        "current_pooled_share_percent", "pooled_share_change_percentage_points", "prompt_presence_gains",
+        "prompt_presence_losses", "baseline_catalog_complete", "current_catalog_complete",
+        "source_detail_complete", "comparison_state", "comparison_complete"
+      ],
+      "properties": {
+        "row_type": { "const": "domain" },
+        "provider": { "type": "string", "minLength": 1 },
+        "weighting": { "$ref": "#/$defs/weighting" },
+        "domain": { "type": "string", "minLength": 1 },
+        "owned_domain_scope": { "enum": ["owned", "non-owned", "not-configured", "configuration-mismatch"] },
+        "shared_exact_prompt_groups": { "type": "integer", "minimum": 0 },
+        "source_detail_comparable_prompt_groups": { "type": "integer", "minimum": 0 },
+        "both_cited_prompt_groups": { "type": "integer", "minimum": 0 },
+        "one_period_uncited_prompt_groups": { "type": "integer", "minimum": 0 },
+        "both_uncited_prompt_groups": { "type": "integer", "minimum": 0 },
+        "source_detail_unknown_prompt_groups": { "type": "integer", "minimum": 0 },
+        "baseline_mean_prompt_share_percent": { "type": ["number", "null"] },
+        "current_mean_prompt_share_percent": { "type": ["number", "null"] },
+        "mean_prompt_share_change_percentage_points": { "type": ["number", "null"] },
+        "mean_prompt_share_change_ci95_lower": { "type": ["number", "null"] },
+        "mean_prompt_share_change_ci95_upper": { "type": ["number", "null"] },
+        "bootstrap_resamples": { "type": "integer", "minimum": 0 },
+        "bootstrap_state": { "enum": ["available", "comparison-incomplete", "insufficient-support", "budget-limited", "change-profile-capped", "not-computed"] },
+        "mean_absolute_prompt_share_change_percentage_points": { "type": ["number", "null"] },
+        "baseline_pooled_share_percent": { "type": ["number", "null"] },
+        "current_pooled_share_percent": { "type": ["number", "null"] },
+        "pooled_share_change_percentage_points": { "type": ["number", "null"] },
+        "prompt_presence_gains": { "type": "integer", "minimum": 0 },
+        "prompt_presence_losses": { "type": "integer", "minimum": 0 },
+        "baseline_catalog_complete": { "type": "boolean" },
+        "current_catalog_complete": { "type": "boolean" },
+        "source_detail_complete": { "type": "boolean" },
+        "comparison_state": { "$ref": "#/$defs/comparisonState" },
+        "comparison_complete": { "type": "boolean" }
+      }
+    },
+    "weighting": { "enum": ["citation-events", "reciprocal-log-rank"] },
+    "comparisonState": {
+      "enum": ["provider-missing-in-period", "prompt-catalog-incomplete", "matched-source-detail-incomplete", "insufficient-both-cited-prompts", "available"]
+    }
+  }
+}

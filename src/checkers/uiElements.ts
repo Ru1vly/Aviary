@@ -39,9 +39,14 @@ export class UIElementsChecker extends BaseChecker {
         return this.fail('No favicon found - important for branding and user experience');
       }
 
-      return this.pass(`Favicon found (${faviconData.favicons.length} icon(s) defined)`, faviconData);
+      return this.pass(
+        `Favicon found (${faviconData.favicons.length} icon(s) defined)`,
+        faviconData
+      );
     } catch (error) {
-      return this.fail(`Error checking favicon: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return this.fail(
+        `Error checking favicon: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -54,7 +59,9 @@ export class UIElementsChecker extends BaseChecker {
 
       const domCounts = await this.page.evaluate(() => ({
         microdataCount: document.querySelectorAll('[itemtype*="BreadcrumbList"]').length,
-        htmlCount: document.querySelectorAll('[class*="breadcrumb"], [id*="breadcrumb"], nav ol, nav ul').length,
+        htmlCount: document.querySelectorAll(
+          '[class*="breadcrumb"], [id*="breadcrumb"], nav ol, nav ul'
+        ).length,
       }));
 
       const breadcrumbsData = {
@@ -112,7 +119,12 @@ export class UIElementsChecker extends BaseChecker {
         issues.push('Missing lang attribute on <html> tag');
       }
 
-      if (languageData.hasHreflang && !languageData.hreflangLinks.some((link) => link.hreflang === 'x-default')) {
+      if (
+        languageData.hasHreflang &&
+        !languageData.hreflangLinks.some(
+          (link) => (link.hreflang ?? '').trim().toLowerCase() === 'x-default'
+        )
+      ) {
         issues.push('Consider adding hreflang="x-default" for international targeting');
       }
 
@@ -127,7 +139,11 @@ export class UIElementsChecker extends BaseChecker {
         languageData
       );
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Language tags check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Language tags check skipped due to error',
+      };
     }
   }
 
@@ -147,7 +163,11 @@ export class UIElementsChecker extends BaseChecker {
           hasInitialScale: content.includes('initial-scale='),
         };
       });
-      const viewportData = { ...raw, ...parseViewportMeta(raw.content), hasInitialScale: raw.hasInitialScale };
+      const viewportData = {
+        ...raw,
+        ...parseViewportMeta(raw.content),
+        hasInitialScale: raw.hasInitialScale,
+      };
 
       if (!viewportData.hasViewport) {
         return this.fail('Missing viewport meta tag - critical for mobile SEO');
@@ -173,7 +193,9 @@ export class UIElementsChecker extends BaseChecker {
 
       return this.pass('Viewport properly configured for mobile devices', viewportData);
     } catch (error) {
-      return this.fail(`Error checking viewport: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return this.fail(
+        `Error checking viewport: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 }

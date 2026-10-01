@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Ru1vly/Aviary/blob/main/docs/geo-page-opportunity-path-family-monthly-rise-gate.schema.json",
+  "title": "Aviary monthly page-opportunity path-family rise gate assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "schemaVersion",
+    "metric",
+    "thresholdPercentagePoints",
+    "alpha",
+    "minimumComparablePromptGroups",
+    "evaluatedComparisons",
+    "eligibleComparisons",
+    "holmFamilySize",
+    "pairedPromptFamilyEvaluations",
+    "bootstrapResamplesPerTest",
+    "complete",
+    "incompleteReasons",
+    "exceeded",
+    "failures"
+  ],
+  "properties": {
+    "source": {"const": "Aviary monthly page-opportunity path-family rise gate assessment"},
+    "schemaVersion": {"const": 1},
+    "metric": {"const": "confirmed-no-owned-path-family-reach"},
+    "thresholdPercentagePoints": {"type": "number", "minimum": 0, "maximum": 100},
+    "alpha": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+    "minimumComparablePromptGroups": {"type": "integer", "minimum": 1},
+    "evaluatedComparisons": {"type": "integer", "minimum": 0},
+    "eligibleComparisons": {"type": "integer", "minimum": 0},
+    "holmFamilySize": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]},
+    "pairedPromptFamilyEvaluations": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]},
+    "bootstrapResamplesPerTest": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "null"}]},
+    "complete": {"type": "boolean"},
+    "incompleteReasons": {"type": "array", "items": {"type": "string"}},
+    "exceeded": {"type": "boolean"},
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "previousMonthUtc",
+          "monthUtc",
+          "pathFamily",
+          "comparablePromptGroups",
+          "gainedPrompts",
+          "lostPrompts",
+          "reachChangePercentagePoints",
+          "holmAdjustedPValue"
+        ],
+        "properties": {
+          "provider": {"type": "string", "minLength": 1},
+          "previousMonthUtc": {"type": "string", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"},
+          "monthUtc": {"type": "string", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"},
+          "pathFamily": {"type": "string", "format": "uri"},
+          "comparablePromptGroups": {"type": "integer", "minimum": 1},
+          "gainedPrompts": {"type": "integer", "minimum": 0},
+          "lostPrompts": {"type": "integer", "minimum": 0},
+          "reachChangePercentagePoints": {"type": "number", "minimum": 0, "maximum": 100},
+          "holmAdjustedPValue": {"type": "number", "minimum": 0, "maximum": 1}
+        }
+      }
+    }
+  }
+}

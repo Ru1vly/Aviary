@@ -26,6 +26,7 @@ describe('SEOChecker', () => {
         count: vi.fn().mockResolvedValue(0),
       }),
       close: vi.fn().mockResolvedValue(undefined),
+      isClosed: vi.fn().mockReturnValue(false),
       waitForTimeout: vi.fn().mockResolvedValue(undefined),
       context: vi.fn().mockReturnValue({
         request: {

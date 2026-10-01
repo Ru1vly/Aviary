@@ -12,9 +12,9 @@ export enum ErrorCategory {
 
 export enum ErrorSeverity {
   CRITICAL = 'CRITICAL', // Fatal errors that stop execution
-  ERROR = 'ERROR',       // Errors that affect results but allow continuation
-  WARNING = 'WARNING',   // Issues that don't affect core functionality
-  INFO = 'INFO',         // Informational messages
+  ERROR = 'ERROR', // Errors that affect results but allow continuation
+  WARNING = 'WARNING', // Issues that don't affect core functionality
+  INFO = 'INFO', // Informational messages
 }
 
 export interface ErrorContext {

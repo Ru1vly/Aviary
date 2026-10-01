@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "auditTimestamp": "2026-09-16T09:00:00.000Z",
+  "pagesSkipped": 0,
+  "pageSummaries": [
+    {
+      "url": "https://www.example.com/guides/geo-observability",
+      "canonicalUrl": "https://example.com/insights/geo-observability",
+      "geoAssessed": true,
+      "signalCoverage": {
+        "searchCrawlerAccess": "measured",
+        "previewControls": "measured",
+        "answerContent": "measured",
+        "sourceRenderedContent": "measured",
+        "citationEvidence": "measured",
+        "dataUseCrawlerPolicy": "measured",
+        "optionalLlmsFiles": "measured",
+        "userInitiatedFetchAccess": "measured"
+      },
+      "searchCrawlerAccess": [
+        {
+          "token": "OAI-SearchBot",
+          "allowed": true
+        },
+        {
+          "token": "PerplexityBot",
+          "allowed": false
+        },
+        {
+          "token": "Googlebot",
+          "allowed": true
+        }
+      ],
+      "previewControls": {
+        "noindex": false,
+        "noSnippet": false,
+        "maxSnippetZero": false,
+        "responseStatus": 200,
+        "dataUseCrawlerControls": [
+          {
+            "token": "GPTBot",
+            "noArchive": true
+          },
+          {
+            "token": "Google-Extended",
+            "noArchive": false
+          }
+        ],
+        "dataNoSnippetWords": 25,
+        "visibleTextWords": 100,
+        "dataNoSnippetWordSharePercent": 25.0
+      },
+      "answerContent": {
+        "questionHeadings": 1,
+        "conciseAnswerBlocks": 2,
+        "visibleAuthor": true,
+        "visibleDate": true,
+        "schemaAuthor": true,
+        "schemaDate": true,
+        "schemaDateModifiedHasNonDateValue": false,
+        "schemaDateModifiedDaysTruncated": false,
+        "schemaDateModifiedDays": [
+          "2026-09-14"
+        ]
+      },
+      "sourceRenderedContent": {
+        "assessed": true,
+        "renderedPhraseCoveragePercent": 85.0
+      },
+      "dataUseCrawlerPolicy": [
+        {
+          "token": "GPTBot",
+          "allowed": false
+        },
+        {
+          "token": "Google-Extended",
+          "allowed": true
+        }
+      ],
+      "userInitiatedFetchAccess": [
+        {
+          "token": "ChatGPT-User",
+          "allowed": false
+        },
+        {
+          "token": "Perplexity-User",
+          "allowed": true
+        }
+      ],
+      "optionalLlmsFiles": [
+        {
+          "path": "/llms.txt",
+          "state": "absent"
+        }
+      ]
+    },
+    {
+      "url": "https://example.com/guides/answer-capture",
+      "geoAssessed": true,
+      "signalCoverage": {
+        "searchCrawlerAccess": "measured",
+        "previewControls": "measured",
+        "answerContent": "measured",
+        "sourceRenderedContent": "not-assessed",
+        "citationEvidence": "not-assessed",
+        "dataUseCrawlerPolicy": "measured",
+        "optionalLlmsFiles": "measured",
+        "userInitiatedFetchAccess": "measured"
+      },
+      "searchCrawlerAccess": [
+        {
+          "token": "OAI-SearchBot",
+          "allowed": true
+        },
+        {
+          "token": "PerplexityBot",
+          "allowed": true
+        }
+      ],
+      "previewControls": {
+        "noindex": false,
+        "noSnippet": false,
+        "maxSnippetZero": false,
+        "dataUseCrawlerControls": [
+          {
+            "token": "CCBot",
+            "noArchive": true
+          }
+        ]
+      },
+      "answerContent": {
+        "questionHeadings": 1,
+        "conciseAnswerBlocks": 2,
+        "visibleAuthor": false,
+        "visibleDate": false,
+        "schemaAuthor": false,
+        "schemaDate": false
+      },
+      "dataUseCrawlerPolicy": [
+        {
+          "token": "GPTBot",
+          "allowed": true
+        }
+      ],
+      "userInitiatedFetchAccess": [
+        {
+          "token": "ChatGPT-User",
+          "allowed": true
+        }
+      ],
+      "optionalLlmsFiles": [
+        {
+          "path": "/llms.txt",
+          "state": "found"
+        }
+      ]
+    }
+  ]
+}

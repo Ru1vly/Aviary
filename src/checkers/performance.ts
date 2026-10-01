@@ -33,7 +33,11 @@ export class PerformanceChecker extends BaseChecker {
   private async checkLoadTime(): Promise<CheckOutcome> {
     const metrics = await this.getMetrics();
     const loadTimeSec = metrics.loadTime / 1000;
-    const maxLoadTimeMs = this.threshold('load-time-acceptable', 'maxLoadTimeMs', PAGE_LOAD_TIME_MS);
+    const maxLoadTimeMs = this.threshold(
+      'load-time-acceptable',
+      'maxLoadTimeMs',
+      PAGE_LOAD_TIME_MS
+    );
 
     if (metrics.loadTime > maxLoadTimeMs) {
       return this.fail(`Page load time is slow (${loadTimeSec.toFixed(2)}s). Recommended: < 3s`, {
@@ -41,7 +45,9 @@ export class PerformanceChecker extends BaseChecker {
       });
     }
 
-    return this.pass(`Page load time is good (${loadTimeSec.toFixed(2)}s)`, { loadTime: loadTimeSec });
+    return this.pass(`Page load time is good (${loadTimeSec.toFixed(2)}s)`, {
+      loadTime: loadTimeSec,
+    });
   }
 
   private async checkDOMContentLoaded(): Promise<CheckOutcome> {

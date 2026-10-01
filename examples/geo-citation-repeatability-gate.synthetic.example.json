@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "supported-decline",
+      "provider": "Example AI",
+      "model": "sample-model",
+      "surface": "search",
+      "locale": "en-US",
+      "topic": "sample-topic",
+      "intent": "research",
+      "metric": "citationDomainRboP90",
+      "maxDecline": 0.15,
+      "minimumComparablePrompts": 20,
+      "requireHolmSignTest": true,
+      "alpha": 0.05
+    },
+    {
+      "id": "underpowered-decline",
+      "provider": "Small Sample AI",
+      "model": "sample-model",
+      "surface": "search",
+      "locale": "en-US",
+      "topic": "sample-topic",
+      "intent": "research",
+      "metric": "citationDomainRboP90",
+      "maxDecline": 0.15,
+      "minimumComparablePrompts": 20,
+      "requireHolmSignTest": true,
+      "alpha": 0.05
+    }
+  ]
+}

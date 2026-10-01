@@ -64,6 +64,7 @@ describe('worker.ts', () => {
   let mockServer: MockServer;
   let proc: ChildProcessWithoutNullStreams;
   let socketPath: string;
+  let socketDirectory: string;
   let socket: net.Socket;
   let reader: FrameReader;
 
@@ -71,24 +72,32 @@ describe('worker.ts', () => {
     mockServer = new MockServer(3459);
     await mockServer.start();
 
-    socketPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'aviary-worker-test-')), 'worker.sock');
+    socketDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'aviary-worker-test-'));
+    socketPath = path.join(socketDirectory, 'worker.sock');
     const tsxBin = path.join(process.cwd(), 'node_modules', '.bin', 'tsx');
     proc = spawn(tsxBin, ['src/worker.ts', socketPath], { cwd: process.cwd() });
 
     // Wait for the socket file to appear.
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 300; i++) {
       if (fs.existsSync(socketPath)) break;
+      if (proc.exitCode !== null) {
+        throw new Error(`Worker exited before creating its socket (exit ${proc.exitCode}).`);
+      }
       await new Promise((r) => setTimeout(r, 100));
     }
 
+    if (!fs.existsSync(socketPath)) {
+      throw new Error('Worker did not create its socket within 30 seconds.');
+    }
     socket = await connect(socketPath);
     reader = new FrameReader(socket);
-  }, 20000);
+  }, 45000);
 
   afterAll(async () => {
     socket?.destroy();
     proc?.kill();
     await mockServer.stop();
+    if (socketDirectory) fs.rmSync(socketDirectory, { recursive: true, force: true });
   });
 
   it('responds to a ping with a pong carrying the same id', async () => {

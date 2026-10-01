@@ -54,7 +54,7 @@ describe('LinksChecker (mock-DOM, exercises page.evaluate bodies)', () => {
 
     const bad = await checkerFor({
       url: 'https://example.com',
-      html: '<a href="https://external.example/x" target="_blank">External</a>',
+      html: '<a href="https://external.example/x" target="article">External</a>',
     }).checkAll();
     expect(byName(bad, 'external-links-secure').passed).toBe(false);
     expect(byName(bad, 'external-links-secure').message).toContain('noopener');
@@ -65,7 +65,7 @@ describe('LinksChecker (mock-DOM, exercises page.evaluate bodies)', () => {
     }).checkAll();
     const goodResult = byName(good, 'external-links-secure');
     expect(goodResult.passed).toBe(true);
-    expect(goodResult.message).toContain('properly configured');
+    expect(goodResult.message).toContain('opener isolation');
   });
 
   it('fails internal-links-descriptive with no internal links, and with unlabeled ones', async () => {

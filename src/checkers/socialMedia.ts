@@ -45,16 +45,24 @@ export class SocialMediaChecker extends BaseChecker {
       }
 
       if (issues.length === 0) {
-        return this.pass(`Twitter Card properly configured (${Object.keys(twitterTags).length} tags)`, {
-          tags: twitterTags,
-        });
+        return this.pass(
+          `Twitter Card properly configured (${Object.keys(twitterTags).length} tags)`,
+          {
+            tags: twitterTags,
+          }
+        );
       } else if (Object.keys(twitterTags).length === 0) {
         return this.fail('No Twitter Card tags found', { issues });
       } else {
-        return this.fail(`Twitter Card incomplete: ${issues.join(', ')}`, { tags: twitterTags, issues });
+        return this.fail(`Twitter Card incomplete: ${issues.join(', ')}`, {
+          tags: twitterTags,
+          issues,
+        });
       }
     } catch (error) {
-      return this.fail(`Error checking Twitter Cards: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return this.fail(
+        `Error checking Twitter Cards: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -92,13 +100,19 @@ export class SocialMediaChecker extends BaseChecker {
       }
 
       if (issues.length === 0) {
-        return this.pass(`Open Graph tags properly configured (${Object.keys(ogTags).length} tags)`, {
-          tags: ogTags,
-        });
+        return this.pass(
+          `Open Graph tags properly configured (${Object.keys(ogTags).length} tags)`,
+          {
+            tags: ogTags,
+          }
+        );
       } else if (Object.keys(ogTags).length === 0) {
         return this.fail('No Open Graph tags found', { issues });
       } else {
-        return this.fail(`Open Graph incomplete: ${issues.slice(0, 3).join(', ')}`, { tags: ogTags, issues });
+        return this.fail(`Open Graph incomplete: ${issues.slice(0, 3).join(', ')}`, {
+          tags: ogTags,
+          issues,
+        });
       }
     } catch (error) {
       return this.fail(
@@ -124,12 +138,19 @@ export class SocialMediaChecker extends BaseChecker {
       if (fbTags.hasAppId || fbTags.hasAdmins) {
         return this.pass('Facebook-specific tags found', fbTags);
       } else {
-        return this.pass('No Facebook-specific tags (optional, but recommended for Facebook Insights)', {
-          recommendation: 'Consider adding fb:app_id for Facebook Insights integration',
-        });
+        return this.pass(
+          'No Facebook-specific tags (optional, but recommended for Facebook Insights)',
+          {
+            recommendation: 'Consider adding fb:app_id for Facebook Insights integration',
+          }
+        );
       }
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Facebook tags check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Facebook tags check skipped due to error',
+      };
     }
   }
 }

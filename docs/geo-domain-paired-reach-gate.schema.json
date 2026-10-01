@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Ru1vly/Aviary/blob/main/docs/geo-domain-paired-reach-gate.schema.json",
+  "title": "Aviary GEO domain paired-reach drop gate assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source", "schemaVersion", "thresholdPercentagePoints", "alpha", "minimumComparablePromptGroups",
+    "holmFamilySize", "bootstrapResamplesPerTest", "evaluatedComparisons", "eligibleComparisons",
+    "complete", "incompleteReasons", "exceeded", "failures"
+  ],
+  "properties": {
+    "source": { "const": "Aviary domain paired-reach drop gate assessment" },
+    "schemaVersion": { "const": 1 },
+    "thresholdPercentagePoints": { "type": "number", "minimum": 0, "maximum": 100 },
+    "alpha": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "minimumComparablePromptGroups": { "type": "integer", "minimum": 2, "maximum": 100000 },
+    "holmFamilySize": { "type": ["integer", "null"], "minimum": 0 },
+    "bootstrapResamplesPerTest": { "type": "integer", "minimum": 0, "maximum": 1000 },
+    "evaluatedComparisons": { "type": "integer", "minimum": 0 },
+    "eligibleComparisons": { "type": "integer", "minimum": 0 },
+    "complete": { "type": "boolean" },
+    "incompleteReasons": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "exceeded": { "type": "boolean" },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "domain", "comparablePromptGroups", "gainedPrompts", "lostPrompts", "reachChangePercentagePoints", "holmAdjustedPValue"],
+        "properties": {
+          "provider": { "type": "string", "minLength": 1 },
+          "domain": { "type": "string", "minLength": 1 },
+          "comparablePromptGroups": { "type": "integer", "minimum": 2 },
+          "gainedPrompts": { "type": "integer", "minimum": 0 },
+          "lostPrompts": { "type": "integer", "minimum": 0 },
+          "reachChangePercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 },
+          "holmAdjustedPValue": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    }
+  }
+}

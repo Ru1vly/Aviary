@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    { "observedAt": "2026-09-01T09:00:00Z", "provider": "Search A", "prompt": "What is an accessible contrast ratio?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://example.com/guides/contrast?utm_source=sample", "https://standard.example.org/contrast"] },
+    { "observedAt": "2026-09-08T09:00:00Z", "provider": "Search A", "prompt": "What is an accessible contrast ratio?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://example.com/guides/contrast#formula", "https://standard.example.org/contrast"] },
+    { "observedAt": "2026-09-15T09:00:00Z", "provider": "Search A", "prompt": "What is an accessible contrast ratio?", "topic": "Accessibility", "locale": "en-US", "citationListComplete": false, "citedUrls": ["https://standard.example.org/contrast"] },
+    { "observedAt": "2026-09-01T10:00:00Z", "provider": "Search A", "prompt": "How do I check keyboard navigation?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://example.com/accessibility/keyboard", "https://guidance.example.net/keyboard"] },
+    { "observedAt": "2026-09-08T10:00:00Z", "provider": "Search A", "prompt": "How do I check keyboard navigation?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://guidance.example.net/keyboard", "https://example.com/accessibility/keyboard"] },
+    { "observedAt": "2026-09-15T10:00:00Z", "provider": "Search A", "prompt": "How do I check keyboard navigation?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://example.com/accessibility/keyboard", "https://guidance.example.net/keyboard"] },
+    { "observedAt": "2026-09-01T11:00:00Z", "provider": "Search A", "prompt": "What makes pages readable?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://example.com/guides/readability", "https://research.example.com/readability"] },
+    { "observedAt": "2026-09-08T11:00:00Z", "provider": "Search A", "prompt": "What makes pages readable?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://research.example.com/readability", "https://example.com/guides/readability"] },
+    { "observedAt": "2026-09-04T08:00:00Z", "provider": "Search A", "prompt": "How should I document accessibility fixes?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://example.com/docs/a11y", "https://guidance.example.net/documentation"] },
+    { "observedAt": "2026-09-04T08:00:00Z", "provider": "Search A", "prompt": "How should I document accessibility fixes?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://guidance.example.net/documentation", "https://example.com/docs/a11y"] },
+    { "observedAt": "2026-09-11T08:00:00Z", "provider": "Search A", "prompt": "How should I document accessibility fixes?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://guidance.example.net/documentation", "https://example.com/docs/a11y"] },
+    { "observedAt": "2026-09-18T08:00:00Z", "provider": "Search A", "prompt": "How should I document accessibility fixes?", "topic": "Accessibility", "locale": "en-US", "citedUrls": ["https://guidance.example.net/documentation", "https://example.com/docs/a11y"] }
+  ]
+}

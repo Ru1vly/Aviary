@@ -248,17 +248,20 @@ export class ConfigLoader {
    */
   static createDefaultConfig(
     outputPath: string,
-    preset: 'basic' | 'advanced' | 'strict' = 'advanced'
+    preset: 'basic' | 'advanced' | 'strict' | 'geo' = 'advanced'
   ): void {
     const config: SEOConfig = {
       preset,
       severity: 'warning',
-      rules: {
-        // Example custom rule overrides
-        metaTags: {
-          'title-length-valid': { enabled: true, severity: 'warning' },
-        },
-      },
+      rules:
+        preset === 'geo'
+          ? {}
+          : {
+              // Example custom rule overrides
+              metaTags: {
+                'title-length-valid': { enabled: true, severity: 'warning' },
+              },
+            },
     };
 
     const ext = path.extname(outputPath).toLowerCase();

@@ -105,6 +105,7 @@ pub struct SEOReportChecks {
     pub ecommerce: Option<Vec<SEOCheckResult>>,
     pub internationalization: Option<Vec<SEOCheckResult>>,
     pub heatmap: Option<Vec<SEOCheckResult>>,
+    pub geo: Option<Vec<SEOCheckResult>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -259,6 +260,7 @@ impl App {
             add("E-COMMERCE", &c.ecommerce);
             add("INTERNATIONALIZATION", &c.internationalization);
             add("HEATMAP & UX", &c.heatmap);
+            add("AI DISCOVERABILITY (GEO)", &c.geo);
 
             self.categories = cats;
             self.category_list_state.select(Some(0));
@@ -403,7 +405,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // ─── Main Event Loop ──────────────────────────────────────────────────────────
 
-async fn run_loop<B: ratatui::backend::Backend>(
+async fn run_loop<B: ratatui::backend::Backend<Error = io::Error>>(
     terminal: &mut Terminal<B>,
     mut app: App,
     audit_tx: mpsc::Sender<AuditEvent>,
@@ -828,7 +830,7 @@ async fn run_audit_process(
 
 /// The `--fast` path: runs `aviary-fast <url>` (engine/src/bin/aviary_fast.rs)
 /// instead of the full Node/Playwright CLI. Its stdout is already shaped as
-/// a SEOReport JSON (a subset of the 28 categories — see that binary's
+/// a SEOReport JSON (a subset of the 29 categories — see that binary's
 /// module docs), so it's parsed identically to `run_audit_process`'s output.
 async fn run_fast_audit_process(tx: mpsc::Sender<AuditEvent>, fast_bin_path: String, url: String) {
     let _ = tx

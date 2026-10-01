@@ -44,7 +44,10 @@ export class TechnicalChecker extends BaseChecker {
 
         return this.pass('Page returns 200 OK status with no redirects', { status, url });
       } else if (status >= 300 && status < 400) {
-        return this.fail(`Page returns redirect status ${status} - should return 200`, { status, url });
+        return this.fail(`Page returns redirect status ${status} - should return 200`, {
+          status,
+          url,
+        });
       } else if (status === 404) {
         return this.fail('Page not found (404 error)', { status, url });
       } else if (status >= 400 && status < 500) {
@@ -71,9 +74,15 @@ export class TechnicalChecker extends BaseChecker {
 
       // Recommended: HTML size should be under warnKB for optimal performance
       if (pageSize.htmlSizeKB > failKB) {
-        return this.fail(`HTML size is large (${pageSize.htmlSizeKB} KB). Recommended: under ${warnKB} KB`, pageSize);
+        return this.fail(
+          `HTML size is large (${pageSize.htmlSizeKB} KB). Recommended: under ${warnKB} KB`,
+          pageSize
+        );
       } else if (pageSize.htmlSizeKB > warnKB) {
-        return this.pass(`HTML size is acceptable (${pageSize.htmlSizeKB} KB) but could be optimized`, pageSize);
+        return this.pass(
+          `HTML size is acceptable (${pageSize.htmlSizeKB} KB) but could be optimized`,
+          pageSize
+        );
       }
 
       return this.pass(`HTML size is optimal (${pageSize.htmlSizeKB} KB)`, pageSize);
@@ -90,19 +99,24 @@ export class TechnicalChecker extends BaseChecker {
 
       const headers = this.response.headers();
       const contentEncoding = headers['content-encoding'];
-      const hasCompression = contentEncoding && (
-        contentEncoding.includes('gzip') ||
-        contentEncoding.includes('br') ||
-        contentEncoding.includes('deflate')
-      );
+      const hasCompression =
+        contentEncoding &&
+        (contentEncoding.includes('gzip') ||
+          contentEncoding.includes('br') ||
+          contentEncoding.includes('deflate'));
 
       if (!hasCompression) {
-        return this.fail('No compression detected - enable gzip/brotli compression for better performance', {
-          'content-encoding': contentEncoding || 'none',
-        });
+        return this.fail(
+          'No compression detected - enable gzip/brotli compression for better performance',
+          {
+            'content-encoding': contentEncoding || 'none',
+          }
+        );
       }
 
-      return this.pass(`Compression enabled (${contentEncoding})`, { 'content-encoding': contentEncoding });
+      return this.pass(`Compression enabled (${contentEncoding})`, {
+        'content-encoding': contentEncoding,
+      });
     } catch (error) {
       return { passed: false, severity: 'info', message: 'Compression check skipped due to error' };
     }
@@ -156,7 +170,11 @@ export class TechnicalChecker extends BaseChecker {
         duplicates
       );
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Duplicate title check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Duplicate title check skipped due to error',
+      };
     }
   }
 }

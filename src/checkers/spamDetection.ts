@@ -86,7 +86,7 @@ export class SpamDetectionChecker extends BaseChecker {
               'screen-reader',
             ];
 
-            if (legitimateClasses.some(cls => className.toLowerCase().includes(cls))) {
+            if (legitimateClasses.some((cls) => className.toLowerCase().includes(cls))) {
               return true;
             }
 
@@ -105,7 +105,7 @@ export class SpamDetectionChecker extends BaseChecker {
             const parent = el.parentElement;
             if (parent) {
               const parentClass = parent.className?.toString() || '';
-              if (legitimateClasses.some(cls => parentClass.toLowerCase().includes(cls))) {
+              if (legitimateClasses.some((cls) => parentClass.toLowerCase().includes(cls))) {
                 return true;
               }
             }
@@ -113,12 +113,11 @@ export class SpamDetectionChecker extends BaseChecker {
             return false;
           };
 
-          const isHidden = (
+          const isHidden =
             style.display === 'none' ||
             style.visibility === 'hidden' ||
             style.opacity === '0' ||
-            parseInt(style.fontSize) === 0
-          );
+            parseInt(style.fontSize) === 0;
 
           // Only flag as suspicious if hidden AND not legitimately hidden
           return isHidden && !isLegitimateHidden();
@@ -135,7 +134,10 @@ export class SpamDetectionChecker extends BaseChecker {
       }, minLength);
 
       if (hiddenTextData.count > 0) {
-        return this.fail(`Found ${hiddenTextData.count} elements with hidden text (potential spam technique)`, hiddenTextData);
+        return this.fail(
+          `Found ${hiddenTextData.count} elements with hidden text (potential spam technique)`,
+          hiddenTextData
+        );
       }
 
       return this.pass('No hidden text detected');
@@ -158,26 +160,41 @@ export class SpamDetectionChecker extends BaseChecker {
       });
 
       const totalWords = words.length;
-      const minCount = this.threshold('keyword-stuffing-absent', 'minCount', KEYWORD_STUFFING_MIN_COUNT);
+      const minCount = this.threshold(
+        'keyword-stuffing-absent',
+        'minCount',
+        KEYWORD_STUFFING_MIN_COUNT
+      );
       const minDensity = this.threshold(
         'keyword-stuffing-absent',
         'minDensity',
         KEYWORD_STUFFING_MIN_DENSITY
       );
       const stuffedWords = Object.entries(wordCounts)
-        .filter(([_, count]) => count > minCount && (count / totalWords) > minDensity)
-        .map(([word, count]) => ({ word, count, percentage: ((count / totalWords) * 100).toFixed(2) }));
+        .filter(([_, count]) => count > minCount && count / totalWords > minDensity)
+        .map(([word, count]) => ({
+          word,
+          count,
+          percentage: ((count / totalWords) * 100).toFixed(2),
+        }));
 
       if (stuffedWords.length > 0) {
-        return this.fail(`Possible keyword stuffing detected (${stuffedWords.length} over-used words)`, {
-          stuffedWords: stuffedWords.slice(0, 5),
-          totalWords,
-        });
+        return this.fail(
+          `Possible keyword stuffing detected (${stuffedWords.length} over-used words)`,
+          {
+            stuffedWords: stuffedWords.slice(0, 5),
+            totalWords,
+          }
+        );
       }
 
       return this.pass('No keyword stuffing detected');
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Keyword stuffing check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Keyword stuffing check skipped due to error',
+      };
     }
   }
 
@@ -200,17 +217,27 @@ export class SpamDetectionChecker extends BaseChecker {
 
       // Google recommends fewer than maxLinks links per page
       if (linkData.linkCount > maxLinks) {
-        return this.fail(`Excessive links detected (${linkData.linkCount}). Recommended: under ${maxLinks}`, linkData);
+        return this.fail(
+          `Excessive links detected (${linkData.linkCount}). Recommended: under ${maxLinks}`,
+          linkData
+        );
       }
 
       // Check if too many links relative to content
       if (linkData.ratio > maxRatio) {
-        return this.fail(`High link-to-content ratio (${(linkData.ratio * 100).toFixed(1)}%)`, linkData);
+        return this.fail(
+          `High link-to-content ratio (${(linkData.ratio * 100).toFixed(1)}%)`,
+          linkData
+        );
       }
 
       return this.pass(`Appropriate number of links (${linkData.linkCount})`, linkData);
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Excessive links check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Excessive links check skipped due to error',
+      };
     }
   }
 
@@ -239,12 +266,19 @@ export class SpamDetectionChecker extends BaseChecker {
       });
 
       if (scriptData.suspiciousCount > 0) {
-        return this.fail(`Found ${scriptData.suspiciousCount} suspicious scripts (potential malware/spam)`, scriptData);
+        return this.fail(
+          `Found ${scriptData.suspiciousCount} suspicious scripts (potential malware/spam)`,
+          scriptData
+        );
       }
 
       return this.pass('No suspicious scripts detected', scriptData);
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Suspicious scripts check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Suspicious scripts check skipped due to error',
+      };
     }
   }
 
@@ -275,17 +309,25 @@ export class SpamDetectionChecker extends BaseChecker {
       }, tinyDimension);
 
       if (iframeData.hiddenIframes > 0) {
-        return this.fail(`Found ${iframeData.hiddenIframes} hidden iframes (spam technique)`, iframeData);
+        return this.fail(
+          `Found ${iframeData.hiddenIframes} hidden iframes (spam technique)`,
+          iframeData
+        );
       }
 
       const maxIframes = this.threshold('iframes-acceptable', 'maxIframes', MAX_IFRAME_COUNT);
 
       if (iframeData.totalIframes > maxIframes) {
-        return this.fail(`Many iframes detected (${iframeData.totalIframes}). Review for necessity`, iframeData);
+        return this.fail(
+          `Many iframes detected (${iframeData.totalIframes}). Review for necessity`,
+          iframeData
+        );
       }
 
       return this.pass(
-        iframeData.totalIframes === 0 ? 'No iframes found' : `${iframeData.totalIframes} iframes (acceptable)`,
+        iframeData.totalIframes === 0
+          ? 'No iframes found'
+          : `${iframeData.totalIframes} iframes (acceptable)`,
         iframeData
       );
     } catch (error) {
@@ -323,7 +365,10 @@ export class SpamDetectionChecker extends BaseChecker {
       );
 
       if (invisibleData.count > maxInvisible) {
-        return this.fail(`Found ${invisibleData.count} invisible elements with content`, invisibleData);
+        return this.fail(
+          `Found ${invisibleData.count} invisible elements with content`,
+          invisibleData
+        );
       }
 
       return this.pass('No suspicious invisible elements');
@@ -336,8 +381,10 @@ export class SpamDetectionChecker extends BaseChecker {
     try {
       const ratio = await this.page.evaluate(() => {
         const textContent = document.body.innerText?.length || 0;
-        const linkText = Array.from(document.querySelectorAll('a'))
-          .reduce((acc, link) => acc + (link.textContent?.length || 0), 0);
+        const linkText = Array.from(document.querySelectorAll('a')).reduce(
+          (acc, link) => acc + (link.textContent?.length || 0),
+          0
+        );
 
         return {
           textContent,
@@ -346,7 +393,11 @@ export class SpamDetectionChecker extends BaseChecker {
         };
       });
 
-      const maxRatio = this.threshold('text-to-link-ratio-healthy', 'maxRatio', MAX_TEXT_TO_LINK_RATIO);
+      const maxRatio = this.threshold(
+        'text-to-link-ratio-healthy',
+        'maxRatio',
+        MAX_TEXT_TO_LINK_RATIO
+      );
 
       if (ratio.ratio > maxRatio) {
         return this.fail(`Very high link text ratio (${(ratio.ratio * 100).toFixed(1)}%)`, ratio);
@@ -400,15 +451,14 @@ export class SpamDetectionChecker extends BaseChecker {
     try {
       const redirectData = await this.page.evaluate(() => {
         const metaRefresh = document.querySelector('meta[http-equiv="refresh"]');
-        const jsRedirects = Array.from(document.querySelectorAll('script'))
-          .some((script) => {
-            const content = script.textContent || '';
-            return (
-              content.includes('window.location') ||
-              content.includes('location.href') ||
-              content.includes('location.replace')
-            );
-          });
+        const jsRedirects = Array.from(document.querySelectorAll('script')).some((script) => {
+          const content = script.textContent || '';
+          return (
+            content.includes('window.location') ||
+            content.includes('location.href') ||
+            content.includes('location.replace')
+          );
+        });
 
         return {
           hasMetaRefresh: !!metaRefresh,
@@ -440,12 +490,13 @@ export class SpamDetectionChecker extends BaseChecker {
   private async checkCloaking(): Promise<CheckOutcome> {
     try {
       const cloakingIndicators = await this.page.evaluate(() => {
-        const userAgentChecks = Array.from(document.querySelectorAll('script'))
-          .some((script) => {
-            const content = script.textContent || '';
-            return content.toLowerCase().includes('navigator.useragent') ||
-                   content.toLowerCase().includes('googlebot');
-          });
+        const userAgentChecks = Array.from(document.querySelectorAll('script')).some((script) => {
+          const content = script.textContent || '';
+          return (
+            content.toLowerCase().includes('navigator.useragent') ||
+            content.toLowerCase().includes('googlebot')
+          );
+        });
 
         return {
           hasUserAgentChecks: userAgentChecks,
@@ -453,7 +504,10 @@ export class SpamDetectionChecker extends BaseChecker {
       });
 
       if (cloakingIndicators.hasUserAgentChecks) {
-        return this.fail('Potential cloaking detected (user-agent checks in scripts)', cloakingIndicators);
+        return this.fail(
+          'Potential cloaking detected (user-agent checks in scripts)',
+          cloakingIndicators
+        );
       }
 
       return this.pass('No cloaking indicators detected');
@@ -471,12 +525,19 @@ export class SpamDetectionChecker extends BaseChecker {
       // Basic check for adult keywords (simplified)
       const adultKeywords = ['xxx', 'porn', 'sex', 'adult', 'casino', 'viagra', 'cialis'];
       const foundKeywords = adultKeywords.filter((keyword: string) => content.includes(keyword));
-      const maxMatches = this.threshold('adult-content-absent', 'maxMatches', MAX_ADULT_KEYWORD_MATCHES);
+      const maxMatches = this.threshold(
+        'adult-content-absent',
+        'maxMatches',
+        MAX_ADULT_KEYWORD_MATCHES
+      );
 
       if (foundKeywords.length > maxMatches) {
-        return this.fail(`Potential adult content keywords detected (${foundKeywords.length} keywords)`, {
-          foundKeywords,
-        });
+        return this.fail(
+          `Potential adult content keywords detected (${foundKeywords.length} keywords)`,
+          {
+            foundKeywords,
+          }
+        );
       }
 
       return this.pass('No adult content detected');
@@ -491,7 +552,17 @@ export class SpamDetectionChecker extends BaseChecker {
         return (document.body.textContent || '').toLowerCase();
       });
 
-      const spamKeywords = ['click here', 'buy now', 'limited time', 'act now', 'order now', 'free money', 'get paid', 'work from home', 'weight loss'];
+      const spamKeywords = [
+        'click here',
+        'buy now',
+        'limited time',
+        'act now',
+        'order now',
+        'free money',
+        'get paid',
+        'work from home',
+        'weight loss',
+      ];
       const minOccurrences = this.threshold(
         'spam-keywords-absent',
         'minOccurrences',
@@ -505,7 +576,9 @@ export class SpamDetectionChecker extends BaseChecker {
       const maxTypes = this.threshold('spam-keywords-absent', 'maxTypes', MAX_SPAM_KEYWORD_TYPES);
 
       if (foundKeywords.length > maxTypes) {
-        return this.fail(`Multiple spam keywords detected (${foundKeywords.length} types)`, { foundKeywords });
+        return this.fail(`Multiple spam keywords detected (${foundKeywords.length} types)`, {
+          foundKeywords,
+        });
       }
 
       return this.pass('No excessive spam keywords detected');
@@ -543,7 +616,10 @@ export class SpamDetectionChecker extends BaseChecker {
       });
 
       if (linkQuality.suspiciousLinks > 0) {
-        return this.fail(`Found ${linkQuality.suspiciousLinks} links to suspicious domains`, linkQuality);
+        return this.fail(
+          `Found ${linkQuality.suspiciousLinks} links to suspicious domains`,
+          linkQuality
+        );
       }
 
       return this.pass('Outgoing links appear legitimate', linkQuality);
@@ -573,7 +649,10 @@ export class SpamDetectionChecker extends BaseChecker {
       );
 
       if (metaRefresh.hasMetaRefresh && metaRefresh.delay < minDelaySeconds) {
-        return this.fail(`Fast meta refresh detected (${metaRefresh.delay}s) - spam technique`, metaRefresh);
+        return this.fail(
+          `Fast meta refresh detected (${metaRefresh.delay}s) - spam technique`,
+          metaRefresh
+        );
       }
 
       return this.pass('No problematic meta refresh');
@@ -596,24 +675,27 @@ export class SpamDetectionChecker extends BaseChecker {
       );
       const tinyText = await this.page.evaluate(
         ({ maxFontSize, minTextLength }) => {
-        const elements = Array.from(document.querySelectorAll('*'));
-        const tiny = elements.filter((el) => {
-          const style = window.getComputedStyle(el);
-          const fontSize = parseInt(style.fontSize);
-          const hasText = (el.textContent?.trim().length || 0) > minTextLength;
+          const elements = Array.from(document.querySelectorAll('*'));
+          const tiny = elements.filter((el) => {
+            const style = window.getComputedStyle(el);
+            const fontSize = parseInt(style.fontSize);
+            const hasText = (el.textContent?.trim().length || 0) > minTextLength;
 
-          return hasText && fontSize < maxFontSize && fontSize > 0;
-        });
+            return hasText && fontSize < maxFontSize && fontSize > 0;
+          });
 
-        return {
-          count: tiny.length,
-        };
+          return {
+            count: tiny.length,
+          };
         },
         { maxFontSize, minTextLength }
       );
 
       if (tinyText.count > 0) {
-        return this.fail(`Found ${tinyText.count} elements with tiny text (potential spam)`, tinyText);
+        return this.fail(
+          `Found ${tinyText.count} elements with tiny text (potential spam)`,
+          tinyText
+        );
       }
 
       return this.pass('No tiny text detected');

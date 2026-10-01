@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-citation-repeatability-comparison.schema.json",
+  "title": "Aviary GEO Citation Repeatability Comparison",
+  "type": "object",
+  "required": ["schemaVersion", "method", "baselineInput", "currentInput", "skippedBaselineRows", "skippedCurrentRows", "metricCount", "providerContextMetricRows"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "method": {
+      "type": "object",
+      "required": ["pairing", "delta", "equalPromptWeight", "ownedDomainSetSha256", "bootstrap", "signTest"],
+      "properties": {
+        "pairing": { "const": "SHA-256 prompt ID within exact provider/model/surface/locale/topic/intent context" },
+        "delta": { "const": "current minus baseline prompt-level mean" },
+        "equalPromptWeight": { "const": true },
+        "ownedDomainSetSha256": {
+          "type": "object",
+          "required": ["baseline", "current", "match"],
+          "properties": { "baseline": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }, "current": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }, "match": { "type": "boolean" } },
+          "additionalProperties": false
+        },
+        "bootstrap": {
+          "type": "object",
+          "required": ["requestedIterations", "intervalDrawLimit", "budgetCapacityIterations", "promptMetricSampleBudget", "cluster", "deterministic"],
+          "properties": {
+            "requestedIterations": { "const": 2000 },
+            "intervalDrawLimit": { "type": "integer", "minimum": 0, "maximum": 2000 },
+            "budgetCapacityIterations": { "type": "integer", "minimum": 0, "maximum": 2000 },
+            "promptMetricSampleBudget": { "const": 10000000 },
+            "cluster": { "const": "matched exact prompt" },
+            "deterministic": { "const": true }
+          },
+          "additionalProperties": false
+        },
+        "signTest": {
+          "type": "object",
+          "required": ["test", "multiplicity", "maximumWorkTerms", "workTerms", "familySize", "state"],
+          "properties": {
+            "test": { "const": "exact two-sided sign test on non-tied prompt deltas" },
+            "multiplicity": { "const": "Holm adjustment across all provider/context/metric rows with at least two non-tied prompts" },
+            "maximumWorkTerms": { "const": 5000000 },
+            "workTerms": { "type": "integer", "minimum": 0 },
+            "familySize": { "type": "integer", "minimum": 0 },
+            "state": { "enum": ["complete", "no-testable-rows", "suppressed-work-cap"] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "baselineInput": { "type": "string" },
+    "currentInput": { "type": "string" },
+    "skippedBaselineRows": { "type": "integer", "minimum": 0 },
+    "skippedCurrentRows": { "type": "integer", "minimum": 0 },
+    "metricCount": { "type": "integer", "minimum": 0 },
+    "providerContextMetricRows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["provider", "metric", "baselineMean", "currentMean", "meanPromptDelta", "ci95Lower", "ci95Upper", "intervalState", "comparablePrompts", "sharedPrompts", "baselineOnlyPrompts", "currentOnlyPrompts", "sharedPromptsWithoutMetric", "positivePromptChanges", "negativePromptChanges", "tiedPromptChanges", "signTestNonTiedPrompts", "signTestTwoSidedPValue", "signTestHolmAdjustedPValue", "signTestState"],
+        "properties": {
+          "provider": { "type": "string", "minLength": 1 },
+          "model": { "type": "string" }, "surface": { "type": "string" }, "locale": { "type": "string" }, "topic": { "type": "string" }, "intent": { "type": "string" },
+          "metric": { "type": "string" },
+          "baselineMean": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "currentMean": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "meanPromptDelta": { "type": ["number", "null"], "minimum": -1, "maximum": 1 },
+          "ci95Lower": { "type": ["number", "null"], "minimum": -1, "maximum": 1 },
+          "ci95Upper": { "type": ["number", "null"], "minimum": -1, "maximum": 1 },
+          "intervalState": { "enum": ["estimated", "one-prompt", "no-comparable-prompts", "work-budget-exceeded"] },
+          "comparablePrompts": { "type": "integer", "minimum": 0 }, "sharedPrompts": { "type": "integer", "minimum": 0 },
+          "baselineOnlyPrompts": { "type": "integer", "minimum": 0 }, "currentOnlyPrompts": { "type": "integer", "minimum": 0 },
+          "sharedPromptsWithoutMetric": { "type": "integer", "minimum": 0 },
+          "positivePromptChanges": { "type": "integer", "minimum": 0 }, "negativePromptChanges": { "type": "integer", "minimum": 0 }, "tiedPromptChanges": { "type": "integer", "minimum": 0 },
+          "signTestNonTiedPrompts": { "type": "integer", "minimum": 0 },
+          "signTestTwoSidedPValue": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "signTestHolmAdjustedPValue": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "signTestState": { "enum": ["available", "insufficient-nontied-prompts", "suppressed-work-cap"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

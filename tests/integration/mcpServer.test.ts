@@ -98,7 +98,7 @@ describe('MCP server (stdio protocol)', () => {
     const schema = checkCategoryTool.inputSchema as {
       properties: { category: { enum: string[] } };
     };
-    expect(schema.properties.category.enum).toHaveLength(28);
+    expect(schema.properties.category.enum).toHaveLength(29);
     expect(schema.properties.category.enum).toContain('heatmap');
   });
 

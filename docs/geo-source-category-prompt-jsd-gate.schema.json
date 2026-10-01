@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Ru1vly/Aviary/blob/main/docs/geo-source-category-prompt-jsd-gate.schema.json",
+  "title": "Aviary GEO source-category prompt-balanced JSD gate assessment",
+  "description": "Machine-readable assessment for the prompt-cluster lower-confidence-bound gate on baseline/current mapped source-category Jensen-Shannon divergence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "schemaVersion",
+    "thresholdBits",
+    "minimumComparablePromptGroups",
+    "comparablePromptGroups",
+    "promptBalancedJsdBits",
+    "promptBalancedJsdCi95LowerBits",
+    "promptBalancedJsdCi95UpperBits",
+    "bootstrapState",
+    "complete",
+    "exceeded"
+  ],
+  "properties": {
+    "source": {
+      "const": "Aviary source-category prompt-balanced JSD gate assessment"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "thresholdBits": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "minimumComparablePromptGroups": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 10000
+    },
+    "comparablePromptGroups": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "promptBalancedJsdBits": {
+      "anyOf": [
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "null" }
+      ]
+    },
+    "promptBalancedJsdCi95LowerBits": {
+      "anyOf": [
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "null" }
+      ]
+    },
+    "promptBalancedJsdCi95UpperBits": {
+      "anyOf": [
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "null" }
+      ]
+    },
+    "bootstrapState": {
+      "type": "string",
+      "minLength": 1
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "exceeded": {
+      "type": "boolean"
+    }
+  }
+}

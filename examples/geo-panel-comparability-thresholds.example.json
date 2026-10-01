@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "thresholds": {
+    "contextShareShiftPp": 5,
+    "contextMixTotalVariationPp": 5,
+    "promptMixTotalVariationPp": 5,
+    "promptJaccardPctBelow": 70,
+    "incompleteListPctAbove": 5,
+    "singleCapturePromptPctAbove": 70,
+    "contextDimensionCoveragePctBelow": 95,
+    "minimumMatchedPrompts": 25,
+    "duplicateCapturePctAbove": 1,
+    "captureWindowGapDaysAbove": 90,
+    "largestPromptCaptureSharePctAbove": 20,
+    "maximumInternalCaptureGapDaysAbove": 120
+  },
+  "failOnWarningCodes": [
+    "matched-context-coverage",
+    "matched-prompt-support",
+    "incomplete-citation-lists",
+    "malformed-observations",
+    "capture-window-gap",
+    "prompt-capture-concentration",
+    "within-panel-capture-gap"
+  ]
+}

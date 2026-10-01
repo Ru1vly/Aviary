@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary GEO source-portfolio drift report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "summary",
+    "providerRows"
+  ],
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "summary": {
+      "$ref": "#/$defs/row"
+    },
+    "providerRows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/row"
+      }
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_type",
+        "provider",
+        "baseline_provider_present",
+        "current_provider_present",
+        "baseline_prompt_groups",
+        "current_prompt_groups",
+        "shared_exact_prompt_groups",
+        "event_detail_comparable_prompt_groups",
+        "event_detail_unknown_prompt_groups",
+        "shared_both_cited_prompt_groups",
+        "both_cited_event_detail_prompt_groups",
+        "one_side_uncited_prompt_groups",
+        "both_uncited_prompt_groups",
+        "source_domain_presence_gains",
+        "source_domain_presence_losses",
+        "baseline_pooled_citation_events_on_both_cited_support",
+        "current_pooled_citation_events_on_both_cited_support",
+        "pooled_event_weighted_source_jsd_bits",
+        "prompt_balanced_mean_source_jsd_bits",
+        "prompt_balanced_median_source_jsd_bits",
+        "prompt_balanced_mean_source_jsd_ci95_lower",
+        "prompt_balanced_mean_source_jsd_ci95_upper",
+        "rank_detail_comparable_prompt_groups",
+        "rank_detail_unknown_prompt_groups",
+        "both_cited_rank_detail_prompt_groups",
+        "rank_weighted_source_presence_gains",
+        "rank_weighted_source_presence_losses",
+        "baseline_pooled_rank_weight_on_both_cited_support",
+        "current_pooled_rank_weight_on_both_cited_support",
+        "pooled_rank_weighted_source_jsd_bits",
+        "prompt_balanced_mean_rank_source_jsd_bits",
+        "prompt_balanced_median_rank_source_jsd_bits",
+        "prompt_balanced_mean_rank_source_jsd_ci95_lower",
+        "prompt_balanced_mean_rank_source_jsd_ci95_upper",
+        "event_catalog_complete",
+        "event_source_detail_complete",
+        "event_comparison_complete",
+        "rank_catalog_complete",
+        "rank_source_detail_complete",
+        "rank_comparison_complete",
+        "event_bootstrap_resamples",
+        "rank_bootstrap_resamples",
+        "event_bootstrap_interval_state",
+        "rank_bootstrap_interval_state",
+        "interpretation_note",
+        "baseline_providers_available",
+        "current_providers_available",
+        "providers_available",
+        "providers_evaluated",
+        "providers_omitted_by_budget",
+        "prompt_comparisons_evaluated",
+        "output_rows_truncated"
+      ],
+      "properties": {
+        "row_type": {
+          "type": "string",
+          "enum": [
+            "summary",
+            "provider"
+          ]
+        },
+        "provider": {
+          "type": "string"
+        },
+        "baseline_provider_present": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "current_provider_present": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "baseline_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shared_exact_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "event_detail_comparable_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "event_detail_unknown_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shared_both_cited_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "both_cited_event_detail_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "one_side_uncited_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "both_uncited_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "source_domain_presence_gains": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "source_domain_presence_losses": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseline_pooled_citation_events_on_both_cited_support": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_pooled_citation_events_on_both_cited_support": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pooled_event_weighted_source_jsd_bits": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_mean_source_jsd_bits": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_median_source_jsd_bits": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_mean_source_jsd_ci95_lower": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_mean_source_jsd_ci95_upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rank_detail_comparable_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rank_detail_unknown_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "both_cited_rank_detail_prompt_groups": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rank_weighted_source_presence_gains": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rank_weighted_source_presence_losses": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseline_pooled_rank_weight_on_both_cited_support": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_pooled_rank_weight_on_both_cited_support": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pooled_rank_weighted_source_jsd_bits": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_mean_rank_source_jsd_bits": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_median_rank_source_jsd_bits": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_mean_rank_source_jsd_ci95_lower": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_balanced_mean_rank_source_jsd_ci95_upper": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "event_catalog_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "event_source_detail_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "event_comparison_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "rank_catalog_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "rank_source_detail_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "rank_comparison_complete": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "event_bootstrap_resamples": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rank_bootstrap_resamples": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "event_bootstrap_interval_state": {
+          "type": "string"
+        },
+        "rank_bootstrap_interval_state": {
+          "type": "string"
+        },
+        "interpretation_note": {
+          "type": "string"
+        },
+        "baseline_providers_available": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_providers_available": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "providers_available": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "providers_evaluated": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "providers_omitted_by_budget": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "prompt_comparisons_evaluated": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "output_rows_truncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,489 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary sitewide GEO summary",
+  "description": "Versioned, compact GEO signals from a completed Aviary batch audit. No page prose is retained; bounded structured identity names and IDs may be included. Signals are observations, not a GEO score or citation prediction.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "auditTimestamp",
+    "pagesAnalyzed",
+    "pagesWithGeoData",
+    "pagesSkipped",
+    "pageSummaries",
+    "searchCrawlerCoverage",
+    "dataUseCrawlerPolicy",
+    "pagesWithNoindex",
+    "pagesWithNoindexUrls",
+    "pagesWithNoSnippet",
+    "pagesWithNoSnippetUrls",
+    "pagesWithDataNoSnippetRegions",
+    "pagesWithDataNoSnippetRegionUrls",
+    "totalDataNoSnippetElements",
+    "totalDataNoSnippetWords",
+    "dataNoSnippetWordShareSamples",
+    "dataNoSnippetWordShareMeanPercent",
+    "pagesWithExternalSources",
+    "totalExternalSourceLinks",
+    "sourceHostCoverage",
+    "pagesWithTruncatedSourceHostLists",
+    "pagesWithCitationMarkersOrReferences",
+    "optionalLlmsFiles",
+    "contentProfile",
+    "entityAnalysis"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "auditTimestamp": { "type": "string", "format": "date-time" },
+    "pagesAnalyzed": { "$ref": "#/$defs/count" },
+    "pagesWithGeoData": { "$ref": "#/$defs/count" },
+    "pagesSkipped": { "$ref": "#/$defs/count" },
+    "pageSummaries": { "type": "array", "items": { "$ref": "#/$defs/pageSummary" } },
+    "searchCrawlerCoverage": { "type": "array", "items": { "$ref": "#/$defs/crawlerCoverage" } },
+    "dataUseCrawlerPolicy": { "type": "array", "items": { "$ref": "#/$defs/crawlerCoverage" } },
+    "userInitiatedFetchPolicy": { "type": "array", "items": { "$ref": "#/$defs/crawlerCoverage" } },
+    "dataUseNoArchiveCoverage": { "type": "array", "items": { "$ref": "#/$defs/noArchiveCoverage" } },
+    "pagesWithNoindex": { "$ref": "#/$defs/count" },
+    "pagesWithNoindexUrls": { "$ref": "#/$defs/urls" },
+    "pagesWithNoSnippet": { "$ref": "#/$defs/count" },
+    "pagesWithNoSnippetUrls": { "$ref": "#/$defs/urls" },
+    "pagesWithDataNoSnippetRegions": { "$ref": "#/$defs/count" },
+    "pagesWithDataNoSnippetRegionUrls": { "$ref": "#/$defs/urls" },
+    "totalDataNoSnippetElements": { "$ref": "#/$defs/count" },
+    "totalDataNoSnippetWords": { "$ref": "#/$defs/count" },
+    "dataNoSnippetWordShareSamples": { "$ref": "#/$defs/count" },
+    "dataNoSnippetWordShareMeanPercent": { "$ref": "#/$defs/nullablePercent" },
+    "pagesWithExternalSources": { "$ref": "#/$defs/count" },
+    "totalExternalSourceLinks": { "$ref": "#/$defs/count" },
+    "sourceHostCoverage": { "type": "array", "items": { "type": "object", "required": ["host", "pagesLinked"], "properties": { "host": { "type": "string" }, "pagesLinked": { "$ref": "#/$defs/count" }, "observedLinks": { "$ref": "#/$defs/count" } } } },
+    "pagesWithTruncatedSourceHostLists": { "$ref": "#/$defs/count" },
+    "pagesWithTruncatedSourceHostLinkCounts": { "$ref": "#/$defs/count" },
+    "pagesWithCitationMarkersOrReferences": { "$ref": "#/$defs/count" },
+    "totalResolvedInlineCitationTargetsWithExternalLinks": { "$ref": "#/$defs/count" },
+    "totalResolvedInlineCitationTargetsWithoutExternalLinks": { "$ref": "#/$defs/count" },
+    "pagesWithUnresolvedInlineCitationTargets": { "$ref": "#/$defs/count" },
+    "totalUnresolvedInlineCitationTargets": { "$ref": "#/$defs/count" },
+    "unresolvedInlineCitationTargetUrls": { "$ref": "#/$defs/urls" },
+    "optionalLlmsFiles": { "type": "array", "items": { "$ref": "#/$defs/fileCoverage" } },
+    "contentProfile": { "$ref": "#/$defs/contentProfile" },
+    "entityAnalysis": { "$ref": "#/$defs/entityAnalysis" }
+  },
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "nullablePercent": { "anyOf": [{ "type": "number", "minimum": 0, "maximum": 100 }, { "type": "null" }] },
+    "urls": { "type": "array", "items": { "type": "string", "format": "uri" } },
+    "signalStatus": { "enum": ["measured", "not-assessed", "not-run"] },
+    "geoSignalCrossTab": {
+      "type": "object",
+      "required": ["sampledPages", "visibleAndSchema", "visibleOnly", "schemaOnly", "neither", "incompleteProfiles"],
+      "properties": {
+        "sampledPages": { "$ref": "#/$defs/count" },
+        "visibleAndSchema": { "$ref": "#/$defs/count" },
+        "visibleOnly": { "$ref": "#/$defs/count" },
+        "schemaOnly": { "$ref": "#/$defs/count" },
+        "neither": { "$ref": "#/$defs/count" },
+        "incompleteProfiles": { "$ref": "#/$defs/count" }
+      },
+      "additionalProperties": false
+    },
+    "crawlerAccess": {
+      "type": "object",
+      "required": ["token", "allowed"],
+      "properties": {
+        "token": { "type": "string" },
+        "allowed": { "type": "boolean" },
+        "matchedAgents": { "type": "array", "items": { "type": "string" } },
+        "matchedRule": {
+          "type": "object",
+          "required": ["directive", "pattern", "line"],
+          "properties": {
+            "directive": { "enum": ["allow", "disallow"] },
+            "pattern": { "type": "string" },
+            "line": { "$ref": "#/$defs/count" }
+          }
+        }
+      }
+    },
+    "crawlerControl": {
+      "type": "object",
+      "required": ["token", "noindex", "noSnippet", "maxSnippetZero"],
+      "properties": {
+        "token": { "type": "string" },
+        "noindex": { "type": "boolean" },
+        "noSnippet": { "type": "boolean" },
+        "maxSnippetZero": { "type": "boolean" }
+      }
+    },
+    "dataUseCrawlerControl": {
+      "type": "object",
+      "required": ["token", "noArchive"],
+      "properties": {
+        "token": { "type": "string" },
+        "noindex": { "type": "boolean" },
+        "noArchive": { "type": "boolean" }
+      }
+    },
+    "signalCoverage": {
+      "type": "object",
+      "required": ["searchCrawlerAccess", "dataUseCrawlerPolicy", "previewControls", "answerContent", "sourceRenderedContent", "citationEvidence", "optionalLlmsFiles"],
+      "properties": {
+        "searchCrawlerAccess": { "$ref": "#/$defs/signalStatus" },
+        "dataUseCrawlerPolicy": { "$ref": "#/$defs/signalStatus" },
+        "userInitiatedFetchAccess": { "$ref": "#/$defs/signalStatus" },
+        "previewControls": { "$ref": "#/$defs/signalStatus" },
+        "answerContent": { "$ref": "#/$defs/signalStatus" },
+        "sourceRenderedContent": { "$ref": "#/$defs/signalStatus" },
+        "citationEvidence": { "$ref": "#/$defs/signalStatus" },
+        "optionalLlmsFiles": { "$ref": "#/$defs/signalStatus" }
+      }
+    },
+    "pageSummary": {
+      "type": "object",
+      "required": ["url", "geoAssessed", "signalCoverage"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "canonicalUrl": { "type": "string", "format": "uri" },
+        "geoAssessed": { "type": "boolean" },
+        "signalCoverage": { "$ref": "#/$defs/signalCoverage" },
+        "signalNotes": { "type": "object", "additionalProperties": { "type": "string" } },
+        "searchCrawlerAccess": { "type": "array", "items": { "$ref": "#/$defs/crawlerAccess" } },
+        "dataUseCrawlerPolicy": { "type": "array", "items": { "$ref": "#/$defs/crawlerAccess" } },
+        "userInitiatedFetchAccess": { "type": "array", "items": { "$ref": "#/$defs/crawlerAccess" } },
+        "previewControls": {
+          "type": "object",
+          "properties": {
+            "responseStatus": { "type": "integer" },
+            "noindex": { "type": "boolean" },
+            "noSnippet": { "type": "boolean" },
+            "maxSnippetZero": { "type": "boolean" },
+            "dataNoSnippetElements": { "$ref": "#/$defs/count" },
+            "dataNoSnippetWords": { "$ref": "#/$defs/count" },
+            "dataNoSnippetWordSharePercent": { "$ref": "#/$defs/nullablePercent" },
+            "visibleTextWords": { "$ref": "#/$defs/count" },
+            "crawlerControls": { "type": "array", "items": { "$ref": "#/$defs/crawlerControl" } },
+            "dataUseCrawlerControls": { "type": "array", "items": { "$ref": "#/$defs/dataUseCrawlerControl" } }
+          }
+        },
+        "answerContent": {
+          "type": "object",
+          "properties": {
+            "contentWords": { "$ref": "#/$defs/count" },
+            "mainOrArticleRegion": { "type": "boolean" },
+            "headingCount": { "$ref": "#/$defs/count" },
+            "questionHeadings": { "$ref": "#/$defs/count" },
+            "conciseAnswerBlocks": { "$ref": "#/$defs/count" },
+            "listCount": { "$ref": "#/$defs/count" },
+            "tableCount": { "$ref": "#/$defs/count" },
+            "externalContentLinks": { "$ref": "#/$defs/count" },
+            "visibleAuthor": { "type": "boolean" },
+            "visibleDate": { "type": "boolean" },
+            "schemaAuthor": { "type": "boolean" },
+            "schemaDate": { "type": "boolean" },
+            "schemaDateModifiedDays": { "type": "array", "maxItems": 10, "items": { "type": "string", "format": "date" } },
+            "schemaDateModifiedDaysTruncated": { "type": "boolean" },
+            "schemaDateModifiedHasNonDateValue": { "type": "boolean" },
+            "schemaIsAccessibleForFree": { "anyOf": [{ "type": "boolean" }, { "enum": ["mixed", "not-declared"] }] },
+            "schemaHasNonBooleanAccessibleForFreeValue": { "type": "boolean" },
+            "jsonLdTypes": { "type": "array", "items": { "type": "string" } },
+            "jsonLdTypeListTruncated": { "type": "boolean" },
+            "identityEntities": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "type": "object",
+                "required": ["types", "sameAs", "sameAsTruncated"],
+                "properties": {
+                  "types": { "type": "array", "items": { "type": "string" } },
+                  "id": { "type": "string" },
+                  "name": { "type": "string" },
+                  "sameAs": { "type": "array", "maxItems": 10, "items": { "type": "string", "format": "uri" } },
+                  "sameAsTruncated": { "type": "boolean" }
+                }
+              }
+            },
+            "identityEntityListTruncated": { "type": "boolean" },
+            "documentLanguage": { "type": "string", "maxLength": 80 },
+            "documentLanguageValid": { "type": "boolean" }
+          }
+        },
+        "sourceRenderedContent": {
+          "type": "object",
+          "required": ["assessed"],
+          "properties": {
+            "assessed": { "type": "boolean" },
+            "reason": { "type": "string" },
+            "renderedPhraseCoveragePercent": { "$ref": "#/$defs/nullablePercent" },
+            "sourceWordCount": { "$ref": "#/$defs/count" },
+            "renderedWordCount": { "$ref": "#/$defs/count" },
+            "sourcePhraseCount": { "$ref": "#/$defs/count" },
+            "renderedPhraseCount": { "$ref": "#/$defs/count" },
+            "sharedRenderedPhraseCount": { "$ref": "#/$defs/count" },
+            "renderedOnlyPhraseCount": { "$ref": "#/$defs/count" },
+            "sampleTruncated": { "type": "boolean" }
+          }
+        },
+        "citationEvidence": {
+          "type": "object",
+          "properties": {
+            "externalSourceLinkCount": { "$ref": "#/$defs/count" },
+            "uniqueSourceHosts": { "$ref": "#/$defs/count" },
+            "descriptiveSourceLinkCount": { "$ref": "#/$defs/count" },
+            "sourceHosts": { "type": "array", "items": { "type": "string" } },
+            "sourceHostListTruncated": { "type": "boolean" },
+            "sourceHostLinkCounts": { "type": "array", "maxItems": 12, "items": { "type": "object", "required": ["host", "links"], "properties": { "host": { "type": "string" }, "links": { "$ref": "#/$defs/count" } }, "additionalProperties": false } },
+            "sourceHostLinkCountsTruncated": { "type": "boolean" },
+            "topSourceHostLinkSharePercent": { "$ref": "#/$defs/nullablePercent" },
+            "referenceSectionCount": { "$ref": "#/$defs/count" },
+            "referenceSectionLinkCount": { "$ref": "#/$defs/count" },
+            "inlineCitationMarkerCount": { "$ref": "#/$defs/count" },
+            "resolvedInlineCitationTargetsWithExternalLinks": { "$ref": "#/$defs/count" },
+            "resolvedInlineCitationTargetsWithoutExternalLinks": { "$ref": "#/$defs/count" },
+            "unresolvedInlineCitationTargetCount": { "$ref": "#/$defs/count" },
+            "unresolvedInlineCitationTargets": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 200, "pattern": "^#" } },
+            "unresolvedInlineCitationTargetsTruncated": { "type": "boolean" },
+            "jsonLdBlocksWithCitationField": { "$ref": "#/$defs/count" }
+          }
+        },
+        "optionalLlmsFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "state"],
+            "properties": {
+              "path": { "type": "string" },
+              "state": { "enum": ["found", "absent", "unconfirmed", "unassessed"] },
+              "status": { "type": "integer" },
+              "contentTruncated": { "type": "boolean" },
+              "linkTargetProfile": { "$ref": "#/$defs/llmsLinkTargetProfile" }
+            }
+          }
+        }
+      }
+    },
+    "crawlerCoverage": {
+      "type": "object",
+      "required": ["token", "assessedPages", "unassessedPages", "allowedPages", "blockedPages", "blockedUrls"],
+      "properties": {
+        "token": { "type": "string" },
+        "assessedPages": { "$ref": "#/$defs/count" },
+        "unassessedPages": { "$ref": "#/$defs/count" },
+        "allowedPages": { "$ref": "#/$defs/count" },
+        "blockedPages": { "$ref": "#/$defs/count" },
+        "blockedUrls": { "$ref": "#/$defs/urls" }
+      }
+    },
+    "noArchiveCoverage": {
+      "type": "object",
+      "required": ["token", "pagesAssessed", "pagesWithNoArchive", "pagesUnassessed"],
+      "properties": {
+        "token": { "type": "string" },
+        "pagesAssessed": { "$ref": "#/$defs/count" },
+        "pagesWithNoArchive": { "$ref": "#/$defs/count" },
+        "pagesUnassessed": { "$ref": "#/$defs/count" }
+      }
+    },
+    "fileCoverage": {
+      "type": "object",
+      "required": ["path", "pagesFound", "pagesAbsent", "pagesUnconfirmed", "pagesUnassessed"],
+      "properties": {
+        "path": { "type": "string" },
+        "pagesFound": { "$ref": "#/$defs/count" },
+        "pagesAbsent": { "$ref": "#/$defs/count" },
+        "pagesUnconfirmed": { "$ref": "#/$defs/count" },
+        "pagesUnassessed": { "$ref": "#/$defs/count" },
+        "linkTargetTotals": { "$ref": "#/$defs/llmsLinkTargetTotals" }
+      }
+    },
+    "llmsLinkTargetProfile": {
+      "type": "object",
+      "required": [
+        "markdownLinks",
+        "uniqueWebTargets",
+        "duplicateWebTargets",
+        "sameOriginWebLinks",
+        "externalHttpsLinks",
+        "externalHttpLinks",
+        "relativeLinks",
+        "unsupportedSchemeLinks",
+        "invalidTargets",
+        "emptyLabels",
+        "malformedLinkCandidates"
+      ],
+      "properties": {
+        "markdownLinks": { "$ref": "#/$defs/count" },
+        "uniqueWebTargets": { "$ref": "#/$defs/count" },
+        "duplicateWebTargets": { "$ref": "#/$defs/count" },
+        "sameOriginWebLinks": { "$ref": "#/$defs/count" },
+        "externalHttpsLinks": { "$ref": "#/$defs/count" },
+        "externalHttpLinks": { "$ref": "#/$defs/count" },
+        "relativeLinks": { "$ref": "#/$defs/count" },
+        "unsupportedSchemeLinks": { "$ref": "#/$defs/count" },
+        "invalidTargets": { "$ref": "#/$defs/count" },
+        "emptyLabels": { "$ref": "#/$defs/count" },
+        "malformedLinkCandidates": { "$ref": "#/$defs/count" }
+      },
+      "additionalProperties": false
+    },
+    "llmsLinkTargetTotals": {
+      "type": "object",
+      "required": [
+        "profilesMeasured",
+        "truncatedProfiles",
+        "markdownLinks",
+        "uniqueWebTargets",
+        "duplicateWebTargets",
+        "sameOriginWebLinks",
+        "externalHttpsLinks",
+        "externalHttpLinks",
+        "relativeLinks",
+        "unsupportedSchemeLinks",
+        "invalidTargets",
+        "emptyLabels",
+        "malformedLinkCandidates",
+        "pagesWithDuplicateWebTargets",
+        "pagesWithUnsupportedSchemeLinks",
+        "pagesWithMalformedLinkCandidates"
+      ],
+      "properties": {
+        "profilesMeasured": { "$ref": "#/$defs/count" },
+        "truncatedProfiles": { "$ref": "#/$defs/count" },
+        "markdownLinks": { "$ref": "#/$defs/count" },
+        "uniqueWebTargets": { "$ref": "#/$defs/count" },
+        "duplicateWebTargets": { "$ref": "#/$defs/count" },
+        "sameOriginWebLinks": { "$ref": "#/$defs/count" },
+        "externalHttpsLinks": { "$ref": "#/$defs/count" },
+        "externalHttpLinks": { "$ref": "#/$defs/count" },
+        "relativeLinks": { "$ref": "#/$defs/count" },
+        "unsupportedSchemeLinks": { "$ref": "#/$defs/count" },
+        "invalidTargets": { "$ref": "#/$defs/count" },
+        "emptyLabels": { "$ref": "#/$defs/count" },
+        "malformedLinkCandidates": { "$ref": "#/$defs/count" },
+        "pagesWithDuplicateWebTargets": { "$ref": "#/$defs/count" },
+        "pagesWithUnsupportedSchemeLinks": { "$ref": "#/$defs/count" },
+        "pagesWithMalformedLinkCandidates": { "$ref": "#/$defs/count" }
+      },
+      "additionalProperties": false
+    },
+    "contentProfile": {
+      "type": "object",
+      "required": ["pagesAssessed", "pagesWithMainOrArticleRegion", "sourceRenderedProfilesAssessed", "sourceRenderedPhraseCoverageSamples", "sourceRenderedPhraseCoverageMeanPercent", "pagesWithQuestionHeadings", "totalQuestionHeadings", "totalConciseAnswerBlocks", "pagesWithVisibleAuthor", "pagesWithVisibleDate", "pagesWithSchemaAuthor", "pagesWithSchemaDate", "pagesWithTruncatedJsonLdTypeLists", "schemaTypeCoverage"],
+      "properties": {
+        "pagesAssessed": { "$ref": "#/$defs/count" },
+        "pagesWithMainOrArticleRegion": { "$ref": "#/$defs/count" },
+        "sourceRenderedProfilesAssessed": { "$ref": "#/$defs/count" },
+        "sourceRenderedPhraseCoverageSamples": { "$ref": "#/$defs/count" },
+        "sourceRenderedPhraseCoverageMeanPercent": { "$ref": "#/$defs/nullablePercent" },
+        "sourceRenderedPhraseCoverageWithoutUsableSample": { "$ref": "#/$defs/count" },
+        "sourceRenderedPhraseCoverageBands": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["band", "pages"],
+            "properties": {
+              "band": { "enum": ["0-19.9%", "20-39.9%", "40-59.9%", "60-79.9%", "80-100%"] },
+              "pages": { "$ref": "#/$defs/count" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "authorSignalCrossTab": { "$ref": "#/$defs/geoSignalCrossTab" },
+        "dateSignalCrossTab": { "$ref": "#/$defs/geoSignalCrossTab" },
+        "pagesWithQuestionHeadings": { "$ref": "#/$defs/count" },
+        "totalQuestionHeadings": { "$ref": "#/$defs/count" },
+        "totalConciseAnswerBlocks": { "$ref": "#/$defs/count" },
+        "pagesWithVisibleAuthor": { "$ref": "#/$defs/count" },
+        "pagesWithVisibleDate": { "$ref": "#/$defs/count" },
+        "pagesWithSchemaAuthor": { "$ref": "#/$defs/count" },
+        "pagesWithSchemaDate": { "$ref": "#/$defs/count" },
+        "pagesWithFreeAccessSchemaDeclaration": { "$ref": "#/$defs/count" },
+        "pagesWithPaywalledSchemaDeclaration": { "$ref": "#/$defs/count" },
+        "pagesWithConflictingFreeAccessSchemaDeclarations": { "$ref": "#/$defs/count" },
+        "pagesWithoutFreeAccessSchemaDeclaration": { "$ref": "#/$defs/count" },
+        "pagesWithNonBooleanFreeAccessSchemaValue": { "$ref": "#/$defs/count" },
+        "pagesWithTruncatedJsonLdTypeLists": { "$ref": "#/$defs/count" },
+        "schemaTypeCoverage": { "type": "array", "items": { "type": "object", "required": ["type", "pages"], "properties": { "type": { "type": "string" }, "pages": { "$ref": "#/$defs/count" } } } }
+      }
+    },
+    "entityAnalysis": {
+      "type": "object",
+      "required": ["pagesWithIdentityEntities", "pagesWithTruncatedEntityLists", "pagesWithTruncatedSameAsLists", "pagesWithSameAsReferences", "totalSameAsReferences", "sameAsHostCoverage", "uniqueIdentityIds", "identityIdsSharedAcrossPages", "entitiesWithNameVariants", "nameVariants", "entitiesWithTypeVariants", "typeVariants", "entitiesWithSameAsVariants", "sameAsVariants"],
+      "properties": {
+        "pagesWithIdentityEntities": { "$ref": "#/$defs/count" },
+        "pagesWithTruncatedEntityLists": { "$ref": "#/$defs/count" },
+        "pagesWithTruncatedSameAsLists": { "$ref": "#/$defs/count" },
+        "pagesWithSameAsReferences": { "$ref": "#/$defs/count" },
+        "totalSameAsReferences": { "$ref": "#/$defs/count" },
+        "sameAsHostCoverage": { "type": "array", "items": { "type": "object", "required": ["host", "pages"], "properties": { "host": { "type": "string" }, "pages": { "$ref": "#/$defs/count" } } } },
+        "uniqueIdentityIds": { "$ref": "#/$defs/count" },
+        "identityIdsSharedAcrossPages": { "$ref": "#/$defs/count" },
+        "entitiesWithNameVariants": { "$ref": "#/$defs/count" },
+        "nameVariants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "types", "names", "pages"],
+            "properties": {
+              "id": { "type": "string" },
+              "types": { "type": "array", "items": { "type": "string" } },
+              "names": { "type": "array", "items": { "type": "string" } },
+              "pages": { "$ref": "#/$defs/urls" }
+            }
+          }
+        },
+        "entitiesWithTypeVariants": { "$ref": "#/$defs/count" },
+        "typeVariants": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": ["id", "pages", "pagesTruncated"],
+            "properties": {
+              "id": { "type": "string" },
+              "pagesTruncated": { "type": "boolean" },
+              "pages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["url", "types"],
+                  "properties": {
+                    "url": { "type": "string", "format": "uri" },
+                    "types": { "type": "array", "items": { "type": "string" } }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "entitiesWithSameAsVariants": { "$ref": "#/$defs/count" },
+        "sameAsVariants": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": ["id", "pages", "pagesTruncated", "excludedIncompletePages"],
+            "properties": {
+              "id": { "type": "string" },
+              "pagesTruncated": { "type": "boolean" },
+              "excludedIncompletePages": { "$ref": "#/$defs/count" },
+              "pages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["url", "sameAs"],
+                  "properties": {
+                    "url": { "type": "string", "format": "uri" },
+                    "sameAs": { "type": "array", "items": { "type": "string", "format": "uri" } }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  }
+}

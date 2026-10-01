@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "baselineTimestamp": "2026-09-28T10:00:00.000Z",
+  "currentTimestamp": "2026-09-30T10:00:00.000Z",
+  "baselineAverageScore": 84,
+  "currentAverageScore": 83,
+  "scoreDelta": -1,
+  "newUrls": [],
+  "removedUrls": [],
+  "newFailures": [
+    {
+      "category": "geo",
+      "name": "robots access",
+      "message": "Google-Extended is blocked by robots.txt",
+      "severity": "warning",
+      "url": "https://example.com/guides/robots/"
+    }
+  ],
+  "resolvedFailures": [],
+  "geoChanges": [
+    {
+      "url": "https://example.com/guides/robots/",
+      "signal": "Google-Extended access",
+      "before": "allowed",
+      "after": "blocked"
+    }
+  ],
+  "geoComparedPages": 12,
+  "geoUnassessedPages": 2,
+  "geoComparedBasis": "search-crawler-access-and-preview-controls"
+}

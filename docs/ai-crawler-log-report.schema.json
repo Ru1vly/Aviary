@@ -1,0 +1,4469 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary AI crawler access log report",
+  "description": "Local, bounded summaries of access-log requests whose user-agent strings contain recognized AI crawler tokens, including per-path recency, response-class details, same-path status comparisons by activity, and exact configured AI referral UTM source aggregates. A token match does not authenticate the requester; referral counts are request rows rather than sessions.",
+  "type": "object",
+  "required": [
+    "source",
+    "schemaVersion",
+    "analyses"
+  ],
+  "properties": {
+    "source": {
+      "const": "Aviary AI crawler access log analysis"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "analyses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/analysis"
+      }
+    },
+    "correlations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/correlation"
+      }
+    },
+    "sitemapFreshnessAnalyses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sitemapFreshnessAnalysis"
+      },
+      "description": "Optional sitemap lastmod versus retained crawler-log comparisons; observations are day-level and do not predict provider recrawl or citation."
+    },
+    "robotsPolicyCorrelations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/robotsPolicyCorrelation"
+      }
+    },
+    "robotsPolicyComparisons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/robotsPolicyComparison"
+      }
+    },
+    "logPeriodComparisons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/logPeriodComparison"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "responseStatusCode": {
+      "description": "Zero represents CloudFront sc-status 000, meaning no HTTP response status was available, or Cloudflare OriginResponseStatus 0, meaning the origin did not respond and the response was served at the edge; otherwise this is a three-digit HTTP status code.",
+      "oneOf": [
+        {
+          "const": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        }
+      ]
+    },
+    "responseContentTypeRow": {
+      "type": "object",
+      "required": [
+        "contentType",
+        "requests"
+      ],
+      "properties": {
+        "contentType": {
+          "type": "string",
+          "maxLength": 127,
+          "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$"
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timingDistribution": {
+      "type": "object",
+      "required": [
+        "sampledRequests",
+        "p50Band",
+        "p95Band",
+        "bands"
+      ],
+      "properties": {
+        "sampledRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "p50Band": {
+          "$ref": "#/$defs/timingBand"
+        },
+        "p95Band": {
+          "$ref": "#/$defs/timingBand"
+        },
+        "bands": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "required": [
+              "band",
+              "requests"
+            ],
+            "properties": {
+              "band": {
+                "$ref": "#/$defs/timingBand"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "timingBand": {
+      "enum": [
+        "<=50ms",
+        "51-100ms",
+        "101-250ms",
+        "251-500ms",
+        "501-1000ms",
+        "1001-2500ms",
+        "2501-5000ms",
+        ">5000ms"
+      ]
+    },
+    "responseTiming": {
+      "type": "object",
+      "properties": {
+        "responseDuration": {
+          "$ref": "#/$defs/timingDistribution"
+        },
+        "timeToFirstByte": {
+          "$ref": "#/$defs/timingDistribution"
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "cloudFrontResultType": {
+      "enum": [
+        "Hit",
+        "RefreshHit",
+        "Miss",
+        "LimitExceeded",
+        "CapacityExceeded",
+        "Error",
+        "Other"
+      ]
+    },
+    "cloudFrontResultCount": {
+      "type": "object",
+      "required": [
+        "resultType",
+        "requests"
+      ],
+      "properties": {
+        "resultType": {
+          "$ref": "#/$defs/cloudFrontResultType"
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cloudFrontResultProfile": {
+      "type": "object",
+      "required": [
+        "requestsWithResultType",
+        "resultTypes",
+        "requestsWithResponseResultType",
+        "responseResultTypes",
+        "pairedRequests",
+        "differingResultTypes"
+      ],
+      "properties": {
+        "requestsWithResultType": {
+          "$ref": "#/$defs/count"
+        },
+        "resultTypes": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "$ref": "#/$defs/cloudFrontResultCount"
+          }
+        },
+        "requestsWithResponseResultType": {
+          "$ref": "#/$defs/count"
+        },
+        "responseResultTypes": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "$ref": "#/$defs/cloudFrontResultCount"
+          }
+        },
+        "pairedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "differingResultTypes": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timingMetricComparison": {
+      "type": "object",
+      "required": [
+        "baselineSamples",
+        "currentSamples",
+        "baselineP95Band",
+        "currentP95Band",
+        "change"
+      ],
+      "properties": {
+        "baselineSamples": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentSamples": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineP95Band": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/timingBand"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentP95Band": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/timingBand"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "change": {
+          "enum": [
+            "faster",
+            "same",
+            "slower",
+            "not-comparable"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "timingComparison": {
+      "type": "object",
+      "required": [
+        "minimumComparableSamplesPerPeriod",
+        "responseDuration",
+        "timeToFirstByte"
+      ],
+      "properties": {
+        "minimumComparableSamplesPerPeriod": {
+          "$ref": "#/$defs/count"
+        },
+        "responseDuration": {
+          "$ref": "#/$defs/timingMetricComparison"
+        },
+        "timeToFirstByte": {
+          "$ref": "#/$defs/timingMetricComparison"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cloudFrontResultTypePeriodComparison": {
+      "type": "object",
+      "required": [
+        "resultType",
+        "baselineRequests",
+        "currentRequests",
+        "baselineSharePercent",
+        "currentSharePercent",
+        "shareDeltaPercentagePoints"
+      ],
+      "properties": {
+        "resultType": {
+          "$ref": "#/$defs/cloudFrontResultType"
+        },
+        "baselineRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineSharePercent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/percent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentSharePercent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/percent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shareDeltaPercentagePoints": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "cloudFrontResultPeriodComparison": {
+      "type": "object",
+      "required": [
+        "comparisonAvailable",
+        "baselineRequestsWithResultType",
+        "currentRequestsWithResultType",
+        "baselineRequestsWithResponseResultType",
+        "currentRequestsWithResponseResultType",
+        "baselinePairedRequests",
+        "currentPairedRequests",
+        "baselineDifferingResultTypes",
+        "currentDifferingResultTypes",
+        "baselineDifferenceSharePercent",
+        "currentDifferenceSharePercent",
+        "differenceShareDeltaPercentagePoints",
+        "resultTypes",
+        "responseResultTypes"
+      ],
+      "properties": {
+        "comparisonAvailable": {
+          "type": "boolean"
+        },
+        "baselineRequestsWithResultType": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentRequestsWithResultType": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineRequestsWithResponseResultType": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentRequestsWithResponseResultType": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselinePairedRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentPairedRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineDifferingResultTypes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentDifferingResultTypes": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineDifferenceSharePercent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/percent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentDifferenceSharePercent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/percent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "differenceShareDeltaPercentagePoints": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resultTypes": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "$ref": "#/$defs/cloudFrontResultTypePeriodComparison"
+          }
+        },
+        "responseResultTypes": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "$ref": "#/$defs/cloudFrontResultTypePeriodComparison"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "analysis": {
+      "type": "object",
+      "required": [
+        "source",
+        "schemaVersion",
+        "linesRead",
+        "parsedRequests",
+        "parsedCombinedLogLines",
+        "parsedCloudFrontLogLines",
+        "parsedJsonLines",
+        "skippedLines",
+        "requestsWithoutUserAgent",
+        "requestsWithUnrecognizedUserAgent",
+        "requestsWithoutParseableTimestamp",
+        "recognizedAiCrawlerRequests",
+        "uniquePathsAcrossRecognizedBots",
+        "crawlers",
+        "note"
+      ],
+      "properties": {
+        "source": {
+          "const": "Aviary AI crawler access log analysis"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "sourceFile": {
+          "type": "string"
+        },
+        "linesRead": {
+          "$ref": "#/$defs/count"
+        },
+        "parsedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "parsedCombinedLogLines": {
+          "$ref": "#/$defs/count"
+        },
+        "parsedCloudFrontLogLines": {
+          "$ref": "#/$defs/count"
+        },
+        "parsedJsonLines": {
+          "$ref": "#/$defs/count"
+        },
+        "skippedLines": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithoutUserAgent": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithUnrecognizedUserAgent": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithoutParseableTimestamp": {
+          "$ref": "#/$defs/count"
+        },
+        "recognizedAiCrawlerRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "uniquePathsAcrossRecognizedBots": {
+          "$ref": "#/$defs/count"
+        },
+        "aiReferralTraffic": {
+          "type": "array",
+          "maxItems": 20,
+          "description": "Exact configured utm_source request aggregates. Labels and normalized paths are retained; raw query values are omitted. Request counts are not sessions.",
+          "items": {
+            "$ref": "#/$defs/aiReferralTraffic"
+          }
+        },
+        "utmSourceAttributionCoverage": {
+          "$ref": "#/$defs/utmSourceAttributionCoverage"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "crawlers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/crawler"
+          }
+        },
+        "searchCrawlerPathComparison": {
+          "$ref": "#/$defs/crawlerPathResponseComparison"
+        },
+        "trainingCrawlerPathComparison": {
+          "$ref": "#/$defs/crawlerPathResponseComparison"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ipRangeVerification": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/ipRangeVerificationByToken"
+          },
+          "description": "Optional counts by configured crawler token. Neither source IP values nor configured CIDRs are included."
+        }
+      },
+      "additionalProperties": false
+    },
+    "utmSourceAttributionCoverage": {
+      "type": "object",
+      "required": [
+        "parsedRequestRows",
+        "requestsWithUtmSource",
+        "requestsWithConfiguredSource",
+        "requestsWithUnconfiguredSingleValue",
+        "requestsWithConflictingValues",
+        "requestsWithEmptyOrOversizedValue"
+      ],
+      "properties": {
+        "parsedRequestRows": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithUtmSource": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithConfiguredSource": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithUnconfiguredSingleValue": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithConflictingValues": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithEmptyOrOversizedValue": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralTraffic": {
+      "type": "object",
+      "required": [
+        "source",
+        "requests",
+        "uniquePaths",
+        "uniquePathsTruncated",
+        "timestampedRequests",
+        "responseClasses",
+        "paths",
+        "pathsTruncated",
+        "dailyActivity",
+        "dailyActivityTruncated"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "uniquePaths": {
+          "$ref": "#/$defs/count",
+          "description": "Unique paths retained for this source; a true truncation flag makes this a lower bound."
+        },
+        "uniquePathsTruncated": {
+          "type": "boolean"
+        },
+        "timestampedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "responseClasses": {
+          "type": "object",
+          "required": [
+            "successful2xx",
+            "redirects3xx",
+            "clientErrors4xx",
+            "serverErrors5xx",
+            "other"
+          ],
+          "properties": {
+            "successful2xx": {
+              "$ref": "#/$defs/count"
+            },
+            "redirects3xx": {
+              "$ref": "#/$defs/count"
+            },
+            "clientErrors4xx": {
+              "$ref": "#/$defs/count"
+            },
+            "serverErrors5xx": {
+              "$ref": "#/$defs/count"
+            },
+            "other": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "paths": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/aiReferralPath"
+          }
+        },
+        "pathsTruncated": {
+          "type": "boolean"
+        },
+        "dailyActivity": {
+          "type": "array",
+          "maxItems": 730,
+          "items": {
+            "$ref": "#/$defs/aiReferralDay"
+          }
+        },
+        "dailyActivityTruncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralPath": {
+      "type": "object",
+      "required": [
+        "path",
+        "requests",
+        "responseClasses",
+        "statusCodes",
+        "statusCodesTruncated"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "responseClasses": {
+          "$ref": "#/$defs/aiReferralResponseClasses"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralResponseClasses": {
+      "type": "object",
+      "required": [
+        "successful2xx",
+        "redirects3xx",
+        "clientErrors4xx",
+        "serverErrors5xx",
+        "other"
+      ],
+      "properties": {
+        "successful2xx": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects3xx": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors4xx": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors5xx": {
+          "$ref": "#/$defs/count"
+        },
+        "other": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralDay": {
+      "type": "object",
+      "required": [
+        "date",
+        "requests"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "crawler": {
+      "type": "object",
+      "required": [
+        "token",
+        "provider",
+        "activity",
+        "requests",
+        "uniquePaths",
+        "responseClasses",
+        "statusCodes",
+        "statusCodesTruncated",
+        "requestMethods",
+        "requestMethodsTruncated",
+        "paths",
+        "pathsTruncated",
+        "dailyActivity",
+        "dailyActivityTruncated",
+        "originStatusObservations",
+        "edgeOriginStatusDifferences"
+      ],
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-crawl"
+          ]
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "uniquePaths": {
+          "$ref": "#/$defs/count"
+        },
+        "responseClasses": {
+          "type": "object",
+          "required": [
+            "successful2xx",
+            "redirects3xx",
+            "clientErrors4xx",
+            "serverErrors5xx",
+            "other"
+          ],
+          "properties": {
+            "successful2xx": {
+              "$ref": "#/$defs/count"
+            },
+            "redirects3xx": {
+              "$ref": "#/$defs/count"
+            },
+            "clientErrors4xx": {
+              "$ref": "#/$defs/count"
+            },
+            "serverErrors5xx": {
+              "$ref": "#/$defs/count"
+            },
+            "other": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "responseTiming": {
+          "$ref": "#/$defs/responseTiming"
+        },
+        "cloudFrontResultProfile": {
+          "$ref": "#/$defs/cloudFrontResultProfile"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 25,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "requestMethods": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "required": [
+              "method",
+              "requests"
+            ],
+            "properties": {
+              "method": {
+                "type": "string"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "requestMethodsTruncated": {
+          "type": "boolean"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "paths": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "pathsTruncated": {
+          "type": "boolean"
+        },
+        "dailyActivity": {
+          "type": "array",
+          "maxItems": 730,
+          "items": {
+            "$ref": "#/$defs/day"
+          }
+        },
+        "dailyActivityTruncated": {
+          "type": "boolean"
+        },
+        "originStatusObservations": {
+          "$ref": "#/$defs/count",
+          "description": "Requests for which the input supplied both a logged response status and an origin response status."
+        },
+        "edgeOriginStatusDifferences": {
+          "$ref": "#/$defs/count",
+          "description": "Paired requests where the logged response status differs from the origin response status."
+        },
+        "failureRequests": {
+          "$ref": "#/$defs/count",
+          "description": "All logged requests for this crawler with a 4xx or 5xx response status."
+        },
+        "failureRatePercent": {
+          "$ref": "#/$defs/percent",
+          "description": "The crawler's 4xx and 5xx request share within the supplied input sample."
+        },
+        "pathsWithFailures": {
+          "$ref": "#/$defs/count",
+          "description": "Distinct normalized paths with at least one logged 4xx or 5xx response, including paths outside the retained frequent-path list."
+        },
+        "failureHotspots": {
+          "type": "array",
+          "maxItems": 50,
+          "description": "Highest-priority paths with logged 4xx or 5xx responses, ranked by server-error count, failure count, failure share, then path.",
+          "items": {
+            "$ref": "#/$defs/failureHotspot"
+          }
+        },
+        "failureHotspotsTruncated": {
+          "type": "boolean"
+        },
+        "cloudflareBotEvidence": {
+          "$ref": "#/$defs/cloudflareBotEvidence"
+        },
+        "cloudflareSecurityActions": {
+          "$ref": "#/$defs/cloudflareSecurityActions"
+        },
+        "ipRangeVerification": {
+          "$ref": "#/$defs/ipRangeVerification"
+        }
+      },
+      "additionalProperties": false
+    },
+    "path": {
+      "type": "object",
+      "required": [
+        "path",
+        "requests",
+        "successfulResponses",
+        "redirects",
+        "clientErrors",
+        "serverErrors",
+        "otherResponses",
+        "originResponseStatusCodes",
+        "originResponseStatusCodesTruncated",
+        "edgeOriginStatusDifferences"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "responseTiming": {
+          "$ref": "#/$defs/responseTiming"
+        },
+        "cloudFrontResultProfile": {
+          "$ref": "#/$defs/cloudFrontResultProfile"
+        },
+        "timestampedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "otherResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "originResponseStatusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Bounded frequency list of origin response status codes when the log supplies them."
+        },
+        "originResponseStatusCodesTruncated": {
+          "type": "boolean",
+          "description": "True when additional origin status codes were omitted."
+        },
+        "edgeOriginStatusDifferences": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path where the logged response status differs from the origin response status."
+        }
+      },
+      "additionalProperties": false
+    },
+    "day": {
+      "type": "object",
+      "required": [
+        "date",
+        "requests",
+        "successfulResponses",
+        "redirects",
+        "clientErrors",
+        "serverErrors",
+        "otherResponses"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "otherResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "responseTiming": {
+          "$ref": "#/$defs/responseTiming"
+        }
+      },
+      "additionalProperties": false
+    },
+    "crawlerPathResponseComparison": {
+      "type": "object",
+      "required": [
+        "activity",
+        "crawlersCompared",
+        "sharedPathsCompared",
+        "pathsWithDifferentResponseClasses",
+        "pathsWithDifferentStatusCodeSets",
+        "pathsWithDifferentContentTypeSets",
+        "pathsWithSuccessFailureSplit",
+        "pathsWithTruncatedStatusCodeDetails",
+        "pathsWithTruncatedContentTypeDetails",
+        "inputPathsTruncated",
+        "rowsTruncated",
+        "disparities",
+        "note"
+      ],
+      "properties": {
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "training-data-crawl"
+          ]
+        },
+        "crawlersCompared": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "crawlerToken",
+              "provider"
+            ],
+            "properties": {
+              "crawlerToken": {
+                "type": "string",
+                "minLength": 1
+              },
+              "provider": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "sharedPathsCompared": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithDifferentResponseClasses": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithDifferentStatusCodeSets": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithDifferentContentTypeSets": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithSuccessFailureSplit": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithTruncatedStatusCodeDetails": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithTruncatedContentTypeDetails": {
+          "$ref": "#/$defs/count"
+        },
+        "inputPathsTruncated": {
+          "type": "boolean"
+        },
+        "rowsTruncated": {
+          "type": "boolean"
+        },
+        "disparities": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/crawlerPathResponseDisparity"
+          }
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "crawlerPathResponseDisparity": {
+      "type": "object",
+      "required": [
+        "path",
+        "observedCrawlerCount",
+        "hasDifferentStatusCodeSets",
+        "statusCodeDetailsTruncated",
+        "hasDifferentContentTypeSets",
+        "contentTypeDetailsTruncated",
+        "hasSuccessFailureSplit",
+        "crawlers"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "observedCrawlerCount": {
+          "$ref": "#/$defs/count"
+        },
+        "hasDifferentStatusCodeSets": {
+          "type": "boolean"
+        },
+        "statusCodeDetailsTruncated": {
+          "type": "boolean"
+        },
+        "hasDifferentContentTypeSets": {
+          "type": "boolean"
+        },
+        "contentTypeDetailsTruncated": {
+          "type": "boolean"
+        },
+        "hasSuccessFailureSplit": {
+          "type": "boolean"
+        },
+        "crawlers": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/crawlerPathResponseProfile"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "crawlerPathResponseProfile": {
+      "type": "object",
+      "required": [
+        "crawlerToken",
+        "provider",
+        "requests",
+        "successfulResponses",
+        "redirects",
+        "clientErrors",
+        "serverErrors",
+        "otherResponses",
+        "statusCodes",
+        "statusCodesTruncated",
+        "responseContentTypes",
+        "responseContentTypesTruncated"
+      ],
+      "properties": {
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "otherResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "correlation": {
+      "type": "object",
+      "required": [
+        "origin",
+        "auditTimestamp",
+        "auditPagesOnOrigin",
+        "logPathsMatchedToAudit",
+        "logPathsAmbiguousInAudit",
+        "logPathsNotInAudit",
+        "requestsMatchedToAuditedPaths",
+        "requestsOnAuditedPathsWithRedirects",
+        "requestsOnAuditedPathsWithClientErrors",
+        "requestsOnAuditedPathsWithServerErrors",
+        "requestsOnCurrentlyRobotsBlockedPaths",
+        "requestsOnCurrentlyNoindexPaths",
+        "requestsOnCurrentlySnippetRestrictedPaths",
+        "requestsOnAuditedPathsWithQuestionHeadings",
+        "requestsOnAuditedPathsWithConciseAnswerBlocks",
+        "requestsOnAuditedPathsWithExternalSourceLinks",
+        "requestsOnAuditedPathsWithInlineCitationMarkers",
+        "pathObservations",
+        "inputPathsTruncated",
+        "pathObservationsTruncated",
+        "auditPathCoverage",
+        "note"
+      ],
+      "properties": {
+        "sourceFile": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri"
+        },
+        "auditTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "auditPagesOnOrigin": {
+          "$ref": "#/$defs/count"
+        },
+        "logPathsMatchedToAudit": {
+          "$ref": "#/$defs/count"
+        },
+        "logPathsAmbiguousInAudit": {
+          "$ref": "#/$defs/count"
+        },
+        "logPathsNotInAudit": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsMatchedToAuditedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnAuditedPathsWithRedirects": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnAuditedPathsWithClientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnAuditedPathsWithServerErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnCurrentlyRobotsBlockedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnCurrentlyNoindexPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnCurrentlySnippetRestrictedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnAuditedPathsWithQuestionHeadings": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnAuditedPathsWithConciseAnswerBlocks": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnAuditedPathsWithExternalSourceLinks": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnAuditedPathsWithInlineCitationMarkers": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnApplebotPagesMarkedPaywalled": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnApplebotPagesWithNoSnippet": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnApplebotPagesWithDocumentedAiContextExclusion": {
+          "$ref": "#/$defs/count"
+        },
+        "pathObservations": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "$ref": "#/$defs/pathObservation"
+          }
+        },
+        "priorityReviewQueue": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/geoOpportunity"
+          },
+          "description": "Bounded review prompts ranked by request share within each crawler token sample for matched paths with measured control, response, answer-structure, or citation-evidence signals."
+        },
+        "priorityReviewQueueTruncated": {
+          "type": "boolean",
+          "description": "True when queue rows were capped or source crawler paths or audited pages were omitted."
+        },
+        "inputPathsTruncated": {
+          "type": "boolean"
+        },
+        "pathObservationsTruncated": {
+          "type": "boolean"
+        },
+        "auditPathCoverage": {
+          "$ref": "#/$defs/auditPathCoverage"
+        },
+        "aiReferralAuditCoverage": {
+          "$ref": "#/$defs/aiReferralAuditCoverage"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralAuditCoverage": {
+      "type": "object",
+      "required": [
+        "sources",
+        "pathObservations",
+        "pathObservationsTruncated",
+        "note"
+      ],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/aiReferralAuditSourceCoverage"
+          }
+        },
+        "pathObservations": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "$ref": "#/$defs/aiReferralAuditPathObservation"
+          }
+        },
+        "pathObservationsTruncated": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralAuditSourceCoverage": {
+      "type": "object",
+      "required": [
+        "source",
+        "requestsInSample",
+        "uniquePaths",
+        "uniquePathsTruncated",
+        "retainedPathsCompared",
+        "retainedRequestsCompared",
+        "retainedPathsMatchedToAudit",
+        "retainedPathsAmbiguousInAudit",
+        "retainedPathsNotInAudit",
+        "retainedRequestsMatchedToAudit",
+        "retainedRequestsOnNoindexPages",
+        "retainedRequestsOnSnippetRestrictedPages",
+        "retainedRequestsOnPagesWithQuestionHeadings",
+        "retainedRequestsOnPagesWithConciseAnswerBlocks",
+        "retainedPathsWithSearchCrawlerRequests",
+        "retainedPathsWithTrainingCrawlerRequests",
+        "retainedPathsWithSearchCrawlerFailures",
+        "retainedPathsWithTrainingCrawlerFailures",
+        "retainedPathsWithIncompleteSearchCrawlerCoverage",
+        "retainedPathsWithIncompleteTrainingCrawlerCoverage",
+        "searchCrawlerRequestsOnRetainedPaths",
+        "searchCrawlerFailuresOnRetainedPaths",
+        "trainingCrawlerRequestsOnRetainedPaths",
+        "trainingCrawlerFailuresOnRetainedPaths",
+        "pathsTruncated"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "requestsInSample": {
+          "$ref": "#/$defs/count"
+        },
+        "uniquePaths": {
+          "$ref": "#/$defs/count"
+        },
+        "uniquePathsTruncated": {
+          "type": "boolean"
+        },
+        "retainedPathsCompared": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedRequestsCompared": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsMatchedToAudit": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsAmbiguousInAudit": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsNotInAudit": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedRequestsMatchedToAudit": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedRequestsOnNoindexPages": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedRequestsOnSnippetRestrictedPages": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedRequestsOnPagesWithQuestionHeadings": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedRequestsOnPagesWithConciseAnswerBlocks": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsWithSearchCrawlerRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsWithTrainingCrawlerRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsWithSearchCrawlerFailures": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsWithTrainingCrawlerFailures": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsWithIncompleteSearchCrawlerCoverage": {
+          "$ref": "#/$defs/count"
+        },
+        "retainedPathsWithIncompleteTrainingCrawlerCoverage": {
+          "$ref": "#/$defs/count"
+        },
+        "searchCrawlerRequestsOnRetainedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "searchCrawlerFailuresOnRetainedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "trainingCrawlerRequestsOnRetainedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "trainingCrawlerFailuresOnRetainedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsTruncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralAuditPathObservation": {
+      "type": "object",
+      "required": [
+        "source",
+        "path",
+        "requests",
+        "auditMatchType",
+        "searchCrawlers",
+        "trainingDataCrawlers"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "auditMatchType": {
+          "enum": [
+            "matched",
+            "ambiguous",
+            "not-in-audit"
+          ]
+        },
+        "searchCrawlers": {
+          "$ref": "#/$defs/aiReferralGeoCrawlerOverlap"
+        },
+        "trainingDataCrawlers": {
+          "$ref": "#/$defs/aiReferralGeoCrawlerOverlap"
+        },
+        "auditUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "currentNoindex": {
+          "type": "boolean"
+        },
+        "currentNoSnippet": {
+          "type": "boolean"
+        },
+        "currentMaxSnippetZero": {
+          "type": "boolean"
+        },
+        "currentQuestionHeadings": {
+          "$ref": "#/$defs/count"
+        },
+        "currentConciseAnswerBlocks": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralGeoCrawlerOverlap": {
+      "type": "object",
+      "required": [
+        "logCoverage",
+        "requests",
+        "failures",
+        "tokens"
+      ],
+      "properties": {
+        "logCoverage": {
+          "description": "observed means every relevant retained token row is present for the path; observed-incomplete means at least one truncated token list omits it, so counts are lower bounds; not-observed-in-sample means all relevant lists were complete; incomplete means no retained row was found but a truncated list omitted the path.",
+          "enum": [
+            "observed",
+            "observed-incomplete",
+            "not-observed-in-sample",
+            "incomplete"
+          ]
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "failures": {
+          "$ref": "#/$defs/count"
+        },
+        "tokens": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "latestRequestAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "auditPathCoverage": {
+      "type": "object",
+      "required": [
+        "auditPagesSkipped",
+        "uniqueAuditPaths",
+        "rowsTruncated",
+        "crawlers",
+        "note"
+      ],
+      "properties": {
+        "auditPagesSkipped": {
+          "$ref": "#/$defs/count"
+        },
+        "uniqueAuditPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "rowsTruncated": {
+          "type": "boolean"
+        },
+        "crawlers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/auditPathCrawler"
+          }
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "auditPathCrawler": {
+      "type": "object",
+      "required": [
+        "crawlerToken",
+        "provider",
+        "activity",
+        "pathsEvaluated",
+        "pathsObserved",
+        "pathsNotObservedInLog",
+        "pathsAmbiguous",
+        "pathsUnassessableBecauseTruncated",
+        "observedRequests",
+        "observedSuccessfulResponses",
+        "observedPathsWithin7DaysOfLatestRequest",
+        "observedPaths8To30DaysBeforeLatestRequest",
+        "observedPathsOver30DaysBeforeLatestRequest",
+        "observedPathsWithoutTimestamp",
+        "currentlyRobotsBlockedPaths",
+        "currentlyNoindexPaths",
+        "currentlySnippetRestrictedPaths",
+        "paths",
+        "currentlyNoArchivePaths"
+      ],
+      "properties": {
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "data-use-crawl"
+          ]
+        },
+        "pathsEvaluated": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsObserved": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsNotObservedInLog": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsAmbiguous": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsUnassessableBecauseTruncated": {
+          "$ref": "#/$defs/count"
+        },
+        "observedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "observedSuccessfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "latestRequestAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "observedPathsWithin7DaysOfLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "observedPaths8To30DaysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "observedPathsOver30DaysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "observedPathsWithoutTimestamp": {
+          "$ref": "#/$defs/count"
+        },
+        "currentlyRobotsBlockedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "currentlyNoindexPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "currentlySnippetRestrictedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "paths": {
+          "type": "array",
+          "maxItems": 50000,
+          "items": {
+            "$ref": "#/$defs/auditPathCoverageRow"
+          }
+        },
+        "currentlyNoArchivePaths": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "auditPathCoverageRow": {
+      "type": "object",
+      "required": [
+        "path",
+        "auditedUrlCount",
+        "observation",
+        "currentRobotsAccess"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "auditedUrlCount": {
+          "$ref": "#/$defs/count"
+        },
+        "observation": {
+          "enum": [
+            "observed",
+            "not-observed-in-log",
+            "ambiguous-query-or-duplicate",
+            "not-assessable-truncated"
+          ]
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "timestampedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "currentRobotsAccess": {
+          "enum": [
+            "allowed",
+            "blocked",
+            "not-assessed"
+          ]
+        },
+        "currentNoindex": {
+          "type": "boolean"
+        },
+        "currentNoSnippet": {
+          "type": "boolean"
+        },
+        "currentMaxSnippetZero": {
+          "type": "boolean"
+        },
+        "originResponseStatusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Bounded frequency list of origin response status codes when the log supplies them."
+        },
+        "originResponseStatusCodesTruncated": {
+          "type": "boolean",
+          "description": "True when additional origin status codes were omitted."
+        },
+        "edgeOriginStatusDifferences": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path where the logged response status differs from the origin response status."
+        },
+        "currentNoArchive": {
+          "type": "boolean"
+        },
+        "currentSchemaIsAccessibleForFree": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "mixed",
+                "not-declared"
+              ]
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "pathObservation": {
+      "type": "object",
+      "required": [
+        "crawlerToken",
+        "provider",
+        "activity",
+        "path",
+        "requests",
+        "successfulResponses",
+        "redirects",
+        "clientErrors",
+        "serverErrors",
+        "otherResponses",
+        "auditMatchType",
+        "currentRobotsAccess"
+      ],
+      "properties": {
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-crawl"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "responseTiming": {
+          "$ref": "#/$defs/responseTiming"
+        },
+        "cloudFrontResultProfile": {
+          "$ref": "#/$defs/cloudFrontResultProfile"
+        },
+        "timestampedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "otherResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "auditMatchType": {
+          "enum": [
+            "matched",
+            "ambiguous",
+            "not-in-audit",
+            "not-applicable"
+          ]
+        },
+        "auditUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "currentRobotsAccess": {
+          "enum": [
+            "allowed",
+            "blocked",
+            "not-assessed",
+            "not-applicable"
+          ]
+        },
+        "currentRobotsRule": {
+          "type": "object",
+          "required": [
+            "directive",
+            "pattern",
+            "line"
+          ],
+          "properties": {
+            "directive": {
+              "enum": [
+                "allow",
+                "disallow"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "line": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "currentNoindex": {
+          "type": "boolean"
+        },
+        "currentNoSnippet": {
+          "type": "boolean"
+        },
+        "currentMaxSnippetZero": {
+          "type": "boolean"
+        },
+        "answerContentCoverage": {
+          "enum": [
+            "measured",
+            "not-assessed",
+            "not-run"
+          ]
+        },
+        "citationEvidenceCoverage": {
+          "enum": [
+            "measured",
+            "not-assessed",
+            "not-run"
+          ]
+        },
+        "currentQuestionHeadings": {
+          "$ref": "#/$defs/count"
+        },
+        "currentConciseAnswerBlocks": {
+          "$ref": "#/$defs/count"
+        },
+        "currentVisibleAuthor": {
+          "type": "boolean"
+        },
+        "currentVisibleDate": {
+          "type": "boolean"
+        },
+        "currentExternalSourceLinkCount": {
+          "$ref": "#/$defs/count"
+        },
+        "currentInlineCitationMarkerCount": {
+          "$ref": "#/$defs/count"
+        },
+        "currentUnresolvedCitationTargetCount": {
+          "$ref": "#/$defs/count"
+        },
+        "currentSchemaIsAccessibleForFree": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "mixed",
+                "not-declared"
+              ]
+            }
+          ]
+        },
+        "currentSchemaHasNonBooleanAccessibleForFreeValue": {
+          "type": "boolean"
+        },
+        "reviewSignals": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 16,
+          "items": {
+            "enum": [
+              "robots-blocked",
+              "noindex",
+              "nosnippet",
+              "max-snippet-zero",
+              "client-error-responses",
+              "server-error-responses",
+              "no-question-headings",
+              "no-concise-answer-blocks",
+              "no-visible-author",
+              "no-visible-date",
+              "no-external-source-links",
+              "no-inline-citation-markers",
+              "unresolved-citation-targets",
+              "noarchive",
+              "apple-ai-context-excluded-by-paywall-schema",
+              "apple-ai-context-hidden-by-nosnippet"
+            ]
+          },
+          "description": "Only measured current signals are emitted; these are review prompts, not claims that a feature is required or that it causes citations."
+        },
+        "originResponseStatusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Bounded frequency list of origin response status codes when the log supplies them."
+        },
+        "originResponseStatusCodesTruncated": {
+          "type": "boolean",
+          "description": "True when additional origin status codes were omitted."
+        },
+        "edgeOriginStatusDifferences": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path where the logged response status differs from the origin response status."
+        },
+        "currentNoArchive": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "geoOpportunity": {
+      "type": "object",
+      "required": [
+        "crawlerToken",
+        "provider",
+        "activity",
+        "path",
+        "auditUrl",
+        "requests",
+        "crawlerRequests",
+        "crawlerRequestSharePercent",
+        "reviewSignals"
+      ],
+      "properties": {
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-crawl"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "auditUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlerRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlerRequestSharePercent": {
+          "$ref": "#/$defs/percent"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "currentSchemaIsAccessibleForFree": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "mixed",
+                "not-declared"
+              ]
+            }
+          ]
+        },
+        "reviewSignals": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "maxItems": 16,
+          "items": {
+            "enum": [
+              "robots-blocked",
+              "noindex",
+              "nosnippet",
+              "max-snippet-zero",
+              "client-error-responses",
+              "server-error-responses",
+              "no-question-headings",
+              "no-concise-answer-blocks",
+              "no-visible-author",
+              "no-visible-date",
+              "no-external-source-links",
+              "no-inline-citation-markers",
+              "unresolved-citation-targets",
+              "noarchive",
+              "apple-ai-context-excluded-by-paywall-schema",
+              "apple-ai-context-hidden-by-nosnippet"
+            ]
+          }
+        },
+        "currentNoArchive": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sitemapFreshnessAnalysis": {
+      "type": "object",
+      "required": [
+        "origin",
+        "sitemapUrl",
+        "sitemapUrlsProvided",
+        "duplicateSitemapEntries",
+        "pagesWithValidLastmod",
+        "pagesWithoutLastmod",
+        "pagesWithInvalidLastmod",
+        "sitemapUrlsWithQueryStrings",
+        "sitemapUrlsSkippedAsAmbiguous",
+        "sitemapUrlsTruncated",
+        "sitemapEntriesTruncated",
+        "inputLogPathsTruncated",
+        "opportunitiesTruncated",
+        "crawlers",
+        "updateOpportunities",
+        "note"
+      ],
+      "properties": {
+        "sourceFile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sitemapUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sitemapUrlsProvided": {
+          "$ref": "#/$defs/count"
+        },
+        "duplicateSitemapEntries": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithValidLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithoutLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithInvalidLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "sitemapUrlsWithQueryStrings": {
+          "$ref": "#/$defs/count"
+        },
+        "sitemapUrlsSkippedAsAmbiguous": {
+          "$ref": "#/$defs/count"
+        },
+        "sitemapUrlsTruncated": {
+          "type": "boolean"
+        },
+        "sitemapEntriesTruncated": {
+          "type": "boolean"
+        },
+        "inputLogPathsTruncated": {
+          "type": "boolean"
+        },
+        "opportunitiesTruncated": {
+          "type": "boolean"
+        },
+        "crawlers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sitemapCrawlerFreshness"
+          }
+        },
+        "updateOpportunities": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/sitemapFreshnessOpportunity"
+          }
+        },
+        "schemaDateComparison": {
+          "$ref": "#/$defs/sitemapSchemaDateComparison"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "sitemapCrawlerFreshness": {
+      "type": "object",
+      "required": [
+        "crawlerToken",
+        "provider",
+        "activity",
+        "sitemapUrlsProvided",
+        "pagesWithValidLastmod",
+        "pagesWithoutLastmod",
+        "pagesWithInvalidLastmod",
+        "pagesObservedInLog",
+        "pagesNotObservedInLog",
+        "pagesWithUpdateAfterLastObservedRequest",
+        "pagesObservedSameUtcDayAsLastmod",
+        "pagesObservedAfterLastmod",
+        "pagesObservedWithoutTimestamp",
+        "ambiguousPaths",
+        "pagesSkippedAsAmbiguous",
+        "requestsOnPagesWithValidLastmod",
+        "requestsOnPagesWithUpdateAfterLastObservedRequest",
+        "logPathsTruncated"
+      ],
+      "properties": {
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "data-use-crawl",
+            "unclassified"
+          ]
+        },
+        "sitemapUrlsProvided": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithValidLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithoutLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithInvalidLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesObservedInLog": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesNotObservedInLog": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithUpdateAfterLastObservedRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesObservedSameUtcDayAsLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesObservedAfterLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesObservedWithoutTimestamp": {
+          "$ref": "#/$defs/count"
+        },
+        "ambiguousPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesSkippedAsAmbiguous": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnPagesWithValidLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOnPagesWithUpdateAfterLastObservedRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "logPathsTruncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sitemapFreshnessOpportunity": {
+      "type": "object",
+      "required": [
+        "crawlerToken",
+        "provider",
+        "activity",
+        "path",
+        "requests",
+        "crawlerRequests",
+        "crawlerRequestSharePercent",
+        "sitemapLastModified",
+        "lastSeenAt",
+        "daysBetweenLastRequestAndUpdate",
+        "state"
+      ],
+      "properties": {
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "data-use-crawl",
+            "unclassified"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlerRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlerRequestSharePercent": {
+          "$ref": "#/$defs/percent"
+        },
+        "sitemapLastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBetweenLastRequestAndUpdate": {
+          "$ref": "#/$defs/count"
+        },
+        "state": {
+          "const": "updated-after-last-observed-request"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sitemapSchemaDateComparison": {
+      "type": "object",
+      "required": [
+        "auditTimestamp",
+        "sitemapUrlsWithValidLastmod",
+        "sitemapUrlsWithoutValidLastmod",
+        "auditPathsMatched",
+        "auditPathsNotFound",
+        "auditPathsAmbiguous",
+        "pagesWithSingleSchemaDateCompared",
+        "pagesWithMatchingSchemaDateModified",
+        "pagesWithDifferentSchemaDateModified",
+        "pagesWithMultipleSchemaDateModified",
+        "pagesWithoutSchemaDateModified",
+        "pagesWithNonDateSchemaDateModified",
+        "pagesWithUnassessedSchemaDateModified",
+        "opportunitiesTruncated",
+        "opportunities"
+      ],
+      "properties": {
+        "auditTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sitemapUrlsWithValidLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "sitemapUrlsWithoutValidLastmod": {
+          "$ref": "#/$defs/count"
+        },
+        "auditPathsMatched": {
+          "$ref": "#/$defs/count"
+        },
+        "auditPathsNotFound": {
+          "$ref": "#/$defs/count"
+        },
+        "auditPathsAmbiguous": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithSingleSchemaDateCompared": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithMatchingSchemaDateModified": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithDifferentSchemaDateModified": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithMultipleSchemaDateModified": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithoutSchemaDateModified": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithNonDateSchemaDateModified": {
+          "$ref": "#/$defs/count"
+        },
+        "pagesWithUnassessedSchemaDateModified": {
+          "$ref": "#/$defs/count"
+        },
+        "opportunitiesTruncated": {
+          "type": "boolean"
+        },
+        "opportunities": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/sitemapSchemaDateOpportunity"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sitemapSchemaDateOpportunity": {
+      "type": "object",
+      "required": [
+        "path",
+        "sitemapLastModified",
+        "schemaDateModifiedDays",
+        "reason"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "sitemapLastModified": {
+          "type": "string",
+          "format": "date"
+        },
+        "schemaDateModifiedDays": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "reason": {
+          "enum": [
+            "different-date",
+            "multiple-dates",
+            "missing-date",
+            "non-date-value"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "robotsPolicyCorrelation": {
+      "type": "object",
+      "required": [
+        "source",
+        "schemaVersion",
+        "robotsSha256",
+        "origin",
+        "inputPathsTruncated",
+        "crawlers",
+        "pathObservations",
+        "pathObservationsTruncated",
+        "note"
+      ],
+      "properties": {
+        "source": {
+          "const": "Aviary AI crawler robots policy replay"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "sourceFile": {
+          "type": "string"
+        },
+        "sourceModifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "robotsSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri"
+        },
+        "inputPathsTruncated": {
+          "type": "boolean"
+        },
+        "crawlers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/robotsCrawler"
+          }
+        },
+        "pathObservations": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "$ref": "#/$defs/robotsPathObservation"
+          }
+        },
+        "pathObservationsTruncated": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "robotsCrawler": {
+      "type": "object",
+      "required": [
+        "token",
+        "provider",
+        "activity",
+        "pathsEvaluated",
+        "requestsEvaluated",
+        "allowedPaths",
+        "blockedPaths",
+        "notAssessedPaths",
+        "notApplicablePaths",
+        "allowedRequests",
+        "blockedRequests"
+      ],
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-crawl"
+          ]
+        },
+        "pathsEvaluated": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsEvaluated": {
+          "$ref": "#/$defs/count"
+        },
+        "allowedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "blockedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "notAssessedPaths": {
+          "$ref": "#/$defs/count"
+        },
+        "notApplicablePaths": {
+          "$ref": "#/$defs/count"
+        },
+        "allowedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "blockedRequests": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "robotsPathObservation": {
+      "type": "object",
+      "required": [
+        "path",
+        "requests",
+        "successfulResponses",
+        "redirects",
+        "clientErrors",
+        "serverErrors",
+        "otherResponses",
+        "crawlerToken",
+        "provider",
+        "activity",
+        "policyDecision",
+        "selectedAgents"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "timestampedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "otherResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-crawl"
+          ]
+        },
+        "policyDecision": {
+          "enum": [
+            "allowed",
+            "blocked",
+            "not-assessed",
+            "not-applicable"
+          ]
+        },
+        "selectedAgents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "matchedRule": {
+          "type": "object",
+          "required": [
+            "directive",
+            "pattern",
+            "specificity",
+            "line"
+          ],
+          "properties": {
+            "directive": {
+              "enum": [
+                "allow",
+                "disallow"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "specificity": {
+              "$ref": "#/$defs/count"
+            },
+            "line": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "originResponseStatusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Bounded frequency list of origin response status codes when the log supplies them."
+        },
+        "originResponseStatusCodesTruncated": {
+          "type": "boolean",
+          "description": "True when additional origin status codes were omitted."
+        },
+        "edgeOriginStatusDifferences": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path where the logged response status differs from the origin response status."
+        }
+      },
+      "additionalProperties": false
+    },
+    "robotsPolicyComparison": {
+      "type": "object",
+      "required": [
+        "source",
+        "schemaVersion",
+        "origin",
+        "baselineSnapshot",
+        "currentSnapshot",
+        "pathsCompared",
+        "pathsNewlyBlocked",
+        "pathsNewlyAllowed",
+        "pathsWithRuleChanges",
+        "pathsUnchanged",
+        "pathsNotComparable",
+        "pathsMissingFromBaseline",
+        "pathsMissingFromCurrent",
+        "requestsNewlyBlocked",
+        "requestsNewlyAllowed",
+        "inputPathsTruncated",
+        "pathChanges",
+        "pathChangesTruncated",
+        "note"
+      ],
+      "properties": {
+        "source": {
+          "const": "Aviary AI crawler robots policy comparison"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "origin": {
+          "type": "string",
+          "format": "uri"
+        },
+        "baselineSnapshot": {
+          "$ref": "#/$defs/robotsSnapshot"
+        },
+        "currentSnapshot": {
+          "$ref": "#/$defs/robotsSnapshot"
+        },
+        "pathsCompared": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsNewlyBlocked": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsNewlyAllowed": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithRuleChanges": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsUnchanged": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsNotComparable": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsMissingFromBaseline": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsMissingFromCurrent": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsNewlyBlocked": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsNewlyAllowed": {
+          "$ref": "#/$defs/count"
+        },
+        "inputPathsTruncated": {
+          "type": "boolean"
+        },
+        "pathChanges": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "$ref": "#/$defs/robotsPathChange"
+          }
+        },
+        "pathChangesTruncated": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "robotsSnapshot": {
+      "type": "object",
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "sourceFile": {
+          "type": "string"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "robotsPathChange": {
+      "type": "object",
+      "required": [
+        "path",
+        "requests",
+        "successfulResponses",
+        "redirects",
+        "clientErrors",
+        "serverErrors",
+        "otherResponses",
+        "crawlerToken",
+        "provider",
+        "activity",
+        "policyDecision",
+        "selectedAgents",
+        "change"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "timestampedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "otherResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlerToken": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-crawl"
+          ]
+        },
+        "policyDecision": {
+          "enum": [
+            "allowed",
+            "blocked",
+            "not-assessed",
+            "not-applicable"
+          ]
+        },
+        "selectedAgents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "matchedRule": {
+          "type": "object",
+          "required": [
+            "directive",
+            "pattern",
+            "specificity",
+            "line"
+          ],
+          "properties": {
+            "directive": {
+              "enum": [
+                "allow",
+                "disallow"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "specificity": {
+              "$ref": "#/$defs/count"
+            },
+            "line": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "baselineDecision": {
+          "enum": [
+            "allowed",
+            "blocked",
+            "not-assessed",
+            "not-applicable"
+          ]
+        },
+        "baselineSelectedAgents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "baselineMatchedRule": {
+          "type": "object",
+          "required": [
+            "directive",
+            "pattern",
+            "specificity",
+            "line"
+          ],
+          "properties": {
+            "directive": {
+              "enum": [
+                "allow",
+                "disallow"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "specificity": {
+              "$ref": "#/$defs/count"
+            },
+            "line": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "change": {
+          "enum": [
+            "newly-blocked",
+            "newly-allowed",
+            "rule-changed",
+            "unchanged",
+            "not-comparable"
+          ]
+        },
+        "originResponseStatusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Bounded frequency list of origin response status codes when the log supplies them."
+        },
+        "originResponseStatusCodesTruncated": {
+          "type": "boolean",
+          "description": "True when additional origin status codes were omitted."
+        },
+        "edgeOriginStatusDifferences": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path where the logged response status differs from the origin response status."
+        }
+      },
+      "additionalProperties": false
+    },
+    "percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "failureHotspot": {
+      "type": "object",
+      "required": [
+        "path",
+        "requests",
+        "clientErrors",
+        "serverErrors",
+        "failureRequests",
+        "failureSharePercent",
+        "statusCodes",
+        "statusCodesTruncated"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "clientErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "serverErrors": {
+          "$ref": "#/$defs/count"
+        },
+        "failureRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "failureSharePercent": {
+          "$ref": "#/$defs/percent",
+          "description": "The path's 4xx and 5xx requests divided by all logged requests for that path in the supplied sample."
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "successfulResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "redirects": {
+          "$ref": "#/$defs/count"
+        },
+        "otherResponses": {
+          "$ref": "#/$defs/count"
+        },
+        "originResponseStatusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "status",
+              "requests"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/$defs/responseStatusCode"
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "originResponseStatusCodesTruncated": {
+          "type": "boolean"
+        },
+        "edgeOriginStatusDifferences": {
+          "$ref": "#/$defs/count"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/responseContentTypeRow"
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "timestampedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysBeforeLatestRequest": {
+          "$ref": "#/$defs/count"
+        },
+        "cloudflareBotAnnotatedRequests": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path with at least one Cloudflare bot score, source, or verified-category field."
+        },
+        "cloudflareVerifiedBotRequests": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path with either a Verified Bot BotScoreSrc value or a non-empty VerifiedBotCategory field."
+        },
+        "cloudflareVerifiedBotFailureRequests": {
+          "$ref": "#/$defs/count",
+          "description": "4xx or 5xx responses among requests on this path with Cloudflare verified-bot evidence."
+        },
+        "cloudflareSecurityActionRequests": {
+          "$ref": "#/$defs/count",
+          "description": "Requests on this path with at least one recognized or unknown Cloudflare SecurityAction value."
+        },
+        "cloudflareBlockingFailureRequests": {
+          "$ref": "#/$defs/count",
+          "description": "4xx or 5xx responses on this path where the logged Cloudflare action included block or connection close."
+        },
+        "cloudflareChallengeFailureRequests": {
+          "$ref": "#/$defs/count",
+          "description": "4xx or 5xx responses on this path where the logged Cloudflare action included an active challenge."
+        },
+        "cloudflareChallengeResolvedFailureRequests": {
+          "$ref": "#/$defs/count",
+          "description": "4xx or 5xx responses on this path where the logged Cloudflare action included a solved or bypassed challenge."
+        }
+      },
+      "additionalProperties": false
+    },
+    "cloudflareBotEvidence": {
+      "type": "object",
+      "required": [
+        "requestsWithCloudflareBotFields",
+        "requestsWithBotScore",
+        "botScoreGroups",
+        "requestsWithBotScoreSource",
+        "botScoreSourceCounts",
+        "requestsWithVerifiedBotCategory",
+        "verifiedBotRequests",
+        "verifiedBotCategories",
+        "verifiedBotCategoriesTruncated"
+      ],
+      "properties": {
+        "requestsWithCloudflareBotFields": {
+          "$ref": "#/$defs/count",
+          "description": "Recognized crawler requests with at least one Cloudflare bot score, score-source, or verified-bot-category field."
+        },
+        "requestsWithBotScore": {
+          "$ref": "#/$defs/count"
+        },
+        "botScoreGroups": {
+          "type": "object",
+          "description": "Cloudflare ranges: 0 not computed, 1 automated, 2–29 likely automated, and 30–99 likely human.",
+          "required": [
+            "notComputed",
+            "automated",
+            "likelyAutomated",
+            "likelyHuman"
+          ],
+          "properties": {
+            "notComputed": {
+              "$ref": "#/$defs/count"
+            },
+            "automated": {
+              "$ref": "#/$defs/count"
+            },
+            "likelyAutomated": {
+              "$ref": "#/$defs/count"
+            },
+            "likelyHuman": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "requestsWithBotScoreSource": {
+          "$ref": "#/$defs/count"
+        },
+        "botScoreSourceCounts": {
+          "type": "object",
+          "required": [
+            "Not Computed",
+            "Heuristics",
+            "Machine Learning",
+            "Behavioral Analysis",
+            "Verified Bot",
+            "JS Fingerprinting",
+            "Cloudflare Service",
+            "other"
+          ],
+          "properties": {
+            "Not Computed": {
+              "$ref": "#/$defs/count"
+            },
+            "Heuristics": {
+              "$ref": "#/$defs/count"
+            },
+            "Machine Learning": {
+              "$ref": "#/$defs/count"
+            },
+            "Behavioral Analysis": {
+              "$ref": "#/$defs/count"
+            },
+            "Verified Bot": {
+              "$ref": "#/$defs/count"
+            },
+            "JS Fingerprinting": {
+              "$ref": "#/$defs/count"
+            },
+            "Cloudflare Service": {
+              "$ref": "#/$defs/count"
+            },
+            "other": {
+              "$ref": "#/$defs/count"
+            }
+          },
+          "additionalProperties": false
+        },
+        "requestsWithVerifiedBotCategory": {
+          "$ref": "#/$defs/count"
+        },
+        "verifiedBotRequests": {
+          "$ref": "#/$defs/count",
+          "description": "Requests with either a Verified Bot BotScoreSrc value or a non-empty VerifiedBotCategory field."
+        },
+        "verifiedBotCategories": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "required": [
+              "category",
+              "requests"
+            ],
+            "properties": {
+              "category": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "requests": {
+                "$ref": "#/$defs/count"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "verifiedBotCategoriesTruncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cloudflareSecurityActions": {
+      "type": "object",
+      "required": [
+        "requestsWithSecurityActions",
+        "blockingRequests",
+        "challengeRequests",
+        "challengeSolvedOrBypassedRequests",
+        "allowBypassOrSkipRequests",
+        "otherActionRequests"
+      ],
+      "properties": {
+        "requestsWithSecurityActions": {
+          "$ref": "#/$defs/count"
+        },
+        "blockingRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "challengeRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "challengeSolvedOrBypassedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "allowBypassOrSkipRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "otherActionRequests": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logPeriodComparison": {
+      "type": "object",
+      "required": [
+        "source",
+        "schemaVersion",
+        "baselineUniquePathsAcrossRecognizedBots",
+        "currentUniquePathsAcrossRecognizedBots",
+        "crawlers",
+        "note"
+      ],
+      "properties": {
+        "source": {
+          "const": "Aviary AI crawler log period comparison"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "baselineUniquePathsAcrossRecognizedBots": {
+          "$ref": "#/$defs/count"
+        },
+        "currentUniquePathsAcrossRecognizedBots": {
+          "$ref": "#/$defs/count"
+        },
+        "crawlers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/logPeriodCrawler"
+          }
+        },
+        "aiReferralSources": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/aiReferralPeriodComparison"
+          }
+        },
+        "utmSourceAttributionCoverage": {
+          "$ref": "#/$defs/utmSourceAttributionCoveragePeriodComparison"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "utmSourceAttributionCoveragePeriodComparison": {
+      "type": "object",
+      "required": [
+        "comparisonAvailable",
+        "baseline",
+        "current"
+      ],
+      "properties": {
+        "comparisonAvailable": {
+          "type": "boolean"
+        },
+        "baseline": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/utmSourceAttributionCoverage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "current": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/utmSourceAttributionCoverage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "aiReferralPeriodComparison": {
+      "type": "object",
+      "required": [
+        "source",
+        "comparisonAvailable",
+        "baselineRequests",
+        "currentRequests",
+        "requestDelta",
+        "requestChangePercent",
+        "baselineFailureRatePercent",
+        "currentFailureRatePercent",
+        "failureRateDeltaPercentagePoints",
+        "baselineUniquePaths",
+        "currentUniquePaths",
+        "baselinePathsTruncated",
+        "currentPathsTruncated",
+        "pathsOnlyInCurrentRetainedList",
+        "pathsOnlyInBaselineRetainedList",
+        "pathsWithNewFailures",
+        "pathsWithResolvedFailures",
+        "pathChanges",
+        "pathChangesTruncated"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "comparisonAvailable": {
+          "type": "boolean"
+        },
+        "baselineRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestDelta": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "requestChangePercent": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baselineFailureRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentFailureRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineFailureRatePercent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/percent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentFailureRatePercent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/percent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failureRateDeltaPercentagePoints": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineUniquePaths": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentUniquePaths": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselinePathsTruncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "currentPathsTruncated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "pathsOnlyInCurrentRetainedList": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsOnlyInBaselineRetainedList": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithNewFailures": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsWithResolvedFailures": {
+          "$ref": "#/$defs/count"
+        },
+        "pathChanges": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/logPeriodPathChange"
+          }
+        },
+        "pathChangesTruncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logPeriodCrawler": {
+      "type": "object",
+      "required": [
+        "token",
+        "provider",
+        "activity",
+        "baselineRequests",
+        "currentRequests",
+        "requestDelta",
+        "requestChangePercent",
+        "baselineFailureRatePercent",
+        "currentFailureRatePercent",
+        "failureRateDeltaPercentagePoints",
+        "baselineUniquePaths",
+        "currentUniquePaths",
+        "sharedRetainedPathsCompared",
+        "pathsOnlyInCurrentRetainedList",
+        "pathsOnlyInBaselineRetainedList",
+        "sharedPathsWithResponseClassShift",
+        "sharedPathsWithNewFailures",
+        "sharedPathsWithResolvedFailures",
+        "sharedPathsWithFailureRateIncrease",
+        "sharedPathsWithFailureRateDecrease",
+        "sharedPathsWithStatusCodeSetShift",
+        "sharedPathsWithMediaTypeSetShift",
+        "cloudFrontResults",
+        "baselineCloudflareBotFieldRequests",
+        "currentCloudflareBotFieldRequests",
+        "baselineCloudflareVerifiedBotRequests",
+        "currentCloudflareVerifiedBotRequests",
+        "baselineCloudflareSecurityActionRequests",
+        "currentCloudflareSecurityActionRequests",
+        "baselineCloudflareBlockingRequests",
+        "currentCloudflareBlockingRequests",
+        "baselineCloudflareChallengeRequests",
+        "currentCloudflareChallengeRequests",
+        "baselineSample",
+        "currentSample",
+        "inputPathsTruncated",
+        "pathChanges",
+        "pathChangesTruncated"
+      ],
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity": {
+          "enum": [
+            "search-crawl",
+            "user-initiated-fetch",
+            "training-data-crawl",
+            "unclassified",
+            "data-use-crawl"
+          ]
+        },
+        "baselineRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "currentRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "requestDelta": {
+          "type": "integer"
+        },
+        "requestChangePercent": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -100,
+              "description": "A decrease can exceed 100 percent when the sample grows substantially."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineFailureRatePercent": {
+          "$ref": "#/$defs/percent"
+        },
+        "currentFailureRatePercent": {
+          "$ref": "#/$defs/percent"
+        },
+        "failureRateDeltaPercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "baselineUniquePaths": {
+          "$ref": "#/$defs/count"
+        },
+        "currentUniquePaths": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedRetainedPathsCompared": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsOnlyInCurrentRetainedList": {
+          "$ref": "#/$defs/count"
+        },
+        "pathsOnlyInBaselineRetainedList": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedPathsWithResponseClassShift": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedPathsWithNewFailures": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedPathsWithResolvedFailures": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedPathsWithFailureRateIncrease": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedPathsWithFailureRateDecrease": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedPathsWithStatusCodeSetShift": {
+          "$ref": "#/$defs/count"
+        },
+        "sharedPathsWithMediaTypeSetShift": {
+          "$ref": "#/$defs/count"
+        },
+        "timing": {
+          "$ref": "#/$defs/timingComparison"
+        },
+        "cloudFrontResults": {
+          "$ref": "#/$defs/cloudFrontResultPeriodComparison"
+        },
+        "baselineCloudflareBotFieldRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentCloudflareBotFieldRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineCloudflareVerifiedBotRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentCloudflareVerifiedBotRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineCloudflareSecurityActionRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentCloudflareSecurityActionRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineCloudflareBlockingRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentCloudflareBlockingRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineCloudflareChallengeRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currentCloudflareChallengeRequests": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/count"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "baselineSample": {
+          "$ref": "#/$defs/logPeriodSample"
+        },
+        "currentSample": {
+          "$ref": "#/$defs/logPeriodSample"
+        },
+        "inputPathsTruncated": {
+          "type": "boolean"
+        },
+        "pathChanges": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/logPeriodPathChange"
+          }
+        },
+        "pathChangesTruncated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logPeriodSample": {
+      "type": "object",
+      "properties": {
+        "sourceFile": {
+          "type": "string"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "logPeriodPathChange": {
+      "type": "object",
+      "required": [
+        "path",
+        "change",
+        "failureRateDeltaPercentagePoints",
+        "requestShareDeltaPercentagePoints"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "change": {
+          "enum": [
+            "current-only-retained",
+            "baseline-only-retained",
+            "failure-emerged",
+            "failure-cleared",
+            "response-class-shift",
+            "status-code-set-shift",
+            "media-type-set-shift",
+            "request-share-shift"
+          ]
+        },
+        "baseline": {
+          "$ref": "#/$defs/logPeriodPathProfile"
+        },
+        "current": {
+          "$ref": "#/$defs/logPeriodPathProfile"
+        },
+        "failureRateDeltaPercentagePoints": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestShareDeltaPercentagePoints": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "logPeriodPathProfile": {
+      "type": "object",
+      "required": [
+        "requests",
+        "requestSharePercent",
+        "failureRatePercent",
+        "responseClassSharesPercent",
+        "statusCodes",
+        "statusCodesTruncated",
+        "responseContentTypes",
+        "responseContentTypesTruncated"
+      ],
+      "properties": {
+        "requests": {
+          "$ref": "#/$defs/count"
+        },
+        "failureRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "requestSharePercent": {
+          "$ref": "#/$defs/percent"
+        },
+        "failureRatePercent": {
+          "$ref": "#/$defs/percent"
+        },
+        "responseClassSharesPercent": {
+          "type": "object",
+          "required": [
+            "successful2xx",
+            "redirects3xx",
+            "clientErrors4xx",
+            "serverErrors5xx",
+            "other"
+          ],
+          "properties": {
+            "successful2xx": {
+              "$ref": "#/$defs/percent"
+            },
+            "redirects3xx": {
+              "$ref": "#/$defs/percent"
+            },
+            "clientErrors4xx": {
+              "$ref": "#/$defs/percent"
+            },
+            "serverErrors5xx": {
+              "$ref": "#/$defs/percent"
+            },
+            "other": {
+              "$ref": "#/$defs/percent"
+            }
+          },
+          "additionalProperties": false
+        },
+        "statusCodes": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/responseStatusCode"
+          }
+        },
+        "statusCodesTruncated": {
+          "type": "boolean"
+        },
+        "responseContentTypes": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "maxLength": 127
+          }
+        },
+        "responseContentTypesTruncated": {
+          "type": "boolean"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ipRangeVerification": {
+      "type": "object",
+      "description": "Aggregate comparison of source-IP log fields against operator-supplied CIDRs. A match is range membership only, not crawler authentication.",
+      "required": [
+        "configuredCidrCount",
+        "userAgentMatchedRequests",
+        "requestsWithMatchedRange",
+        "requestsOutsideConfiguredRanges",
+        "requestsWithoutClientIp",
+        "requestsWithInvalidClientIp"
+      ],
+      "properties": {
+        "configuredCidrCount": {
+          "$ref": "#/$defs/count"
+        },
+        "userAgentMatchedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithMatchedRange": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOutsideConfiguredRanges": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithoutClientIp": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithInvalidClientIp": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ipRangeVerificationByToken": {
+      "type": "object",
+      "required": [
+        "token",
+        "configuredCidrCount",
+        "userAgentMatchedRequests",
+        "requestsWithMatchedRange",
+        "requestsOutsideConfiguredRanges",
+        "requestsWithoutClientIp",
+        "requestsWithInvalidClientIp"
+      ],
+      "properties": {
+        "token": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "configuredCidrCount": {
+          "$ref": "#/$defs/count"
+        },
+        "userAgentMatchedRequests": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithMatchedRange": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsOutsideConfiguredRanges": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithoutClientIp": {
+          "$ref": "#/$defs/count"
+        },
+        "requestsWithInvalidClientIp": {
+          "$ref": "#/$defs/count"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

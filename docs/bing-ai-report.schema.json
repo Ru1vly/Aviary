@@ -1,0 +1,540 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary Bing AI Performance analysis report",
+  "description": "Versioned local analysis of Bing Webmaster Tools AI Performance CSV exports. Citation observations are sampled and aggregated; they are not complete answer or property totals.",
+  "type": "object",
+  "required": ["source", "schemaVersion", "note", "exports", "summaries"],
+  "properties": {
+    "source": { "const": "Bing Webmaster Tools AI Performance CSV export" },
+    "schemaVersion": { "const": 1 },
+    "note": { "type": "string", "minLength": 1 },
+    "exports": { "type": "array", "items": { "$ref": "#/$defs/export" } },
+    "summaries": { "type": "array", "items": { "$ref": "#/$defs/summary" } },
+    "queryPageAnalyses": { "type": "array", "items": { "$ref": "#/$defs/queryPageAnalysis" } },
+    "topicIntentAnalyses": { "type": "array", "items": { "$ref": "#/$defs/topicIntentAnalysis" } },
+    "visibilityComparison": { "$ref": "#/$defs/visibilityComparison" },
+    "queryMappingComparison": { "$ref": "#/$defs/queryMappingComparison" },
+    "topicIntentComparison": { "$ref": "#/$defs/topicIntentComparison" },
+    "correlations": { "type": "array", "items": { "$ref": "#/$defs/correlation" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "metric": { "type": "number", "minimum": 0 },
+    "export": {
+      "type": "object",
+      "required": ["datasetKind", "headerRow", "rowCount", "skippedRows", "uniquePageCount", "uniqueQueryCount", "columns", "rows"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "datasetKind": { "enum": ["page-citations", "grounding-queries", "query-page-mapping", "time-series", "topic-summary", "intent-summary", "topic-intent-summary", "overview"] },
+        "headerRow": { "$ref": "#/$defs/count" },
+        "rowCount": { "$ref": "#/$defs/count" },
+        "skippedRows": { "$ref": "#/$defs/count" },
+        "uniquePageCount": { "$ref": "#/$defs/count" },
+        "uniqueQueryCount": { "$ref": "#/$defs/count" },
+        "columns": { "type": "object", "additionalProperties": { "type": "string" } },
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/row" } }
+      },
+      "additionalProperties": true
+    },
+    "row": {
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "query": { "type": "string" },
+        "date": { "type": "string" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citedPages": { "$ref": "#/$defs/metric" },
+        "citationShare": { "$ref": "#/$defs/metric" },
+        "intent": { "type": "string" },
+        "topic": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "dimensionSummary": {
+      "type": "object",
+      "required": ["value", "rows"],
+      "properties": {
+        "value": { "type": "string" },
+        "rows": { "$ref": "#/$defs/count" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citedPages": { "$ref": "#/$defs/metric" },
+        "averageCitationShare": { "$ref": "#/$defs/metric" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["datasetKind", "rowCount", "uniquePageCount", "uniqueQueryCount", "topPages", "topQueries", "topTopics", "topIntents", "timeSeries", "note"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "datasetKind": { "enum": ["page-citations", "grounding-queries", "query-page-mapping", "time-series", "topic-summary", "intent-summary", "topic-intent-summary", "overview"] },
+        "rowCount": { "$ref": "#/$defs/count" },
+        "uniquePageCount": { "$ref": "#/$defs/count" },
+        "uniqueQueryCount": { "$ref": "#/$defs/count" },
+        "totalCitations": { "$ref": "#/$defs/metric" },
+        "totalCitedPages": { "$ref": "#/$defs/metric" },
+        "averageCitationShare": { "$ref": "#/$defs/metric" },
+        "topPages": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "topQueries": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "topTopics": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "topIntents": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "timeSeries": { "type": "array", "items": { "$ref": "#/$defs/timeSeriesPoint" } },
+        "firstToLastCitationChange": { "$ref": "#/$defs/timeSeriesChange" },
+        "note": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "timeSeriesPoint": {
+      "type": "object",
+      "required": ["period", "rows"],
+      "properties": {
+        "period": { "type": "string" },
+        "rows": { "$ref": "#/$defs/count" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citedPages": { "$ref": "#/$defs/metric" },
+        "averageCitationShare": { "$ref": "#/$defs/metric" }
+      },
+      "additionalProperties": false
+    },
+    "timeSeriesChange": {
+      "type": "object",
+      "required": ["firstPeriod", "lastPeriod", "absoluteChange"],
+      "properties": {
+        "firstPeriod": { "type": "string" },
+        "lastPeriod": { "type": "string" },
+        "absoluteChange": { "type": "number" },
+        "percentChange": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "queryPageAnalysis": {
+      "type": "object",
+      "required": ["mappingRows", "queryCount", "pageCount", "queriesMappedToMultiplePages", "queriesWithoutMappedPages", "pagesMappedFromMultipleQueries", "queryRowsWithoutUsableUrl", "queryGroups", "queryGroupsTruncated", "pages", "pagesTruncated", "note"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "mappingRows": { "$ref": "#/$defs/count" },
+        "queryCount": { "$ref": "#/$defs/count" },
+        "pageCount": { "$ref": "#/$defs/count" },
+        "queriesMappedToMultiplePages": { "$ref": "#/$defs/count" },
+        "queriesWithoutMappedPages": { "$ref": "#/$defs/count" },
+        "pagesMappedFromMultipleQueries": { "$ref": "#/$defs/count" },
+        "queryRowsWithoutUsableUrl": { "$ref": "#/$defs/count" },
+        "citationDistributionSummary": { "$ref": "#/$defs/queryCitationDistributionSummary" },
+        "queryGroups": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/queryGroup" } },
+        "queryGroupsTruncated": { "type": "boolean" },
+        "pages": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/queryPage" } },
+        "pagesTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "queryGroup": {
+      "type": "object",
+      "required": ["query", "rows", "pageCount", "topics", "topicsTruncated", "intents", "intentsTruncated", "pages", "pagesTruncated"],
+      "properties": {
+        "query": { "type": "string" },
+        "rows": { "$ref": "#/$defs/count" },
+        "pageCount": { "$ref": "#/$defs/count" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citedPages": { "$ref": "#/$defs/metric" },
+        "topics": { "type": "array", "maxItems": 10, "items": { "type": "string" } },
+        "topicsTruncated": { "type": "boolean" },
+        "intents": { "type": "array", "maxItems": 10, "items": { "type": "string" } },
+        "intentsTruncated": { "type": "boolean" },
+        "citationDistribution": { "$ref": "#/$defs/queryCitationDistribution" },
+        "pages": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/queryPageMetric" } },
+        "pagesTruncated": { "type": "boolean" },
+        "auditReview": { "$ref": "#/$defs/queryAuditReview" }
+      },
+      "additionalProperties": false
+    },
+    "queryCitationDistribution": {
+      "type": "object",
+      "required": ["pagesWithCitationMetric", "pagesWithoutCitationMetric", "citationsAcrossMeasuredPages", "note"],
+      "properties": {
+        "pagesWithCitationMetric": { "$ref": "#/$defs/count" },
+        "pagesWithoutCitationMetric": { "$ref": "#/$defs/count" },
+        "citationsAcrossMeasuredPages": { "$ref": "#/$defs/metric" },
+        "largestPageCitationSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "herfindahlIndex": { "type": "number", "minimum": 0, "maximum": 1 },
+        "effectiveCitationPages": { "type": "number", "exclusiveMinimum": 0 },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "queryCitationDistributionSummary": {
+      "type": "object",
+      "required": ["queriesWithMeasuredDistribution", "queriesWithPartialPageMetricCoverage", "note"],
+      "properties": {
+        "queriesWithMeasuredDistribution": { "$ref": "#/$defs/count" },
+        "queriesWithPartialPageMetricCoverage": { "$ref": "#/$defs/count" },
+        "medianLargestPageCitationSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "medianEffectiveCitationPages": { "type": "number", "exclusiveMinimum": 0 },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "queryPageMetric": {
+      "type": "object",
+      "required": ["url", "rows"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "rows": { "$ref": "#/$defs/count" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citedPages": { "$ref": "#/$defs/metric" },
+        "currentAudit": { "$ref": "#/$defs/queryPageAudit" }
+      },
+      "additionalProperties": false
+    },
+    "queryPageAudit": {
+      "type": "object",
+      "required": ["auditMatchType", "auditMatched", "bingbotAccess"],
+      "properties": {
+        "auditMatchType": { "enum": ["exact-url", "canonical-url", "ambiguous-audit-url", "ambiguous-canonical", "unmatched"] },
+        "auditMatched": { "type": "boolean" },
+        "matchedAuditUrl": { "type": "string", "format": "uri" },
+        "bingbotAccess": { "enum": ["allowed", "blocked", "not-assessed"] },
+        "globalNoindex": { "type": "boolean" },
+        "globalNoSnippet": { "type": "boolean" },
+        "bingbotNoindex": { "type": "boolean" },
+        "bingbotNoSnippet": { "type": "boolean" },
+        "bingbotMaxSnippetZero": { "type": "boolean" },
+        "questionHeadings": { "$ref": "#/$defs/count" },
+        "conciseAnswerBlocks": { "$ref": "#/$defs/count" },
+        "externalSourceLinks": { "$ref": "#/$defs/count" },
+        "documentLanguage": { "type": "string", "maxLength": 80 },
+        "documentLanguageValid": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "queryAuditReview": {
+      "type": "object",
+      "required": ["mappedPages", "pagesMatchedToAudit", "pagesNotMatchedToAudit", "pagesWithoutAuditCorrelation", "pagesWithAmbiguousAuditUrlMatch", "pagesWithAmbiguousCanonicalMatch", "bingbotAccessAssessedPages", "currentBingbotBlockedPages", "pagesWithGlobalNoindex", "pagesWithGlobalNoSnippet", "pagesWithBingbotNoindex", "pagesWithBingbotSnippetRestriction", "pagesWithQuestionHeadings", "pagesWithConciseAnswerBlocks", "pagesWithExternalSourceLinks", "languageProfilesAssessedPages", "assessedPagesWithoutLanguageTag", "pagesWithValidDeclaredLanguageTag", "pagesWithInvalidDeclaredLanguageTag", "pagesWithDeclaredLanguageTagNotValidated", "declaredLanguages", "languagesTruncated"],
+      "properties": {
+        "mappedPages": { "$ref": "#/$defs/count" },
+        "pagesMatchedToAudit": { "$ref": "#/$defs/count" },
+        "pagesNotMatchedToAudit": { "$ref": "#/$defs/count" },
+        "pagesWithoutAuditCorrelation": { "$ref": "#/$defs/count" },
+        "pagesWithAmbiguousAuditUrlMatch": { "$ref": "#/$defs/count" },
+        "pagesWithAmbiguousCanonicalMatch": { "$ref": "#/$defs/count" },
+        "bingbotAccessAssessedPages": { "$ref": "#/$defs/count" },
+        "currentBingbotBlockedPages": { "$ref": "#/$defs/count" },
+        "pagesWithGlobalNoindex": { "$ref": "#/$defs/count" },
+        "pagesWithGlobalNoSnippet": { "$ref": "#/$defs/count" },
+        "pagesWithBingbotNoindex": { "$ref": "#/$defs/count" },
+        "pagesWithBingbotSnippetRestriction": { "$ref": "#/$defs/count" },
+        "pagesWithQuestionHeadings": { "$ref": "#/$defs/count" },
+        "pagesWithConciseAnswerBlocks": { "$ref": "#/$defs/count" },
+        "pagesWithExternalSourceLinks": { "$ref": "#/$defs/count" },
+        "languageProfilesAssessedPages": { "$ref": "#/$defs/count" },
+        "assessedPagesWithoutLanguageTag": { "$ref": "#/$defs/count" },
+        "pagesWithValidDeclaredLanguageTag": { "$ref": "#/$defs/count" },
+        "pagesWithInvalidDeclaredLanguageTag": { "$ref": "#/$defs/count" },
+        "pagesWithDeclaredLanguageTagNotValidated": { "$ref": "#/$defs/count" },
+        "declaredLanguages": { "type": "array", "maxItems": 10, "items": { "type": "object", "required": ["language", "pages"], "properties": { "language": { "type": "string", "minLength": 1, "maxLength": 80 }, "pages": { "$ref": "#/$defs/count" } }, "additionalProperties": false } },
+        "languagesTruncated": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "queryPage": {
+      "type": "object",
+      "required": ["url", "rows", "queryCount", "queries", "queriesTruncated"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "rows": { "$ref": "#/$defs/count" },
+        "queryCount": { "$ref": "#/$defs/count" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citedPages": { "$ref": "#/$defs/metric" },
+        "queries": { "type": "array", "maxItems": 10, "items": { "type": "string" } },
+        "queriesTruncated": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "topicIntentAnalysis": {
+      "type": "object",
+      "required": ["mappedRows", "topicCount", "intentCount", "cellCount", "cells", "cellsTruncated", "note"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "mappedRows": { "$ref": "#/$defs/count" },
+        "topicCount": { "$ref": "#/$defs/count" },
+        "intentCount": { "$ref": "#/$defs/count" },
+        "cellCount": { "$ref": "#/$defs/count" },
+        "rowSummedCitations": { "$ref": "#/$defs/metric" },
+        "averageCitationShare": { "$ref": "#/$defs/metric" },
+        "cells": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/topicIntentCell" } },
+        "cellsTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "topicIntentCell": {
+      "type": "object",
+      "required": ["topic", "intent", "rows"],
+      "properties": {
+        "topic": { "type": "string" },
+        "intent": { "type": "string" },
+        "rows": { "$ref": "#/$defs/count" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citedPages": { "$ref": "#/$defs/metric" },
+        "averageCitationShare": { "$ref": "#/$defs/metric" }
+      },
+      "additionalProperties": false
+    },
+    "visibilityComparison": {
+      "type": "object",
+      "required": ["baselinePagesInExport", "currentPagesInExport", "pagesCompared", "pagesOnlyInCurrentExport", "pagesOnlyInBaselineExport", "pagesWithUnavailableCitationMetric", "pagesWithCitationShareComparison", "baselineCitationsInExport", "currentCitationsInExport", "matchedBaselineCitations", "matchedCurrentCitations", "matchedPageCitationChange", "pagesWithIncreasedCitations", "pagesWithDecreasedCitations", "unchangedPages", "topGains", "topLosses", "topCitationShareIncreases", "topCitationShareDecreases", "changes", "changesTruncated", "note"],
+      "properties": {
+        "baselineSourceFile": { "type": "string" },
+        "currentSourceFile": { "type": "string" },
+        "baselinePagesInExport": { "$ref": "#/$defs/count" },
+        "currentPagesInExport": { "$ref": "#/$defs/count" },
+        "pagesCompared": { "$ref": "#/$defs/count" },
+        "pagesOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "pagesOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "pagesWithUnavailableCitationMetric": { "$ref": "#/$defs/count" },
+        "pagesWithCitationShareComparison": { "$ref": "#/$defs/count" },
+        "baselineCitationsInExport": { "$ref": "#/$defs/metric" },
+        "currentCitationsInExport": { "$ref": "#/$defs/metric" },
+        "matchedBaselineCitations": { "$ref": "#/$defs/metric" },
+        "matchedCurrentCitations": { "$ref": "#/$defs/metric" },
+        "matchedPageCitationChange": { "type": "number" },
+        "matchedPagePercentChange": { "type": "number" },
+        "meanBaselinePageCitationShare": { "$ref": "#/$defs/metric" },
+        "meanCurrentPageCitationShare": { "$ref": "#/$defs/metric" },
+        "meanPageCitationShareChangePercentagePoints": { "type": "number" },
+        "pagesWithIncreasedCitations": { "$ref": "#/$defs/count" },
+        "pagesWithDecreasedCitations": { "$ref": "#/$defs/count" },
+        "unchangedPages": { "$ref": "#/$defs/count" },
+        "topGains": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/pageChange" } },
+        "topLosses": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/pageChange" } },
+        "topCitationShareIncreases": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/pageChange" } },
+        "topCitationShareDecreases": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/pageChange" } },
+        "changes": { "type": "array", "maxItems": 1000, "items": { "$ref": "#/$defs/pageChange" } },
+        "changesTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "pageChange": {
+      "type": "object",
+      "required": ["url", "state"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "baselineCitations": { "$ref": "#/$defs/metric" },
+        "currentCitations": { "$ref": "#/$defs/metric" },
+        "citationChange": { "type": "number" },
+        "percentChange": { "type": "number" },
+        "baselineAverageCitationShare": { "$ref": "#/$defs/metric" },
+        "currentAverageCitationShare": { "$ref": "#/$defs/metric" },
+        "citationShareChangePercentagePoints": { "type": "number" },
+        "state": { "enum": ["current-only", "baseline-only", "increased", "decreased", "unchanged", "metric-unavailable"] }
+      },
+      "additionalProperties": false
+    },
+    "queryMappingComparison": {
+      "type": "object",
+      "required": ["baselineQueryCount", "currentQueryCount", "queriesPresentInBoth", "queriesOnlyInCurrentExport", "queriesOnlyInBaselineExport", "pageMappingsCompared", "pageMappingsOnlyInCurrentExport", "pageMappingsOnlyInBaselineExport", "pageMappingsWithUnavailableCitationMetric", "matchedBaselineCitations", "matchedCurrentCitations", "matchedCitationChange", "queryGroups", "queryGroupsTruncated", "note"],
+      "properties": {
+        "baselineSourceFile": { "type": "string" },
+        "currentSourceFile": { "type": "string" },
+        "baselineQueryCount": { "$ref": "#/$defs/count" },
+        "currentQueryCount": { "$ref": "#/$defs/count" },
+        "queriesPresentInBoth": { "$ref": "#/$defs/count" },
+        "queriesOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "queriesOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "pageMappingsCompared": { "$ref": "#/$defs/count" },
+        "pageMappingsOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "pageMappingsOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "pageMappingsWithUnavailableCitationMetric": { "$ref": "#/$defs/count" },
+        "matchedBaselineCitations": { "$ref": "#/$defs/metric" },
+        "matchedCurrentCitations": { "$ref": "#/$defs/metric" },
+        "matchedCitationChange": { "type": "number" },
+        "queryGroups": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/queryMappingChangeGroup" } },
+        "queryGroupsTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "queryMappingChangeGroup": {
+      "type": "object",
+      "required": ["query", "state", "baselinePageCount", "currentPageCount", "pagesOnlyInCurrentExport", "pagesOnlyInBaselineExport", "mappedPagePairCount", "pagesCompared", "pagesWithUnavailableCitationMetric", "matchedBaselineCitations", "matchedCurrentCitations", "pages", "pagesTruncated"],
+      "properties": {
+        "query": { "type": "string" },
+        "state": { "enum": ["current-only", "baseline-only", "present-both"] },
+        "baselinePageCount": { "$ref": "#/$defs/count" },
+        "currentPageCount": { "$ref": "#/$defs/count" },
+        "pagesOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "pagesOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "mappedPagePairCount": { "$ref": "#/$defs/count" },
+        "pagesCompared": { "$ref": "#/$defs/count" },
+        "pagesWithUnavailableCitationMetric": { "$ref": "#/$defs/count" },
+        "matchedBaselineCitations": { "$ref": "#/$defs/metric" },
+        "matchedCurrentCitations": { "$ref": "#/$defs/metric" },
+        "matchedCitationChange": { "type": "number" },
+        "pages": { "type": "array", "maxItems": 10, "items": { "$ref": "#/$defs/queryPageMappingChange" } },
+        "pagesTruncated": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "queryPageMappingChange": {
+      "type": "object",
+      "required": ["url", "state"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "state": { "enum": ["current-only", "baseline-only", "present-both", "metric-unavailable"] },
+        "baselineCitations": { "$ref": "#/$defs/metric" },
+        "currentCitations": { "$ref": "#/$defs/metric" },
+        "citationChange": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "topicIntentComparison": {
+      "type": "object",
+      "required": ["baselineRows", "currentRows", "baselineRowsWithBothDimensions", "currentRowsWithBothDimensions", "baselineRowsWithCitationMetric", "currentRowsWithCitationMetric", "baselineCohortCount", "currentCohortCount", "cohortsPresentInBoth", "cohortsOnlyInCurrentExport", "cohortsOnlyInBaselineExport", "cohortsComparedWithCitationMetrics", "cohorts", "cohortsTruncated", "note"],
+      "properties": {
+        "baselineSourceFile": { "type": "string" },
+        "currentSourceFile": { "type": "string" },
+        "baselineRows": { "$ref": "#/$defs/count" },
+        "currentRows": { "$ref": "#/$defs/count" },
+        "baselineRowsWithBothDimensions": { "$ref": "#/$defs/count" },
+        "currentRowsWithBothDimensions": { "$ref": "#/$defs/count" },
+        "baselineRowsWithCitationMetric": { "$ref": "#/$defs/count" },
+        "currentRowsWithCitationMetric": { "$ref": "#/$defs/count" },
+        "baselineCohortCount": { "$ref": "#/$defs/count" },
+        "currentCohortCount": { "$ref": "#/$defs/count" },
+        "cohortsPresentInBoth": { "$ref": "#/$defs/count" },
+        "cohortsOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "cohortsOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "cohortsComparedWithCitationMetrics": { "$ref": "#/$defs/count" },
+        "baselineTopicIntentCitationTotal": { "$ref": "#/$defs/metric" },
+        "currentTopicIntentCitationTotal": { "$ref": "#/$defs/metric" },
+        "rowSummedCitationChange": { "type": "number" },
+        "cohorts": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/topicIntentCohortChange" } },
+        "cohortsTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "topicIntentCohortChange": {
+      "type": "object",
+      "required": ["topic", "intent", "baselineRows", "currentRows", "baselineRowsWithCitationMetric", "currentRowsWithCitationMetric", "baselineQueries", "currentQueries", "queriesPresentInBoth", "queriesOnlyInCurrentExport", "queriesOnlyInBaselineExport", "currentOnlyQuerySamples", "baselineOnlyQuerySamples"],
+      "properties": {
+        "topic": { "type": "string" },
+        "intent": { "type": "string" },
+        "baselineRows": { "$ref": "#/$defs/count" },
+        "currentRows": { "$ref": "#/$defs/count" },
+        "baselineRowsWithCitationMetric": { "$ref": "#/$defs/count" },
+        "currentRowsWithCitationMetric": { "$ref": "#/$defs/count" },
+        "baselineQueries": { "$ref": "#/$defs/count" },
+        "currentQueries": { "$ref": "#/$defs/count" },
+        "queriesPresentInBoth": { "$ref": "#/$defs/count" },
+        "queriesOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "queriesOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "baselineRowSummedCitations": { "$ref": "#/$defs/metric" },
+        "currentRowSummedCitations": { "$ref": "#/$defs/metric" },
+        "rowSummedCitationChange": { "type": "number" },
+        "baselineCitationSharePercent": { "$ref": "#/$defs/metric" },
+        "currentCitationSharePercent": { "$ref": "#/$defs/metric" },
+        "citationShareChangePercentagePoints": { "type": "number" },
+        "currentOnlyQuerySamples": { "type": "array", "maxItems": 5, "items": { "type": "string" } },
+        "baselineOnlyQuerySamples": { "type": "array", "maxItems": 5, "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "correlation": {
+      "type": "object",
+      "required": ["auditPagesCompared", "citationRows", "uniqueCitedPages", "citedPagesMatchedToAudit", "citedPagesMatchedByCanonical", "citedPagesWithAmbiguousAuditUrlMatch", "citedPagesWithAmbiguousCanonicalMatch", "citedPagesNotInAudit", "matchedPagesWithGeoResults", "matchedPagesWithCurrentCrawlerBlocks", "matchedPagesWithCurrentNoindex", "matchedPagesWithCurrentNoSnippet", "matchedPagesWithCurrentDataNoSnippet", "matchedPagesWithCurrentBingbotNoindex", "matchedPagesWithCurrentBingbotNoSnippet", "matchedPagesWithCurrentBingbotMaxSnippetZero", "currentControlObservations", "currentContentObservations", "note", "rows"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "auditPagesCompared": { "$ref": "#/$defs/count" },
+        "citationRows": { "$ref": "#/$defs/count" },
+        "uniqueCitedPages": { "$ref": "#/$defs/count" },
+        "citedPagesMatchedToAudit": { "$ref": "#/$defs/count" },
+        "citedPagesMatchedByCanonical": { "$ref": "#/$defs/count" },
+        "citedPagesWithAmbiguousAuditUrlMatch": { "$ref": "#/$defs/count" },
+        "citedPagesWithAmbiguousCanonicalMatch": { "$ref": "#/$defs/count" },
+        "citedPagesNotInAudit": { "$ref": "#/$defs/count" },
+        "matchedPagesWithGeoResults": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentCrawlerBlocks": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentNoindex": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentNoSnippet": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentDataNoSnippet": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentBingbotNoindex": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentBingbotNoSnippet": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentBingbotMaxSnippetZero": { "$ref": "#/$defs/count" },
+        "currentControlObservations": { "type": "array", "items": { "$ref": "#/$defs/controlObservation" } },
+        "currentContentObservations": { "type": "array", "items": { "$ref": "#/$defs/contentObservation" } },
+        "note": { "type": "string", "minLength": 1 },
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/citedPageAuditRow" } }
+      },
+      "additionalProperties": false
+    },
+    "controlObservation": {
+      "type": "object",
+      "required": ["control", "state", "matchedPages", "exportRows", "rowsWithCitationMetric"],
+      "properties": {
+        "control": { "enum": ["bingbot-robots-access", "bingbot-noindex", "bingbot-snippet-restriction", "data-nosnippet"] },
+        "state": { "enum": ["present", "absent", "not-assessed"] },
+        "matchedPages": { "$ref": "#/$defs/count" },
+        "exportRows": { "$ref": "#/$defs/count" },
+        "rowsWithCitationMetric": { "$ref": "#/$defs/count" },
+        "rowSummedCitations": { "$ref": "#/$defs/metric" }
+      },
+      "additionalProperties": false
+    },
+    "contentObservation": {
+      "type": "object",
+      "required": ["signal", "state", "matchedPages", "exportRows", "rowsWithCitationMetric"],
+      "properties": {
+        "signal": { "enum": ["question-headings", "concise-answer-blocks", "external-content-links", "external-source-links", "reference-section-links", "visible-author", "visible-date"] },
+        "state": { "enum": ["present", "absent", "not-assessed"] },
+        "matchedPages": { "$ref": "#/$defs/count" },
+        "exportRows": { "$ref": "#/$defs/count" },
+        "rowsWithCitationMetric": { "$ref": "#/$defs/count" },
+        "rowSummedCitations": { "$ref": "#/$defs/metric" }
+      },
+      "additionalProperties": false
+    },
+    "citedPageAuditRow": {
+      "type": "object",
+      "required": ["url", "auditMatchType", "auditMatched", "geoAssessed", "searchCrawlersAssessed", "blockedSearchCrawlers", "blockedSearchCrawlerRules"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "query": { "type": "string" },
+        "citations": { "$ref": "#/$defs/metric" },
+        "citationShare": { "$ref": "#/$defs/metric" },
+        "intent": { "type": "string" },
+        "topic": { "type": "string" },
+        "auditMatchType": { "enum": ["exact-url", "canonical-url", "ambiguous-audit-url", "ambiguous-canonical", "unmatched"] },
+        "auditMatched": { "type": "boolean" },
+        "matchedAuditUrl": { "type": "string", "format": "uri" },
+        "geoAssessed": { "type": "boolean" },
+        "searchCrawlersAssessed": { "type": "boolean" },
+        "blockedSearchCrawlers": { "type": "array", "items": { "type": "string" } },
+        "blockedSearchCrawlerRules": { "type": "array", "items": { "type": "object", "required": ["token"], "properties": { "token": { "type": "string" }, "matchedRule": { "type": "object", "required": ["directive", "pattern", "line"], "properties": { "directive": { "enum": ["allow", "disallow"] }, "pattern": { "type": "string" }, "line": { "$ref": "#/$defs/count" } }, "additionalProperties": false } }, "additionalProperties": false } },
+        "currentNoindex": { "type": "boolean" },
+        "currentNoSnippet": { "type": "boolean" },
+        "currentDataNoSnippetElements": { "$ref": "#/$defs/count" },
+        "currentDataNoSnippetWords": { "$ref": "#/$defs/count" },
+        "currentDataNoSnippetWordSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "currentBingbotNoindex": { "type": "boolean" },
+        "currentBingbotAccessAssessed": { "type": "boolean" },
+        "currentBingbotBlocked": { "type": "boolean" },
+        "currentBingbotNoSnippet": { "type": "boolean" },
+        "currentBingbotMaxSnippetZero": { "type": "boolean" },
+        "currentQuestionHeadings": { "$ref": "#/$defs/count" },
+        "currentConciseAnswerBlocks": { "$ref": "#/$defs/count" },
+        "currentExternalContentLinks": { "$ref": "#/$defs/count" },
+        "currentExternalSourceLinks": { "$ref": "#/$defs/count" },
+        "currentReferenceSectionLinks": { "$ref": "#/$defs/count" },
+        "currentVisibleAuthor": { "type": "boolean" },
+        "currentVisibleDate": { "type": "boolean" },
+        "currentDocumentLanguage": { "type": "string", "maxLength": 80 },
+        "currentDocumentLanguageValid": { "type": "boolean" },
+        "currentDocumentLanguageAssessed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

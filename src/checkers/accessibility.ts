@@ -14,25 +14,50 @@ export class AccessibilityChecker extends BaseChecker {
   private async checkAriaLabels(): Promise<CheckOutcome> {
     try {
       const ariaData = await this.page.evaluate(() => {
-        const elementsWithAria = document.querySelectorAll('[aria-label], [aria-labelledby], [aria-describedby]');
-        const interactiveElements = document.querySelectorAll('button, a, input, select, textarea');
+        const elementsWithAria = document.querySelectorAll(
+          '[aria-label], [aria-labelledby], [aria-describedby]'
+        );
+        const interactiveElements = document.querySelectorAll(
+          'button,a,area,[role="button"],[role="link"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"],[role="menuitem"]'
+        );
+
+        const hasNonEmptyAttribute = (element: Element, attribute: string): boolean =>
+          Boolean(element.getAttribute(attribute)?.trim());
+        const hasReferencedLabel = (element: Element): boolean =>
+          (element.getAttribute('aria-labelledby') ?? '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .some((id) => Boolean(document.getElementById(id)?.textContent?.trim()));
 
         const interactiveWithoutAria = Array.from(interactiveElements).filter((el) => {
           const hasText = el.textContent?.trim();
-          const hasAriaLabel = el.hasAttribute('aria-label');
-          const hasAriaLabelledBy = el.hasAttribute('aria-labelledby');
-          const hasTitle = el.hasAttribute('title');
-          const hasAlt = el.hasAttribute('alt');
+          const hasAriaLabel = hasNonEmptyAttribute(el, 'aria-label');
+          const hasAriaLabelledBy = hasReferencedLabel(el);
+          const hasTitle = hasNonEmptyAttribute(el, 'title');
+          const hasAlt = hasNonEmptyAttribute(el, 'alt');
+          const hasImageAlternative = Array.from(el.querySelectorAll('img[alt]')).some((image) =>
+            Boolean(image.getAttribute('alt')?.trim())
+          );
 
           // Skip if element has any form of label
-          if (hasText || hasAriaLabel || hasAriaLabelledBy || hasTitle || hasAlt) {
+          if (
+            hasText ||
+            hasAriaLabel ||
+            hasAriaLabelledBy ||
+            hasTitle ||
+            hasAlt ||
+            hasImageAlternative
+          ) {
             return false;
           }
 
           return true;
         });
 
-        const landmarks = document.querySelectorAll('[role="navigation"], [role="main"], [role="banner"], [role="contentinfo"], nav, main, header, footer');
+        const landmarks = document.querySelectorAll(
+          '[role="navigation"], [role="main"], [role="banner"], [role="contentinfo"], nav, main, header, footer'
+        );
 
         return {
           elementsWithAria: elementsWithAria.length,
@@ -57,7 +82,10 @@ export class AccessibilityChecker extends BaseChecker {
         return this.fail(`Accessibility issues: ${issues.join(', ')}`, ariaData);
       }
 
-      return this.pass(`Good accessibility structure with ${ariaData.landmarksCount} landmarks`, ariaData);
+      return this.pass(
+        `Good accessibility structure with ${ariaData.landmarksCount} landmarks`,
+        ariaData
+      );
     } catch (error) {
       return { passed: false, severity: 'info', message: 'ARIA labels check skipped due to error' };
     }
@@ -67,20 +95,36 @@ export class AccessibilityChecker extends BaseChecker {
     try {
       const formData = await this.page.evaluate(() => {
         const inputs = Array.from(document.querySelectorAll('input, select, textarea'));
+        const hasReferencedLabel = (element: Element): boolean =>
+          (element.getAttribute('aria-labelledby') ?? '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .some((id) => Boolean(document.getElementById(id)?.textContent?.trim()));
         const inputsWithoutLabels = inputs.filter((input) => {
-          const id = input.getAttribute('id');
-          const hasLabel = id && document.querySelector(`label[for="${id}"]`);
-          const hasAriaLabel = input.hasAttribute('aria-label');
-          const hasAriaLabelledBy = input.hasAttribute('aria-labelledby');
-          const hasPlaceholder = input.hasAttribute('placeholder');
-          const type = input.getAttribute('type');
+          const control = input as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+          const hasLabel = Array.from(control.labels ?? []).some(
+            (label) =>
+              Boolean(label.textContent?.trim()) ||
+              Array.from(label.querySelectorAll('img[alt]')).some((image) =>
+                Boolean(image.getAttribute('alt')?.trim())
+              )
+          );
+          const hasAriaLabel = Boolean(input.getAttribute('aria-label')?.trim());
+          const hasAriaLabelledBy = hasReferencedLabel(input);
+          const hasTitle = Boolean(input.getAttribute('title')?.trim());
+          const type = input.getAttribute('type')?.toLowerCase();
+          const hasAlt =
+            input.tagName.toLowerCase() === 'input' &&
+            type === 'image' &&
+            Boolean(input.getAttribute('alt')?.trim());
 
-          // Skip hidden, submit, button inputs
-          if (type === 'hidden' || type === 'submit' || type === 'button') {
+          // Skip hidden controls and submit/button/reset inputs with native action labels.
+          if (type === 'hidden' || type === 'submit' || type === 'button' || type === 'reset') {
             return false;
           }
 
-          return !hasLabel && !hasAriaLabel && !hasAriaLabelledBy && !hasPlaceholder;
+          return !hasLabel && !hasAriaLabel && !hasAriaLabelledBy && !hasTitle && !hasAlt;
         });
 
         return {
@@ -94,7 +138,10 @@ export class AccessibilityChecker extends BaseChecker {
       }
 
       if (formData.inputsWithoutLabels > 0) {
-        return this.fail(`${formData.inputsWithoutLabels} form inputs missing labels (accessibility issue)`, formData);
+        return this.fail(
+          `${formData.inputsWithoutLabels} form inputs missing labels (accessibility issue)`,
+          formData
+        );
       }
 
       return this.pass(`All ${formData.totalInputs} form inputs have proper labels`, formData);
@@ -150,11 +197,15 @@ export class AccessibilityChecker extends BaseChecker {
       );
 
       if (tabIndexData.negativeTabIndexCount > maxNegativeTabIndex) {
-        issues.push(`${tabIndexData.negativeTabIndexCount} elements with negative tabindex (removes from tab order)`);
+        issues.push(
+          `${tabIndexData.negativeTabIndexCount} elements with negative tabindex (removes from tab order)`
+        );
       }
 
       if (tabIndexData.highTabIndexCount > 0) {
-        issues.push(`${tabIndexData.highTabIndexCount} elements with positive tabindex (can disrupt natural tab order)`);
+        issues.push(
+          `${tabIndexData.highTabIndexCount} elements with positive tabindex (can disrupt natural tab order)`
+        );
       }
 
       if (issues.length > 0) {

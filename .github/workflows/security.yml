@@ -17,7 +17,6 @@ jobs:
         with: { node-version: '20' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level moderate
-        continue-on-error: true
       # cyclonedx-npm shells out to `npm ls`, which doesn't understand a
       # pnpm-managed node_modules tree (reports every pnpm-linked package as
       # extraneous/invalid and fails outright) -- cdxgen reads the lockfile
@@ -42,7 +41,6 @@ jobs:
       # Cargo.lock (see /Cargo.toml), so this already audits both members —
       # no need to run it once per member.
       - run: cargo audit
-        continue-on-error: true
       # `-all` is not a real flag (clap parses it as bundled short flags
       # `-a -l -l` and errors on the unknown `-l`) — `--all` is the default
       # behavior anyway, so it's dropped rather than corrected to `--all`.
@@ -62,6 +60,7 @@ jobs:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
     steps:
       - uses: actions/checkout@v4

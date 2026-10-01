@@ -1,0 +1,573 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Ru1vly/Aviary/blob/main/docs/geo-answer-prompt-sampling-plan.schema.json",
+  "title": "Aviary GEO answer prompt sampling plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "schemaVersion",
+    "options",
+    "rowCount",
+    "rowsTruncated",
+    "targetsMet",
+    "targetSummary",
+    "rows",
+    "note"
+  ],
+  "properties": {
+    "source": {
+      "const": "Aviary GEO prompt sampling plan"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "options": {
+      "$ref": "#/$defs/options"
+    },
+    "rowCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rowsTruncated": {
+      "type": "boolean"
+    },
+    "targetsMet": {
+      "type": "boolean"
+    },
+    "targetSummary": {
+      "$ref": "#/$defs/targetSummary"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/planRow"
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "cohortTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "intent"
+      ],
+      "properties": {
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "intent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "minimumPromptsPerProviderCohort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maximumPairedFollowUpGroups": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "required": [
+                "topic"
+              ],
+              "properties": {
+                "topic": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "required": [
+                "intent"
+              ],
+              "properties": {
+                "intent": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "required": [
+                "minimumPromptsPerProviderCohort"
+              ]
+            },
+            {
+              "required": [
+                "maximumPairedFollowUpGroups"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimumPromptsPerProviderCohort"
+      ],
+      "properties": {
+        "minimumPromptsPerProviderCohort": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ownedPromptReachTargetHalfWidthPercentagePoints": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 50
+        },
+        "minimumPromptSetJaccard": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 0.99
+        },
+        "maximumPairedFollowUpGroupsPerPair": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximumTotalPairedFollowUpGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cohortTargets": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/cohortTarget"
+          }
+        },
+        "totalPairBudgetAllocation": {
+          "type": "string",
+          "enum": [
+            "balanced",
+            "proportional"
+          ]
+        }
+      }
+    },
+    "targetSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerCohortQuotasBelowTarget",
+        "cohortsBelowPromptOverlapTarget",
+        "providerCohortPrecisionMarginsAboveTarget",
+        "cohortRowsAnalyzed",
+        "requiredPairedPromptGroups",
+        "plannedPairedPromptGroups",
+        "deferredPairedPromptGroups",
+        "requiredPairedProviderCaptureRuns",
+        "plannedPairedProviderCaptureRuns",
+        "providerSpecificAdditionalPromptQuotas",
+        "providerPairBudgets",
+        "detailsCapped",
+        "outputRowsTruncated",
+        "targetsMet"
+      ],
+      "properties": {
+        "providerCohortQuotasBelowTarget": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cohortsBelowPromptOverlapTarget": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providerCohortPrecisionMarginsAboveTarget": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cohortRowsAnalyzed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requiredPairedPromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "plannedPairedPromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deferredPairedPromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requiredPairedProviderCaptureRuns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "plannedPairedProviderCaptureRuns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providerSpecificAdditionalPromptQuotas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detailsCapped": {
+          "type": "boolean"
+        },
+        "outputRowsTruncated": {
+          "type": "boolean"
+        },
+        "targetsMet": {
+          "type": "boolean"
+        },
+        "providerPairBudgets": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/providerPairBudget"
+          }
+        }
+      }
+    },
+    "planRow": {
+      "type": "object",
+      "required": [
+        "provider_a",
+        "provider_b",
+        "provider",
+        "topic",
+        "intent",
+        "cohort_presence",
+        "provider_current_unique_prompts",
+        "other_provider_current_unique_prompts",
+        "pair_pooled_unique_prompts",
+        "pair_pooled_cohort_share_percent",
+        "current_shared_unique_prompts",
+        "current_prompt_set_jaccard",
+        "minimum_prompt_set_jaccard_target",
+        "minimum_paired_follow_up_groups_for_prompt_overlap_target",
+        "minimum_paired_follow_up_groups_required",
+        "maximum_paired_follow_up_groups_per_provider_pair",
+        "maximum_paired_follow_up_groups_per_provider_cohort",
+        "paired_follow_up_groups_deferred_by_budget",
+        "prompt_plan_budget_status",
+        "prompt_plan_budget_allocation_policy",
+        "total_pair_budget_allocation",
+        "provider_current_cohort_share_percent",
+        "minimum_provider_support_prompt_total",
+        "minimum_prompts_per_provider_cohort",
+        "target_unique_prompts_in_cohort",
+        "suggested_additional_unique_prompts",
+        "projected_unique_prompts_after_paired_follow_up",
+        "cohort_prompt_quota_met_after_budget",
+        "projected_shared_unique_prompts_after_paired_follow_up",
+        "projected_prompt_set_jaccard_after_paired_follow_up",
+        "prompt_overlap_target_met_after_budget",
+        "prompt_overlap_projection_status",
+        "owned_prompt_reach_target_95_wilson_half_width_percentage_points",
+        "minimum_unique_prompts_per_provider_for_owned_reach_precision",
+        "owned_prompt_reach_worst_case_95_wilson_half_width_at_current_cohort_prompt_count_percentage_points",
+        "owned_prompt_reach_worst_case_95_wilson_half_width_at_target_quota_percentage_points",
+        "owned_prompt_reach_worst_case_95_wilson_half_width_after_budget_percentage_points",
+        "paired_follow_up_prompt_groups_to_collect",
+        "paired_provider_capture_runs",
+        "topic_intent_cohort_catalog_truncated",
+        "provider_pair_list_truncated",
+        "output_rows_truncated"
+      ],
+      "properties": {
+        "provider_a": {
+          "type": "string"
+        },
+        "provider_b": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "intent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cohort_presence": {
+          "enum": [
+            "both_providers",
+            "provider_a_only",
+            "provider_b_only"
+          ]
+        },
+        "provider_current_unique_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "other_provider_current_unique_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pair_pooled_unique_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pair_pooled_cohort_share_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "current_shared_unique_prompts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_prompt_set_jaccard": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_prompt_set_jaccard_target": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0.5,
+          "maximum": 0.99
+        },
+        "minimum_paired_follow_up_groups_for_prompt_overlap_target": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "minimum_paired_follow_up_groups_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_paired_follow_up_groups_per_provider_pair": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "paired_follow_up_groups_deferred_by_budget": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "provider_current_cohort_share_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minimum_provider_support_prompt_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_prompts_per_provider_cohort": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_unique_prompts_in_cohort": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "suggested_additional_unique_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projected_unique_prompts_after_paired_follow_up": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cohort_prompt_quota_met_after_budget": {
+          "type": "boolean"
+        },
+        "projected_shared_unique_prompts_after_paired_follow_up": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "projected_prompt_set_jaccard_after_paired_follow_up": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "prompt_overlap_target_met_after_budget": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "prompt_overlap_projection_status": {
+          "enum": [
+            "available",
+            "unavailable-in-saved-report",
+            "comparison-detail-capped",
+            "comparison-completeness-unavailable"
+          ]
+        },
+        "owned_prompt_reach_target_95_wilson_half_width_percentage_points": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 50
+        },
+        "minimum_unique_prompts_per_provider_for_owned_reach_precision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "owned_prompt_reach_worst_case_95_wilson_half_width_at_current_cohort_prompt_count_percentage_points": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 50
+        },
+        "owned_prompt_reach_worst_case_95_wilson_half_width_at_target_quota_percentage_points": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 50
+        },
+        "owned_prompt_reach_worst_case_95_wilson_half_width_after_budget_percentage_points": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 50
+        },
+        "paired_follow_up_prompt_groups_to_collect": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paired_provider_capture_runs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "topic_intent_cohort_catalog_truncated": {
+          "type": "boolean"
+        },
+        "provider_pair_list_truncated": {
+          "type": "boolean"
+        },
+        "output_rows_truncated": {
+          "type": "boolean"
+        },
+        "prompt_plan_budget_status": {
+          "enum": [
+            "unlimited",
+            "within-budget",
+            "budget-constrained"
+          ]
+        },
+        "prompt_plan_budget_allocation_policy": {
+          "enum": [
+            "uncapped",
+            "even-round-robin-lowest-support",
+            "even-round-robin-lowest-jaccard"
+          ]
+        },
+        "maximum_paired_follow_up_groups_per_provider_cohort": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "total_pair_budget_allocation": {
+          "enum": [
+            "balanced",
+            "proportional",
+            "not_applicable"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "providerPairBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerA",
+        "providerB",
+        "requiredPairedPromptGroups",
+        "plannedPairedPromptGroups",
+        "deferredPairedPromptGroups",
+        "allocation"
+      ],
+      "properties": {
+        "providerA": {
+          "type": "string"
+        },
+        "providerB": {
+          "type": "string"
+        },
+        "requiredPairedPromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "plannedPairedPromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deferredPairedPromptGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allocation": {
+          "enum": [
+            "balanced",
+            "proportional",
+            "not_applicable"
+          ]
+        }
+      }
+    }
+  }
+}

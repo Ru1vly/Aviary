@@ -32,7 +32,13 @@ afterAll(async () => {
 
 // Helper: set page content and return the page
 async function withContent(html: string): Promise<PlaywrightPage> {
-  await page.setContent(html);
+  const url = 'https://example.com/__aviary-checker-test__';
+  await page.route(url, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: html }));
+  try {
+    await page.goto(url);
+  } finally {
+    await page.unroute(url);
+  }
   return page;
 }
 
@@ -142,11 +148,12 @@ describe('AccessibilityChecker', () => {
     expect(results[3].message).toContain('negative tabindex');
   });
 
-  it('passes form labels when an input has a placeholder instead of a <label>', async () => {
+  it('fails form labels when an input has a placeholder instead of an accessible label', async () => {
     const p = await withContent(`<!DOCTYPE html><html><body><input type="text" placeholder="Name"></body></html>`);
     const checker = new AccessibilityChecker({ page: p as Page, checkerKey: 'accessibility' });
     const results = await checker.checkAll();
-    expect(results[1].passed).toBe(true);
+    expect(results[1].passed).toBe(false);
+    expect(results[1].message).toContain('missing labels');
   });
 });
 
@@ -177,7 +184,7 @@ describe('LinksChecker', () => {
     const p = await withContent(`
       <!DOCTYPE html><html><body>
         <a href="/internal">Home</a>
-        <a href="https://evil.com" target="_blank">External without noopener</a>
+        <a href="https://evil.com" target="article">External without noopener</a>
       </body></html>
     `);
     const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
@@ -260,7 +267,7 @@ describe('LinksChecker', () => {
     const checker = new LinksChecker({ page: p as Page, checkerKey: 'links' });
     const results = await checker.checkAll();
     expect(results[1].passed).toBe(true);
-    expect(results[1].message).toContain('properly configured');
+    expect(results[1].message).toContain('opener isolation');
   });
 });
 

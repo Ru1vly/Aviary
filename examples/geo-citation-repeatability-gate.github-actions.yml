@@ -1,0 +1,152 @@
+name: GEO panel and citation repeatability review
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_observations:
+        description: Repository path to saved baseline observations JSON
+        required: true
+        default: geo/baseline-observations.json
+        type: string
+      current_observations:
+        description: Repository path to saved current observations JSON
+        required: true
+        default: geo/current-observations.json
+        type: string
+      gate_rules:
+        description: Repository path to the versioned repeatability gate rules JSON
+        required: true
+        default: geo/repeatability-gate-rules.json
+        type: string
+      owned_domain:
+        description: Optional owned hostname used for owned-citation metrics
+        required: false
+        default: ""
+        type: string
+      fail_on_panel_warnings:
+        description: Fail the workflow after reports are saved when panel preflight raises any warning
+        required: false
+        default: false
+        type: boolean
+      panel_thresholds_file:
+        description: Optional repository path to a GEO panel threshold profile with optional fail-on-warning codes
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geo-citation-repeatability-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    env:
+      BASELINE_OBSERVATIONS: ${{ inputs.baseline_observations }}
+      CURRENT_OBSERVATIONS: ${{ inputs.current_observations }}
+      GATE_RULES: ${{ inputs.gate_rules }}
+      OWNED_DOMAIN: ${{ inputs.owned_domain }}
+      FAIL_ON_PANEL_WARNINGS: ${{ inputs.fail_on_panel_warnings }}
+      PANEL_THRESHOLDS_FILE: ${{ inputs.panel_thresholds_file }}
+
+    steps:
+      - name: Check out capture files and gate rules
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Aviary dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compare citation repeatability and apply gate
+        run: |
+          mkdir -p reports
+          owned_args=()
+          panel_args=()
+          if [[ "$FAIL_ON_PANEL_WARNINGS" == "true" ]]; then panel_args+=(--fail-on-warnings); fi
+          if [[ -n "$PANEL_THRESHOLDS_FILE" ]]; then
+            if [[ ! -f "$PANEL_THRESHOLDS_FILE" ]]; then echo "Panel threshold profile not found: $PANEL_THRESHOLDS_FILE" >&2; exit 2; fi
+            threshold_copy=reports/panel-comparability-thresholds.json
+            node -e 'const fs=require("node:fs");const path=require("node:path");const source=path.resolve(process.argv[1]);const destination=path.resolve(process.argv[2]);const sourceRealPath=fs.realpathSync(source);const destinationRealPath=fs.existsSync(destination)?fs.realpathSync(destination):destination;if(sourceRealPath!==destinationRealPath)fs.copyFileSync(source,destination)' "$PANEL_THRESHOLDS_FILE" "$threshold_copy"
+            chmod 600 "$threshold_copy"
+            panel_args+=(--thresholds-file "$PANEL_THRESHOLDS_FILE")
+          fi
+          if [[ -n "$OWNED_DOMAIN" ]]; then owned_args+=(--owned-domain "$OWNED_DOMAIN"); fi
+          if pnpm run geo:panel:compare -- "$BASELINE_OBSERVATIONS" "$CURRENT_OBSERVATIONS" reports/panel-comparability "${panel_args[@]}"; then
+            :
+          else
+            panel_status=$?
+            if [[ $panel_status -ne 1 ]]; then exit "$panel_status"; fi
+          fi
+          pnpm run geo:repeatability -- "$BASELINE_OBSERVATIONS" reports/baseline-repeatability.csv "${owned_args[@]}"
+          pnpm run geo:repeatability -- "$CURRENT_OBSERVATIONS" reports/current-repeatability.csv "${owned_args[@]}"
+          pnpm run geo:repeatability:compare -- \
+            reports/baseline-repeatability-prompts.csv \
+            reports/current-repeatability-prompts.csv \
+            reports/repeatability-change.csv
+          pnpm run geo:repeatability:gate -- \
+            reports/repeatability-change.json "$GATE_RULES" \
+            reports/repeatability-gate.json
+
+      - name: Apply optional panel warning gate
+        if: always() && hashFiles('reports/panel-comparability.json') != ''
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('reports/panel-comparability.json', 'utf8'));
+          if (report.warningGate?.enabled !== true || report.warningGate.status !== 'failed') process.exit(0);
+          console.error(`Panel warning gate failed for: ${report.warningGate.failedCodes?.join(', ') || report.warningGate.warningCount + ' warning(s)'}. Inspect uploaded reports.`);
+          process.exitCode = 1;
+          NODE
+
+      - name: Summarize capture panel comparability
+        if: always() && hashFiles('reports/panel-comparability.json') != ''
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('reports/panel-comparability.json', 'utf8'));
+          const s = report.summary;
+          console.log('## GEO capture panel comparability');
+          console.log(`- Matched contexts: ${s.matched_contexts}/${s.union_contexts}`);
+          console.log(`- Matched contexts with fewer than ${report.method.warningThresholds.minimumMatchedPrompts} prompts: ${s.low_support_contexts}`);
+          console.log(`- Exact-prompt Jaccard: ${s.prompt_group_jaccard_pct ?? 'unavailable'}%`);
+          console.log(`- Context-mix total variation: ${s.context_mix_total_variation_pp.toFixed(1)} pp`);
+          console.log(`- Unique prompt-mix total variation: ${s.prompt_mix_total_variation_pp.toFixed(1)} pp`);
+          console.log(`- Effective prompt sample size (baseline / current): ${s.baseline_effective_prompt_sample_size.toFixed(1)} / ${s.current_effective_prompt_sample_size.toFixed(1)}`);
+          console.log(`- Capture redundancy factor (baseline / current): ${s.baseline_capture_redundancy_factor.toFixed(2)}× / ${s.current_capture_redundancy_factor.toFixed(2)}×`);
+          console.log(`- Largest prompt share (baseline / current): ${s.baseline_largest_prompt_capture_share_pct.toFixed(1)}% / ${s.current_largest_prompt_capture_share_pct.toFixed(1)}%`);
+          console.log(`- Largest baseline/current capture-window gap: ${s.maximum_capture_window_gap_days === null ? 'unavailable' : s.maximum_capture_window_gap_days.toFixed(1) + ' days'}`);
+          console.log(`- Largest within-panel capture gap: ${s.maximum_internal_capture_gap_days === null ? 'unavailable' : s.maximum_internal_capture_gap_days.toFixed(1) + ' days'}`);
+          console.log(`- Context-day timeline rows: ${s.capture_timeline_rows}`);
+          console.log(`- Largest context-share shift: ${s.max_context_observation_share_shift_pp.toFixed(1)} pp`);
+          const minimumCoverage = report.method.warningThresholds.contextDimensionCoveragePctBelow;
+          const lowCoverage = report.dimensionCoverage.filter((row) => row.baseline_coverage_pct < minimumCoverage || row.current_coverage_pct < minimumCoverage).map((row) => row.dimension);
+          console.log(`- Context dimensions below ${minimumCoverage}% coverage: ${lowCoverage.length ? lowCoverage.join(', ') : 'none'}`);
+          console.log(`- Review warnings: ${s.warnings.length}`);
+          console.log(`- Warning codes: ${report.warningDetails?.map((item) => item.code).join(', ') || 'none'}`);
+          console.log(`- Panel warning gate: ${report.warningGate.status}`);
+          console.log(`- Gate failed codes: ${report.warningGate.failedCodes?.join(', ') || 'none'}`);
+          console.log(`- Exact duplicate capture rows retained (baseline / current): ${report.inputs.baseline.duplicateObservationRows} / ${report.inputs.current.duplicateObservationRows}`);
+          console.log('- The offline panel HTML and complete CSV/JSON files are included in the uploaded workflow artifact.');
+          NODE
+
+      - name: Upload GEO review artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geo-citation-repeatability-review
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30

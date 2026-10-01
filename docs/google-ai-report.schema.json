@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary Google AI Performance analysis report",
+  "description": "Versioned local analysis of Search Console Search or Discover generative AI performance CSV or XLSX exports. Impression rows and their totals retain the source export's limits and aggregation scope.",
+  "type": "object",
+  "required": ["source", "schemaVersion", "note", "exports", "summaries"],
+  "properties": {
+    "source": { "enum": ["Google Search Console Search Generative AI performance export", "Google Search Console Discover Generative AI performance export", "Google Search Console Search Generative AI performance CSV export", "Google Search Console Discover Generative AI performance CSV export"] },
+    "schemaVersion": { "const": 1 },
+    "note": { "type": "string", "minLength": 1 },
+    "exports": { "type": "array", "items": { "$ref": "#/$defs/export" } },
+    "summaries": { "type": "array", "items": { "$ref": "#/$defs/summary" } },
+    "visibilityComparison": { "$ref": "#/$defs/visibilityComparison" },
+    "dimensionComparison": { "$ref": "#/$defs/dimensionComparison" },
+    "correlations": { "type": "array", "items": { "$ref": "#/$defs/correlation" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "impressions": { "type": "number", "minimum": 0 },
+    "dimensions": { "type": "array", "items": { "enum": ["url", "country", "device", "date"] }, "uniqueItems": true },
+    "export": {
+      "type": "object",
+      "required": ["surface", "datasetKind", "dimensions", "headerRow", "rowCount", "skippedRows", "uniquePageCount", "columns", "rows"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "surface": { "enum": ["search", "discover"] },
+        "datasetKind": { "enum": ["page", "country", "device", "date", "multi-dimension", "overview"] },
+        "dimensions": { "$ref": "#/$defs/dimensions" },
+        "headerRow": { "$ref": "#/$defs/count" },
+        "rowCount": { "$ref": "#/$defs/count" },
+        "skippedRows": { "$ref": "#/$defs/count" },
+        "uniquePageCount": { "$ref": "#/$defs/count" },
+        "columns": { "type": "object", "additionalProperties": { "type": "string" } },
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/exportRow" } }
+      },
+      "additionalProperties": false
+    },
+    "exportRow": {
+      "type": "object",
+      "required": ["impressions"],
+      "properties": {
+        "url": { "type": "string" },
+        "country": { "type": "string" },
+        "device": { "type": "string" },
+        "date": { "type": "string" },
+        "impressions": { "$ref": "#/$defs/impressions" }
+      },
+      "additionalProperties": false
+    },
+    "dimensionSummary": {
+      "type": "object",
+      "required": ["value", "rows", "impressions"],
+      "properties": {
+        "value": { "type": "string" },
+        "rows": { "$ref": "#/$defs/count" },
+        "impressions": { "$ref": "#/$defs/impressions" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["surface", "datasetKind", "dimensions", "rowCount", "uniquePageCount", "rowSummedImpressions", "topPages", "topCountries", "topDevices", "timeSeries", "note"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "surface": { "enum": ["search", "discover"] },
+        "datasetKind": { "enum": ["page", "country", "device", "date", "multi-dimension", "overview"] },
+        "dimensions": { "$ref": "#/$defs/dimensions" },
+        "rowCount": { "$ref": "#/$defs/count" },
+        "uniquePageCount": { "$ref": "#/$defs/count" },
+        "rowSummedImpressions": { "$ref": "#/$defs/impressions" },
+        "topPages": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "topCountries": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "topDevices": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "timeSeries": { "type": "array", "items": { "$ref": "#/$defs/dimensionSummary" } },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "visibilityChange": {
+      "type": "object",
+      "required": ["url", "state"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "baselineImpressions": { "$ref": "#/$defs/impressions" },
+        "currentImpressions": { "$ref": "#/$defs/impressions" },
+        "impressionsChange": { "type": "number" },
+        "percentChange": { "type": "number" },
+        "state": { "enum": ["current-only", "baseline-only", "increased", "decreased", "unchanged"] }
+      },
+      "additionalProperties": false
+    },
+    "visibilityComparison": {
+      "type": "object",
+      "required": ["pagesCompared", "pagesOnlyInCurrentExport", "pagesOnlyInBaselineExport", "baselinePagesInExport", "currentPagesInExport", "baselinePageImpressionsInExport", "currentPageImpressionsInExport", "matchedBaselinePageImpressions", "matchedCurrentPageImpressions", "matchedPageImpressionChange", "pagesWithIncreasedImpressions", "pagesWithDecreasedImpressions", "unchangedPages", "topGains", "topLosses", "changes", "changesTruncated", "note"],
+      "properties": {
+        "baselineSourceFile": { "type": "string" },
+        "currentSourceFile": { "type": "string" },
+        "pagesCompared": { "$ref": "#/$defs/count" },
+        "pagesOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "pagesOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "baselinePagesInExport": { "$ref": "#/$defs/count" },
+        "currentPagesInExport": { "$ref": "#/$defs/count" },
+        "baselinePageImpressionsInExport": { "$ref": "#/$defs/impressions" },
+        "currentPageImpressionsInExport": { "$ref": "#/$defs/impressions" },
+        "matchedBaselinePageImpressions": { "$ref": "#/$defs/impressions" },
+        "matchedCurrentPageImpressions": { "$ref": "#/$defs/impressions" },
+        "matchedPageImpressionChange": { "type": "number" },
+        "matchedPagePercentChange": { "type": "number" },
+        "pagesWithIncreasedImpressions": { "$ref": "#/$defs/count" },
+        "pagesWithDecreasedImpressions": { "$ref": "#/$defs/count" },
+        "unchangedPages": { "$ref": "#/$defs/count" },
+        "topGains": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/visibilityChange" } },
+        "topLosses": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/visibilityChange" } },
+        "changes": { "type": "array", "maxItems": 1000, "items": { "$ref": "#/$defs/visibilityChange" } },
+        "changesTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "dimensionValues": {
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "country": { "type": "string" },
+        "device": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "dimensionChange": {
+      "type": "object",
+      "required": ["values", "state"],
+      "properties": {
+        "values": { "$ref": "#/$defs/dimensionValues" },
+        "state": { "enum": ["current-only", "baseline-only", "increased", "decreased", "unchanged"] },
+        "baselineImpressions": { "$ref": "#/$defs/impressions" },
+        "currentImpressions": { "$ref": "#/$defs/impressions" },
+        "impressionsChange": { "type": "number" },
+        "percentChange": { "type": "number" },
+        "baselineImpressionSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "currentImpressionSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "impressionShareChangePercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "dimensionComparison": {
+      "type": "object",
+      "required": ["surface", "dimensions", "baselineCohortsInExport", "currentCohortsInExport", "cohortsCompared", "cohortsOnlyInCurrentExport", "cohortsOnlyInBaselineExport", "baselineImpressionsInExport", "currentImpressionsInExport", "matchedBaselineImpressions", "matchedCurrentImpressions", "matchedImpressionChange", "cohortsWithIncreasedImpressions", "cohortsWithDecreasedImpressions", "unchangedCohorts", "cohortsWithComparableShareMovement", "cohortsWithIncreasingShare", "cohortsWithDecreasingShare", "changes", "changesTruncated", "note"],
+      "properties": {
+        "baselineSourceFile": { "type": "string" },
+        "currentSourceFile": { "type": "string" },
+        "surface": { "enum": ["search", "discover"] },
+        "dimensions": { "$ref": "#/$defs/dimensions" },
+        "baselineCohortsInExport": { "$ref": "#/$defs/count" },
+        "currentCohortsInExport": { "$ref": "#/$defs/count" },
+        "cohortsCompared": { "$ref": "#/$defs/count" },
+        "cohortsOnlyInCurrentExport": { "$ref": "#/$defs/count" },
+        "cohortsOnlyInBaselineExport": { "$ref": "#/$defs/count" },
+        "baselineImpressionsInExport": { "$ref": "#/$defs/impressions" },
+        "currentImpressionsInExport": { "$ref": "#/$defs/impressions" },
+        "matchedBaselineImpressions": { "$ref": "#/$defs/impressions" },
+        "matchedCurrentImpressions": { "$ref": "#/$defs/impressions" },
+        "matchedImpressionChange": { "type": "number" },
+        "matchedImpressionPercentChange": { "type": "number" },
+        "cohortsWithIncreasedImpressions": { "$ref": "#/$defs/count" },
+        "cohortsWithDecreasedImpressions": { "$ref": "#/$defs/count" },
+        "unchangedCohorts": { "$ref": "#/$defs/count" },
+        "cohortsWithComparableShareMovement": { "$ref": "#/$defs/count" },
+        "cohortsWithIncreasingShare": { "$ref": "#/$defs/count" },
+        "cohortsWithDecreasingShare": { "$ref": "#/$defs/count" },
+        "meanCohortShareChangePercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 },
+        "changes": { "type": "array", "maxItems": 1000, "items": { "$ref": "#/$defs/dimensionChange" } },
+        "changesTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "correlation": {
+      "type": "object",
+      "required": ["auditPagesCompared", "uniqueReportPages", "pagesMatchedToAudit", "pagesMatchedByCanonical", "pagesWithAmbiguousAuditUrlMatch", "pagesWithAmbiguousCanonicalMatch", "pagesNotInAudit", "matchedPagesWithCurrentGooglebotBlocks", "matchedPagesWithCurrentGooglebotNoindex", "matchedPagesWithCurrentGooglebotSnippetRestrictions", "matchedPagesWithCurrentDataNoSnippet", "currentControlObservations", "currentContentObservations", "note", "rows"],
+      "properties": {
+        "sourceFile": { "type": "string" },
+        "auditPagesCompared": { "$ref": "#/$defs/count" },
+        "uniqueReportPages": { "$ref": "#/$defs/count" },
+        "pagesMatchedToAudit": { "$ref": "#/$defs/count" },
+        "pagesMatchedByCanonical": { "$ref": "#/$defs/count" },
+        "pagesWithAmbiguousAuditUrlMatch": { "$ref": "#/$defs/count" },
+        "pagesWithAmbiguousCanonicalMatch": { "$ref": "#/$defs/count" },
+        "pagesNotInAudit": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentGooglebotBlocks": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentGooglebotNoindex": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentGooglebotSnippetRestrictions": { "$ref": "#/$defs/count" },
+        "matchedPagesWithCurrentDataNoSnippet": { "$ref": "#/$defs/count" },
+        "currentControlObservations": { "type": "array", "items": { "$ref": "#/$defs/controlObservation" } },
+        "currentContentObservations": { "type": "array", "items": { "$ref": "#/$defs/contentObservation" } },
+        "note": { "type": "string", "minLength": 1 },
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/auditRow" } }
+      },
+      "additionalProperties": false
+    },
+    "controlObservation": {
+      "type": "object",
+      "required": ["control", "state", "matchedPages", "exportRows", "rowSummedImpressions"],
+      "properties": {
+        "control": { "enum": ["googlebot-robots-access", "googlebot-noindex", "googlebot-snippet-restriction", "data-nosnippet"] },
+        "state": { "enum": ["present", "absent", "not-assessed"] },
+        "matchedPages": { "$ref": "#/$defs/count" },
+        "exportRows": { "$ref": "#/$defs/count" },
+        "rowSummedImpressions": { "$ref": "#/$defs/impressions" }
+      },
+      "additionalProperties": false
+    },
+    "contentObservation": {
+      "type": "object",
+      "required": ["signal", "state", "matchedPages", "exportRows", "rowSummedImpressions"],
+      "properties": {
+        "signal": { "enum": ["question-headings", "concise-answer-blocks", "external-content-links", "external-source-links", "reference-section-links", "visible-author", "visible-date"] },
+        "state": { "enum": ["present", "absent", "not-assessed"] },
+        "matchedPages": { "$ref": "#/$defs/count" },
+        "exportRows": { "$ref": "#/$defs/count" },
+        "rowSummedImpressions": { "$ref": "#/$defs/impressions" }
+      },
+      "additionalProperties": false
+    },
+    "auditRow": {
+      "type": "object",
+      "required": ["impressions", "auditMatchType", "auditMatched", "geoAssessed", "googlebotAccessAssessed"],
+      "properties": {
+        "url": { "type": "string" },
+        "country": { "type": "string" },
+        "device": { "type": "string" },
+        "date": { "type": "string" },
+        "impressions": { "$ref": "#/$defs/impressions" },
+        "auditMatchType": { "enum": ["exact-url", "canonical-url", "ambiguous-audit-url", "ambiguous-canonical", "unmatched", "not-applicable"] },
+        "auditMatched": { "type": "boolean" },
+        "matchedAuditUrl": { "type": "string", "format": "uri" },
+        "geoAssessed": { "type": "boolean" },
+        "googlebotAccessAssessed": { "type": "boolean" },
+        "currentGooglebotBlocked": { "type": "boolean" },
+        "currentGooglebotRule": { "type": "object", "required": ["directive", "pattern", "line"], "properties": { "directive": { "enum": ["allow", "disallow"] }, "pattern": { "type": "string" }, "line": { "$ref": "#/$defs/count" } }, "additionalProperties": false },
+        "currentGooglebotNoindex": { "type": "boolean" },
+        "currentGooglebotNoSnippet": { "type": "boolean" },
+        "currentGooglebotMaxSnippetZero": { "type": "boolean" },
+        "currentDataNoSnippetElements": { "$ref": "#/$defs/count" },
+        "currentDataNoSnippetWords": { "$ref": "#/$defs/count" },
+        "currentQuestionHeadings": { "$ref": "#/$defs/count" },
+        "currentConciseAnswerBlocks": { "$ref": "#/$defs/count" },
+        "currentExternalContentLinks": { "$ref": "#/$defs/count" },
+        "currentExternalSourceLinks": { "$ref": "#/$defs/count" },
+        "currentReferenceSectionLinks": { "$ref": "#/$defs/count" },
+        "currentVisibleAuthor": { "type": "boolean" },
+        "currentVisibleDate": { "type": "boolean" },
+        "currentDocumentLanguage": { "type": "string", "maxLength": 80 },
+        "currentDocumentLanguageValid": { "type": "boolean" },
+        "currentDocumentLanguageAssessed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

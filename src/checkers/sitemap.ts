@@ -47,11 +47,16 @@ export class SitemapChecker extends BaseChecker {
         }
       }
 
-      return this.fail('XML sitemap not found at common locations (sitemap.xml, sitemap_index.xml)', {
-        checkedUrls: commonSitemapUrls,
-      });
+      return this.fail(
+        'XML sitemap not found at common locations (sitemap.xml, sitemap_index.xml)',
+        {
+          checkedUrls: commonSitemapUrls,
+        }
+      );
     } catch (error) {
-      return this.fail(`Error checking sitemap: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return this.fail(
+        `Error checking sitemap: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -69,11 +74,16 @@ export class SitemapChecker extends BaseChecker {
           );
 
         if (sitemapLines.length > 0) {
-          const sitemaps = sitemapLines.map((line: string) => line.split(':').slice(1).join(':').trim());
+          const sitemaps = sitemapLines.map((line: string) =>
+            line.split(':').slice(1).join(':').trim()
+          );
 
-          return this.pass(`Sitemap referenced in robots.txt (${sitemapLines.length} sitemap(s) found)`, {
-            sitemaps,
-          });
+          return this.pass(
+            `Sitemap referenced in robots.txt (${sitemapLines.length} sitemap(s) found)`,
+            {
+              sitemaps,
+            }
+          );
         } else {
           return this.fail('Sitemap not referenced in robots.txt');
         }
@@ -81,7 +91,11 @@ export class SitemapChecker extends BaseChecker {
         return this.pass('robots.txt not found, sitemap reference check skipped');
       }
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Sitemap reference check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Sitemap reference check skipped due to error',
+      };
     }
   }
 }

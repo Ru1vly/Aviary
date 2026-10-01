@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "baselineUrl": "https://example.com/guides/robots/",
+  "baselineTimestamp": "2026-09-28T10:00:00.000Z",
+  "baselineScore": 82,
+  "currentScore": 79,
+  "scoreDelta": -3,
+  "newFailures": [],
+  "resolvedFailures": [],
+  "geoChanges": [
+    {
+      "url": "https://example.com/guides/robots/",
+      "signal": "Google-Extended access",
+      "before": "allowed",
+      "after": "blocked"
+    }
+  ],
+  "geoCompared": true,
+  "geoComparedBasis": "search-crawler-access-and-preview-controls"
+}

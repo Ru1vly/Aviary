@@ -59,9 +59,12 @@ export class HeadingsChecker extends BaseChecker {
     }
 
     if (h1s.length > 1) {
-      return this.fail(`Multiple H1 headings found (${h1s.length}). Best practice: use only one H1 per page`, {
-        h1s,
-      });
+      return this.fail(
+        `Multiple H1 headings found (${h1s.length}). Best practice: use only one H1 per page`,
+        {
+          h1s,
+        }
+      );
     }
 
     return this.pass('Single H1 heading found', { h1: h1s[0] });
@@ -86,7 +89,9 @@ export class HeadingsChecker extends BaseChecker {
       return this.fail('Heading hierarchy has issues', { issues, headings });
     }
 
-    return this.pass(`Heading hierarchy is properly structured (${headings.length} headings)`, { headings });
+    return this.pass(`Heading hierarchy is properly structured (${headings.length} headings)`, {
+      headings,
+    });
   }
 
   private async checkHeadingLength(): Promise<CheckOutcome> {
@@ -95,7 +100,10 @@ export class HeadingsChecker extends BaseChecker {
     const longHeadings = headings.filter((h) => h.text.length > maxLength);
 
     if (longHeadings.length > 0) {
-      return this.fail(`${longHeadings.length} heading(s) are too long (>${maxLength} characters)`, { longHeadings });
+      return this.fail(
+        `${longHeadings.length} heading(s) are too long (>${maxLength} characters)`,
+        { longHeadings }
+      );
     }
 
     return this.pass('All headings are of appropriate length');

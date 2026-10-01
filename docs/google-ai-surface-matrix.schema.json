@@ -1,0 +1,686 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary Google AI Search and Discover surface matrix",
+  "description": "A bounded page URL join of Google Search Console Search generative AI and Discover generative AI page exports. Surface impression sums and within-surface shares are kept separate; a missing page row is an export observation, not zero impressions or evidence of cause.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "schemaVersion",
+    "searchPages",
+    "discoverPages",
+    "pagesObservedByBoth",
+    "pagesOnlyInSearchExport",
+    "pagesOnlyInDiscoverExport",
+    "searchExportRowSummedImpressions",
+    "discoverExportRowSummedImpressions",
+    "pagesWithComparableShares",
+    "rowsWithoutUsableUrl",
+    "pages",
+    "pagesTruncated",
+    "note"
+  ],
+  "properties": {
+    "source": {
+      "const": "Aviary Google AI surface page matrix"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "searchSourceFile": {
+      "type": "string"
+    },
+    "discoverSourceFile": {
+      "type": "string"
+    },
+    "searchPages": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "discoverPages": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pagesObservedByBoth": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pagesOnlyInSearchExport": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pagesOnlyInDiscoverExport": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "searchExportRowSummedImpressions": {
+      "type": "number",
+      "minimum": 0
+    },
+    "discoverExportRowSummedImpressions": {
+      "type": "number",
+      "minimum": 0
+    },
+    "searchUsableUrlImpressions": {
+      "type": "number",
+      "minimum": 0
+    },
+    "discoverUsableUrlImpressions": {
+      "type": "number",
+      "minimum": 0
+    },
+    "pagesWithComparableShares": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "searchImpressionShareOnBothPagesPercent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "discoverImpressionShareOnBothPagesPercent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "rowsWithoutUsableUrl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "searchRows",
+        "discoverRows"
+      ],
+      "properties": {
+        "searchRows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discoverRows": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/page"
+      }
+    },
+    "pagesTruncated": {
+      "type": "boolean"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "periodComparison": {
+      "$ref": "#/$defs/periodComparison"
+    },
+    "pathFamilyDepth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "pathFamilyCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pathFamilies": {
+      "type": "array",
+      "maxItems": 250,
+      "items": {
+        "$ref": "#/$defs/pathFamily"
+      }
+    },
+    "pathFamiliesTruncated": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "coverage",
+        "searchSourceUrls",
+        "discoverSourceUrls",
+        "searchSourceUrlsTruncated",
+        "discoverSourceUrlsTruncated"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "coverage": {
+          "enum": [
+            "search-and-discover",
+            "search-only",
+            "discover-only"
+          ]
+        },
+        "searchSourceUrls": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "discoverSourceUrls": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "searchSourceUrlsTruncated": {
+          "type": "boolean"
+        },
+        "discoverSourceUrlsTruncated": {
+          "type": "boolean"
+        },
+        "searchImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "searchImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "discoverImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "discoverImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "searchMinusDiscoverSharePercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "currentAudit": {
+          "$ref": "#/$defs/currentAudit"
+        },
+        "pathFamily": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "currentAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "matchType",
+        "googlebotAccess"
+      ],
+      "properties": {
+        "matchType": {
+          "enum": [
+            "exact-url",
+            "canonical-url",
+            "ambiguous-canonical",
+            "unmatched"
+          ]
+        },
+        "auditUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "googlebotAccess": {
+          "enum": [
+            "allowed",
+            "blocked",
+            "not-assessed"
+          ]
+        },
+        "noindex": {
+          "type": "boolean"
+        },
+        "noSnippet": {
+          "type": "boolean"
+        },
+        "maxSnippetZero": {
+          "type": "boolean"
+        },
+        "dataNoSnippetElements": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documentLanguage": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "documentLanguageValid": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pagePeriodChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "state"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "state": {
+          "enum": [
+            "current-only",
+            "baseline-only",
+            "present-both"
+          ]
+        },
+        "baselineSearchImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currentSearchImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "searchImpressionChange": {
+          "type": "number"
+        },
+        "searchShareChangePercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "baselineDiscoverImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currentDiscoverImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "discoverImpressionChange": {
+          "type": "number"
+        },
+        "discoverShareChangePercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        }
+      }
+    },
+    "periodComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baselinePagesTruncated",
+        "currentPagesTruncated",
+        "pagesPresentInBothReturnedLists",
+        "pagesOnlyInCurrentReturnedList",
+        "pagesOnlyInBaselineReturnedList",
+        "searchPagesWithComparableImpressions",
+        "discoverPagesWithComparableImpressions",
+        "searchPagesWithComparableShare",
+        "discoverPagesWithComparableShare",
+        "searchPagesWithIncreasingShare",
+        "searchPagesWithDecreasingShare",
+        "discoverPagesWithIncreasingShare",
+        "discoverPagesWithDecreasingShare",
+        "pages",
+        "pagesTruncated",
+        "note"
+      ],
+      "properties": {
+        "baselineSearchSourceFile": {
+          "type": "string"
+        },
+        "baselineDiscoverSourceFile": {
+          "type": "string"
+        },
+        "currentSearchSourceFile": {
+          "type": "string"
+        },
+        "currentDiscoverSourceFile": {
+          "type": "string"
+        },
+        "baselinePagesTruncated": {
+          "type": "boolean"
+        },
+        "currentPagesTruncated": {
+          "type": "boolean"
+        },
+        "pagesPresentInBothReturnedLists": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pagesOnlyInCurrentReturnedList": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pagesOnlyInBaselineReturnedList": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "searchPagesWithComparableImpressions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discoverPagesWithComparableImpressions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "searchPagesWithComparableShare": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discoverPagesWithComparableShare": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "searchPagesWithIncreasingShare": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "searchPagesWithDecreasingShare": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discoverPagesWithIncreasingShare": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discoverPagesWithDecreasingShare": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "matchedSearchImpressionChange": {
+          "type": "number"
+        },
+        "matchedDiscoverImpressionChange": {
+          "type": "number"
+        },
+        "pages": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "$ref": "#/$defs/pagePeriodChange"
+          }
+        },
+        "pagesTruncated": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pathFamilyComparison": {
+          "$ref": "#/$defs/pathFamilyComparison"
+        }
+      }
+    },
+    "pathFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "pageGroups",
+        "searchPages",
+        "discoverPages",
+        "pagesObservedByBoth",
+        "sampleUrls",
+        "sampleUrlsTruncated",
+        "pagesWithCurrentAudit",
+        "pagesWithAmbiguousCanonical",
+        "googlebotBlockedPages",
+        "pagesWithIndexingRestrictions",
+        "pagesWithSnippetRestrictions"
+      ],
+      "properties": {
+        "family": {
+          "type": "string",
+          "format": "uri"
+        },
+        "pageGroups": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "searchPages": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discoverPages": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pagesObservedByBoth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "searchImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "searchImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "discoverImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "discoverImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "sampleUrls": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "sampleUrlsTruncated": {
+          "type": "boolean"
+        },
+        "pagesWithCurrentAudit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pagesWithAmbiguousCanonical": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "googlebotBlockedPages": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pagesWithIndexingRestrictions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pagesWithSnippetRestrictions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "searchMinusDiscoverSharePercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        }
+      }
+    },
+    "pathFamilyPeriodChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "state"
+      ],
+      "properties": {
+        "family": {
+          "type": "string",
+          "format": "uri"
+        },
+        "state": {
+          "enum": [
+            "current-only",
+            "baseline-only",
+            "present-both"
+          ]
+        },
+        "baselinePageGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "currentPageGroups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baselineSearchImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currentSearchImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "searchImpressionChange": {
+          "type": "number"
+        },
+        "searchImpressionShareChangePercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "baselineDiscoverImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currentDiscoverImpressions": {
+          "type": "number",
+          "minimum": 0
+        },
+        "discoverImpressionChange": {
+          "type": "number"
+        },
+        "discoverImpressionShareChangePercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "baselineSearchImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "currentSearchImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "baselineDiscoverImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "currentDiscoverImpressionSharePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "pathFamilyComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pathFamilyDepth",
+        "baselineFamilyCount",
+        "currentFamilyCount",
+        "familiesPresentInBothReturnedLists",
+        "familiesOnlyInCurrentReturnedList",
+        "familiesOnlyInBaselineReturnedList",
+        "baselineFamiliesTruncated",
+        "currentFamiliesTruncated",
+        "families",
+        "familiesTruncated",
+        "note"
+      ],
+      "properties": {
+        "pathFamilyDepth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "baselineFamilyCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "currentFamilyCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "familiesPresentInBothReturnedLists": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "familiesOnlyInCurrentReturnedList": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "familiesOnlyInBaselineReturnedList": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baselineFamiliesTruncated": {
+          "type": "boolean"
+        },
+        "currentFamiliesTruncated": {
+          "type": "boolean"
+        },
+        "families": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/pathFamilyPeriodChange"
+          }
+        },
+        "familiesTruncated": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "pathFamilyDepth"
+        ]
+      },
+      "then": {
+        "required": [
+          "pathFamilyCount",
+          "pathFamilies",
+          "pathFamiliesTruncated"
+        ]
+      }
+    }
+  ]
+}

@@ -63,6 +63,7 @@ export const basicPreset: SEOConfig = {
     ecommerce: false,
     internationalization: false,
     heatmap: false,
+    geo: false,
   },
 };
 
@@ -122,6 +123,7 @@ export const advancedPreset: SEOConfig = {
     ecommerce: { enabled: true, severity: 'info' },
     internationalization: { enabled: true, severity: 'info' },
     heatmap: { enabled: true, severity: 'info' },
+    geo: { enabled: true, severity: 'info' },
   },
 };
 
@@ -191,6 +193,46 @@ export const strictPreset: SEOConfig = {
     ecommerce: { enabled: true, severity: 'warning' },
     internationalization: { enabled: true, severity: 'warning' },
     heatmap: { enabled: true, severity: 'warning' },
+    geo: { enabled: true, severity: 'info' },
+  },
+};
+
+/**
+ * GEO preset - Run only the AI discoverability checks
+ * Best for: Focused audits of crawler access, answer content, citation evidence, and optional llms.txt files
+ */
+export const geoPreset: SEOConfig = {
+  severity: 'warning',
+  rules: {
+    metaTags: false,
+    headings: false,
+    images: false,
+    performance: false,
+    robotsTxt: false,
+    sitemap: false,
+    security: false,
+    structuredData: false,
+    socialMedia: false,
+    content: false,
+    links: false,
+    uiElements: false,
+    technical: false,
+    accessibility: false,
+    urlFactors: false,
+    spamDetection: false,
+    pageQuality: false,
+    advancedImages: false,
+    multimedia: false,
+    coreWebVitals: false,
+    analytics: false,
+    mobileUX: false,
+    schemaValidation: false,
+    resourceOptimization: false,
+    legalCompliance: false,
+    ecommerce: false,
+    internationalization: false,
+    heatmap: false,
+    geo: { enabled: true, severity: 'info' },
   },
 };
 
@@ -198,4 +240,5 @@ export const presets = {
   basic: basicPreset,
   advanced: advancedPreset,
   strict: strictPreset,
+  geo: geoPreset,
 };

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-07-05T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I configure canonical URLs?",
+      "citedUrls": ["https://publisher.example/canonical-urls"]
+    },
+    {
+      "observedAt": "2026-07-06T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How should I handle duplicate pages?",
+      "citedUrls": ["https://publisher.example/duplicate-pages"]
+    },
+    {
+      "observedAt": "2026-07-07T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do XML sitemaps help discovery?",
+      "citedUrls": ["https://publisher.example/xml-sitemaps"]
+    },
+    {
+      "observedAt": "2026-07-08T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I diagnose crawl waste?",
+      "citedUrls": ["https://publisher.example/crawl-waste"]
+    },
+    {
+      "observedAt": "2026-09-05T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I configure canonical URLs?",
+      "citedUrls": ["https://news.example/canonical-urls"]
+    },
+    {
+      "observedAt": "2026-09-06T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How should I handle duplicate pages?",
+      "citedUrls": ["https://news.example/duplicate-pages"]
+    },
+    {
+      "observedAt": "2026-09-07T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do XML sitemaps help discovery?",
+      "citedUrls": ["https://news.example/xml-sitemaps"]
+    },
+    {
+      "observedAt": "2026-09-08T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I diagnose crawl waste?",
+      "citedUrls": ["https://news.example/crawl-waste"]
+    }
+  ]
+}

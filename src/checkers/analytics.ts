@@ -45,10 +45,13 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkGoogleAnalytics(): Promise<CheckOutcome> {
     try {
       const gaData = await this.page.evaluate(() => {
-        const hasGA4 = !!(window as AnalyticsWindow).gtag || !!(window as AnalyticsWindow).dataLayer;
+        const hasGA4 =
+          !!(window as AnalyticsWindow).gtag || !!(window as AnalyticsWindow).dataLayer;
         const hasUA = !!(window as AnalyticsWindow).ga;
         const hasGtag = document.querySelector('script[src*="googletagmanager.com/gtag"]');
-        const hasAnalytics = document.querySelector('script[src*="google-analytics.com/analytics"]');
+        const hasAnalytics = document.querySelector(
+          'script[src*="google-analytics.com/analytics"]'
+        );
 
         return {
           hasGA4,
@@ -63,7 +66,9 @@ export class AnalyticsChecker extends BaseChecker {
       }
 
       return this.pass(
-        gaData.hasGA4 ? 'Google Analytics 4 detected' : 'Google Analytics (UA) detected - consider upgrading to GA4',
+        gaData.hasGA4
+          ? 'Google Analytics 4 detected'
+          : 'Google Analytics (UA) detected - consider upgrading to GA4',
         gaData
       );
     } catch (error) {
@@ -76,7 +81,9 @@ export class AnalyticsChecker extends BaseChecker {
       const gtmData = await this.page.evaluate(() => {
         const hasGTM = !!(window as AnalyticsWindow).google_tag_manager;
         const gtmScript = document.querySelector('script[src*="googletagmanager.com/gtm.js"]');
-        const gtmNoscript = document.querySelector('noscript iframe[src*="googletagmanager.com/ns.html"]');
+        const gtmNoscript = document.querySelector(
+          'noscript iframe[src*="googletagmanager.com/ns.html"]'
+        );
 
         return {
           hasGTM,
@@ -90,7 +97,9 @@ export class AnalyticsChecker extends BaseChecker {
       }
 
       return this.pass(
-        gtmData.hasGTM ? 'Google Tag Manager properly implemented' : 'No Google Tag Manager (optional)',
+        gtmData.hasGTM
+          ? 'Google Tag Manager properly implemented'
+          : 'No Google Tag Manager (optional)',
         gtmData
       );
     } catch (error) {
@@ -122,15 +131,19 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkGoogleAds(): Promise<CheckOutcome> {
     try {
       const adsData = await this.page.evaluate(() => {
-        const hasGoogleAds = document.querySelector('script[src*="googleadservices.com"]') ||
-                             document.querySelector('script[src*="googlesyndication.com"]');
+        const hasGoogleAds =
+          document.querySelector('script[src*="googleadservices.com"]') ||
+          document.querySelector('script[src*="googlesyndication.com"]');
 
         return {
           hasGoogleAds: !!hasGoogleAds,
         };
       });
 
-      return this.pass(adsData.hasGoogleAds ? 'Google Ads tracking detected' : 'No Google Ads (optional)', adsData);
+      return this.pass(
+        adsData.hasGoogleAds ? 'Google Ads tracking detected' : 'No Google Ads (optional)',
+        adsData
+      );
     } catch (error) {
       return this.pass('Google Ads check skipped');
     }
@@ -148,7 +161,10 @@ export class AnalyticsChecker extends BaseChecker {
         };
       });
 
-      return this.pass(hotjarData.hasHotjar ? 'Hotjar detected' : 'No Hotjar (optional heatmap tool)', hotjarData);
+      return this.pass(
+        hotjarData.hasHotjar ? 'Hotjar detected' : 'No Hotjar (optional heatmap tool)',
+        hotjarData
+      );
     } catch (error) {
       return this.pass('Hotjar check skipped');
     }
@@ -166,7 +182,10 @@ export class AnalyticsChecker extends BaseChecker {
         };
       });
 
-      return this.pass(mixpanelData.hasMixpanel ? 'Mixpanel detected' : 'No Mixpanel (optional)', mixpanelData);
+      return this.pass(
+        mixpanelData.hasMixpanel ? 'Mixpanel detected' : 'No Mixpanel (optional)',
+        mixpanelData
+      );
     } catch (error) {
       return this.pass('Mixpanel check skipped');
     }
@@ -184,7 +203,10 @@ export class AnalyticsChecker extends BaseChecker {
         };
       });
 
-      return this.pass(segmentData.hasSegment ? 'Segment detected' : 'No Segment (optional)', segmentData);
+      return this.pass(
+        segmentData.hasSegment ? 'Segment detected' : 'No Segment (optional)',
+        segmentData
+      );
     } catch (error) {
       return this.pass('Segment check skipped');
     }
@@ -211,7 +233,9 @@ export class AnalyticsChecker extends BaseChecker {
       if (clarityData.hasCrazyEgg) tools.push('CrazyEgg');
 
       return this.pass(
-        tools.length > 0 ? `Behavior analytics detected: ${tools.join(', ')}` : 'No behavior analytics tools',
+        tools.length > 0
+          ? `Behavior analytics detected: ${tools.join(', ')}`
+          : 'No behavior analytics tools',
         clarityData
       );
     } catch (error) {
@@ -272,7 +296,9 @@ export class AnalyticsChecker extends BaseChecker {
       });
 
       return this.pass(
-        verification.hasVerification ? 'Yandex Webmaster verification found' : 'No Yandex verification (optional)',
+        verification.hasVerification
+          ? 'Yandex Webmaster verification found'
+          : 'No Yandex verification (optional)',
         verification
       );
     } catch (error) {
@@ -316,7 +342,9 @@ export class AnalyticsChecker extends BaseChecker {
   private async checkConversionTracking(): Promise<CheckOutcome> {
     try {
       const conversionData = await this.page.evaluate(() => {
-        const hasGoogleConversion = document.querySelector('script[src*="googleadservices.com/pagead/conversion"]');
+        const hasGoogleConversion = document.querySelector(
+          'script[src*="googleadservices.com/pagead/conversion"]'
+        );
         const hasFBConversion = !!(window as AnalyticsWindow).fbq;
         const hasLinkedInConversion = document.querySelector('script[src*="snap.licdn.com"]');
 
@@ -333,7 +361,9 @@ export class AnalyticsChecker extends BaseChecker {
       if (conversionData.hasLinkedInConversion) tools.push('LinkedIn');
 
       return this.pass(
-        tools.length > 0 ? `Conversion tracking: ${tools.join(', ')}` : 'No conversion tracking detected',
+        tools.length > 0
+          ? `Conversion tracking: ${tools.join(', ')}`
+          : 'No conversion tracking detected',
         conversionData
       );
     } catch (error) {

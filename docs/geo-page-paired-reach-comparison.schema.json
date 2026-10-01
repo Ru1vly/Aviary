@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-page-paired-reach-comparison.schema.json",
+  "title": "Aviary GEO paired page reach comparison",
+  "type": "object",
+  "required": ["source", "schemaVersion", "pageScope", "summary", "rows"],
+  "properties": {
+    "source": { "const": "Aviary paired answer citation page reach comparison" },
+    "schemaVersion": { "const": 1 },
+    "pageScope": { "enum": ["all-cited-pages", "owned-pages"] },
+    "summary": { "$ref": "#/$defs/row" },
+    "rows": { "type": "array", "items": { "$ref": "#/$defs/row" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "row": {
+      "type": ["object", "null"],
+      "required": ["row_type"],
+      "properties": {
+        "row_type": { "enum": ["summary", "page-provider"] },
+        "page_scope": { "enum": ["all-cited-pages", "owned-pages"] },
+        "provider": { "type": ["string", "null"] },
+        "page_url": { "type": ["string", "null"] },
+        "comparison_complete": { "type": "boolean" },
+        "holm_family_complete": { "type": "boolean" },
+        "top_three_holm_family_complete": { "type": "boolean" },
+        "first_position_holm_family_complete": { "type": "boolean" },
+        "output_rows_truncated": { "type": "boolean" },
+        "prompt_page_evaluations_truncated": { "type": "boolean" },
+        "exact_two_sided_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "holm_adjusted_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "exact_top_three_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "holm_adjusted_top_three_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "exact_first_position_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "holm_adjusted_first_position_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "interpretation_note": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

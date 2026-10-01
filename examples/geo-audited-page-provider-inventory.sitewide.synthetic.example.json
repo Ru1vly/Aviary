@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "auditTimestamp": "2026-09-23T09:00:00.000Z",
+  "pagesSkipped": 0,
+  "pageSummaries": [
+    {
+      "url": "https://www.example.com/guides/geo-observability",
+      "canonicalUrl": "https://example.com/guides/geo-observability",
+      "geoAssessed": true,
+      "signalCoverage": {
+        "searchCrawlerAccess": "measured",
+        "previewControls": "measured",
+        "answerContent": "measured",
+        "sourceRenderedContent": "measured",
+        "citationEvidence": "measured",
+        "dataUseCrawlerPolicy": "measured",
+        "optionalLlmsFiles": "measured",
+        "userInitiatedFetchAccess": "measured"
+      },
+      "searchCrawlerAccess": [
+        {
+          "token": "OAI-SearchBot",
+          "allowed": true
+        },
+        {
+          "token": "PerplexityBot",
+          "allowed": true
+        },
+        {
+          "token": "Googlebot",
+          "allowed": true
+        }
+      ],
+      "previewControls": {
+        "noindex": false,
+        "noSnippet": false,
+        "maxSnippetZero": false,
+        "responseStatus": 404,
+        "dataUseCrawlerControls": [
+          {
+            "token": "GPTBot",
+            "noArchive": false
+          },
+          {
+            "token": "Google-Extended",
+            "noArchive": false
+          },
+          {
+            "token": "CCBot",
+            "noArchive": true
+          }
+        ],
+        "dataNoSnippetWords": 48,
+        "visibleTextWords": 120,
+        "dataNoSnippetWordSharePercent": 40.0
+      },
+      "answerContent": {
+        "questionHeadings": 2,
+        "conciseAnswerBlocks": 3,
+        "visibleAuthor": false,
+        "visibleDate": true,
+        "schemaAuthor": true,
+        "schemaDate": false,
+        "schemaDateModifiedHasNonDateValue": true,
+        "schemaDateModifiedDaysTruncated": false,
+        "schemaDateModifiedDays": []
+      },
+      "sourceRenderedContent": {
+        "assessed": true,
+        "renderedPhraseCoveragePercent": 92.5
+      },
+      "dataUseCrawlerPolicy": [
+        {
+          "token": "GPTBot",
+          "allowed": true
+        },
+        {
+          "token": "Google-Extended",
+          "allowed": true
+        },
+        {
+          "token": "CCBot",
+          "allowed": false
+        }
+      ],
+      "userInitiatedFetchAccess": [
+        {
+          "token": "ChatGPT-User",
+          "allowed": true
+        },
+        {
+          "token": "Perplexity-User",
+          "allowed": true
+        },
+        {
+          "token": "Google-User",
+          "allowed": true
+        }
+      ],
+      "optionalLlmsFiles": [
+        {
+          "path": "/llms.txt",
+          "state": "found"
+        },
+        {
+          "path": "/llms-full.txt",
+          "state": "found"
+        },
+        {
+          "path": "/llms-brief.txt",
+          "state": "found"
+        }
+      ]
+    },
+    {
+      "url": "https://example.com/guides/answer-capture",
+      "geoAssessed": true,
+      "signalCoverage": {
+        "searchCrawlerAccess": "measured",
+        "previewControls": "measured",
+        "answerContent": "measured",
+        "sourceRenderedContent": "not-assessed",
+        "citationEvidence": "not-assessed",
+        "dataUseCrawlerPolicy": "measured",
+        "optionalLlmsFiles": "measured",
+        "userInitiatedFetchAccess": "measured"
+      },
+      "searchCrawlerAccess": [
+        {
+          "token": "OAI-SearchBot",
+          "allowed": false
+        },
+        {
+          "token": "PerplexityBot",
+          "allowed": true
+        }
+      ],
+      "previewControls": {
+        "noindex": true,
+        "noSnippet": false,
+        "maxSnippetZero": false,
+        "dataUseCrawlerControls": [
+          {
+            "token": "OAI-SearchBot",
+            "noArchive": true
+          }
+        ]
+      },
+      "answerContent": {
+        "questionHeadings": 0,
+        "conciseAnswerBlocks": 0,
+        "visibleAuthor": false,
+        "visibleDate": false,
+        "schemaAuthor": true,
+        "schemaDate": false
+      },
+      "dataUseCrawlerPolicy": [
+        {
+          "token": "OAI-SearchBot",
+          "allowed": true
+        }
+      ],
+      "userInitiatedFetchAccess": [
+        {
+          "token": "Claude-User",
+          "allowed": true
+        }
+      ],
+      "optionalLlmsFiles": [
+        {
+          "path": "/llms-full.txt",
+          "state": "found"
+        }
+      ]
+    }
+  ]
+}

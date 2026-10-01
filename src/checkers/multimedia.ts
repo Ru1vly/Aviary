@@ -22,7 +22,11 @@ export class MultimediaChecker extends BaseChecker {
     try {
       const videoData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
-        const iframeVideos = Array.from(document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"], iframe[src*="dailymotion"]'));
+        const iframeVideos = Array.from(
+          document.querySelectorAll(
+            'iframe[src*="youtube"], iframe[src*="vimeo"], iframe[src*="dailymotion"]'
+          )
+        );
 
         return {
           nativeVideos: videos.length,
@@ -47,7 +51,9 @@ export class MultimediaChecker extends BaseChecker {
       const metadataData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
         const withPoster = videos.filter((v) => v.hasAttribute('poster'));
-        const withAria = videos.filter((v) => v.hasAttribute('aria-label') || v.hasAttribute('title'));
+        const withAria = videos.filter(
+          (v) => v.hasAttribute('aria-label') || v.hasAttribute('title')
+        );
 
         return {
           totalVideos: videos.length,
@@ -63,11 +69,15 @@ export class MultimediaChecker extends BaseChecker {
       const issues: string[] = [];
 
       if (metadataData.withPoster < metadataData.totalVideos) {
-        issues.push(`${metadataData.totalVideos - metadataData.withPoster} videos missing poster image`);
+        issues.push(
+          `${metadataData.totalVideos - metadataData.withPoster} videos missing poster image`
+        );
       }
 
       if (metadataData.withAria < metadataData.totalVideos) {
-        issues.push(`${metadataData.totalVideos - metadataData.withAria} videos missing aria-label/title`);
+        issues.push(
+          `${metadataData.totalVideos - metadataData.withAria} videos missing aria-label/title`
+        );
       }
 
       if (issues.length > 0) {
@@ -84,9 +94,13 @@ export class MultimediaChecker extends BaseChecker {
     try {
       const transcriptData = await this.page.evaluate(() => {
         const videos = Array.from(document.querySelectorAll('video'));
-        const withTrack = videos.filter((v) => v.querySelector('track[kind="captions"], track[kind="subtitles"]'));
+        const withTrack = videos.filter((v) =>
+          v.querySelector('track[kind="captions"], track[kind="subtitles"]')
+        );
 
-        const transcriptElements = document.querySelectorAll('[class*="transcript"], [id*="transcript"]');
+        const transcriptElements = document.querySelectorAll(
+          '[class*="transcript"], [id*="transcript"]'
+        );
 
         return {
           totalVideos: videos.length,
@@ -102,7 +116,10 @@ export class MultimediaChecker extends BaseChecker {
       const hasAccessibility = transcriptData.withTrack > 0 || transcriptData.hasTranscriptElements;
 
       if (!hasAccessibility) {
-        return this.fail('Videos missing captions/transcripts (important for accessibility and SEO)', transcriptData);
+        return this.fail(
+          'Videos missing captions/transcripts (important for accessibility and SEO)',
+          transcriptData
+        );
       }
 
       return this.pass('Video accessibility features present', transcriptData);
@@ -116,7 +133,9 @@ export class MultimediaChecker extends BaseChecker {
       const audioData = await this.page.evaluate(() => {
         const audio = Array.from(document.querySelectorAll('audio'));
         const withControls = audio.filter((a) => a.hasAttribute('controls'));
-        const withLabels = audio.filter((a) => a.hasAttribute('aria-label') || a.hasAttribute('title'));
+        const withLabels = audio.filter(
+          (a) => a.hasAttribute('aria-label') || a.hasAttribute('title')
+        );
 
         return {
           totalAudio: audio.length,
@@ -132,7 +151,9 @@ export class MultimediaChecker extends BaseChecker {
       const issues: string[] = [];
 
       if (audioData.withControls < audioData.totalAudio) {
-        issues.push(`${audioData.totalAudio - audioData.withControls} audio elements missing controls`);
+        issues.push(
+          `${audioData.totalAudio - audioData.withControls} audio elements missing controls`
+        );
       }
 
       if (audioData.withLabels < audioData.totalAudio) {
@@ -162,11 +183,16 @@ export class MultimediaChecker extends BaseChecker {
       });
 
       if (embedData.totalEmbeds > 0) {
-        return this.fail(`Found ${embedData.totalEmbeds} <embed>/<object> elements (outdated, use HTML5)`, embedData);
+        return this.fail(
+          `Found ${embedData.totalEmbeds} <embed>/<object> elements (outdated, use HTML5)`,
+          embedData
+        );
       }
 
       return this.pass(
-        embedData.totalIframes > 0 ? `Using modern iframe embeds (${embedData.totalIframes})` : 'No embed elements',
+        embedData.totalIframes > 0
+          ? `Using modern iframe embeds (${embedData.totalIframes})`
+          : 'No embed elements',
         embedData
       );
     } catch (error) {
@@ -210,17 +236,22 @@ export class MultimediaChecker extends BaseChecker {
     try {
       const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
       const hasVideoSchema = (jsonLdScripts as JsonLdBlock[]).some(
-        (data) => isSchemaType(data, 'VideoObject') || isSchemaType(data, 'Video', { includes: true })
+        (data) =>
+          isSchemaType(data, 'VideoObject') || isSchemaType(data, 'Video', { includes: true })
       );
 
       const videoCount = await this.page.evaluate(
-        () => document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]').length
+        () =>
+          document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]').length
       );
 
       const schemaData = { hasVideoSchema, videoCount };
 
       if (schemaData.videoCount > 0 && !schemaData.hasVideoSchema) {
-        return this.fail('Videos found but no VideoObject schema (recommended for rich results)', schemaData);
+        return this.fail(
+          'Videos found but no VideoObject schema (recommended for rich results)',
+          schemaData
+        );
       }
 
       return this.pass(
@@ -235,8 +266,12 @@ export class MultimediaChecker extends BaseChecker {
   private async checkYouTubeEmbeds(): Promise<CheckOutcome> {
     try {
       const youtubeData = await this.page.evaluate(() => {
-        const iframes = Array.from(document.querySelectorAll('iframe[src*="youtube"]')) as HTMLIFrameElement[];
-        const withNoCookie = iframes.filter((iframe) => iframe.src.includes('youtube-nocookie.com'));
+        const iframes = Array.from(
+          document.querySelectorAll('iframe[src*="youtube"]')
+        ) as HTMLIFrameElement[];
+        const withNoCookie = iframes.filter((iframe) =>
+          iframe.src.includes('youtube-nocookie.com')
+        );
         const withTitle = iframes.filter((iframe) => iframe.hasAttribute('title'));
 
         return {
@@ -257,14 +292,19 @@ export class MultimediaChecker extends BaseChecker {
       }
 
       if (youtubeData.withTitle < youtubeData.totalYouTube) {
-        issues.push(`${youtubeData.totalYouTube - youtubeData.withTitle} YouTube iframes missing title attribute`);
+        issues.push(
+          `${youtubeData.totalYouTube - youtubeData.withTitle} YouTube iframes missing title attribute`
+        );
       }
 
       if (issues.length > 0) {
         return this.fail(`YouTube embed issues: ${issues.join(', ')}`, youtubeData);
       }
 
-      return this.pass(`${youtubeData.totalYouTube} YouTube embed(s) properly configured`, youtubeData);
+      return this.pass(
+        `${youtubeData.totalYouTube} YouTube embed(s) properly configured`,
+        youtubeData
+      );
     } catch (error) {
       return this.pass('YouTube embeds check skipped');
     }
@@ -276,8 +316,8 @@ export class MultimediaChecker extends BaseChecker {
         const videos = Array.from(document.querySelectorAll('video'));
         const iframes = Array.from(document.querySelectorAll('iframe'));
 
-        const videosWithAria = videos.filter((v) =>
-          v.hasAttribute('aria-label') || v.hasAttribute('aria-labelledby')
+        const videosWithAria = videos.filter(
+          (v) => v.hasAttribute('aria-label') || v.hasAttribute('aria-labelledby')
         );
 
         const iframesWithTitle = iframes.filter((i) => i.hasAttribute('title'));
@@ -293,7 +333,9 @@ export class MultimediaChecker extends BaseChecker {
       const issues: string[] = [];
 
       if (a11yData.nativeVideos > 0 && a11yData.videosWithAria < a11yData.nativeVideos) {
-        issues.push(`${a11yData.nativeVideos - a11yData.videosWithAria} videos missing ARIA labels`);
+        issues.push(
+          `${a11yData.nativeVideos - a11yData.videosWithAria} videos missing ARIA labels`
+        );
       }
 
       if (a11yData.iframes > 0 && a11yData.iframesWithTitle < a11yData.iframes) {
@@ -334,7 +376,9 @@ export class MultimediaChecker extends BaseChecker {
       }
 
       if (controlsData.audio > 0 && controlsData.audioControls < controlsData.audio) {
-        issues.push(`${controlsData.audio - controlsData.audioControls} audio elements missing controls`);
+        issues.push(
+          `${controlsData.audio - controlsData.audioControls} audio elements missing controls`
+        );
       }
 
       if (issues.length > 0) {

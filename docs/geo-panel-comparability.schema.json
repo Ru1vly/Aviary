@@ -1,0 +1,1150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-panel-comparability.schema.json",
+  "title": "GEO saved answer panel comparability report",
+  "description": "Descriptive comparison of two manually captured AI answer citation panels with optional warning-code evidence and gate selection. Prompt text is omitted and represented by SHA-256 identifiers.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "tool",
+    "generatedAt",
+    "method",
+    "inputs",
+    "summary",
+    "contexts",
+    "prompts",
+    "dimensionCoverage",
+    "warningGate"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "tool": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "method": {
+      "type": "object",
+      "required": [
+        "contextFields",
+        "contextMatch",
+        "promptMatch",
+        "promptTextIncluded",
+        "maxInputBytes",
+        "maxObservationsPerInput",
+        "htmlContextRowLimit",
+        "observationShare",
+        "promptShare",
+        "dimensionCoverage",
+        "captureDepth",
+        "mixDistance",
+        "changeDirection",
+        "citationCompleteness",
+        "duplicateDetection",
+        "warningThresholds",
+        "interpretation"
+      ],
+      "properties": {
+        "contextFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contextMatch": {
+          "type": "string"
+        },
+        "promptMatch": {
+          "type": "string"
+        },
+        "promptTextIncluded": {
+          "const": false
+        },
+        "maxInputBytes": {
+          "const": 104857600
+        },
+        "maxObservationsPerInput": {
+          "const": 20000
+        },
+        "htmlContextRowLimit": {
+          "const": 500
+        },
+        "observationShare": {
+          "type": "string"
+        },
+        "promptShare": {
+          "type": "string"
+        },
+        "dimensionCoverage": {
+          "type": "string"
+        },
+        "captureDepth": {
+          "type": "string"
+        },
+        "mixDistance": {
+          "type": "string"
+        },
+        "changeDirection": {
+          "type": "string"
+        },
+        "citationCompleteness": {
+          "type": "string"
+        },
+        "duplicateDetection": {
+          "type": "string"
+        },
+        "warningThresholds": {
+          "type": "object",
+          "required": [
+            "contextShareShiftPp",
+            "contextMixTotalVariationPp",
+            "promptMixTotalVariationPp",
+            "promptJaccardPctBelow",
+            "incompleteListPctAbove",
+            "singleCapturePromptPctAbove",
+            "contextDimensionCoveragePctBelow",
+            "minimumMatchedPrompts"
+          ],
+          "properties": {
+            "contextShareShiftPp": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "contextMixTotalVariationPp": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "promptMixTotalVariationPp": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "promptJaccardPctBelow": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "incompleteListPctAbove": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "duplicateCapturePctAbove": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "singleCapturePromptPctAbove": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "contextDimensionCoveragePctBelow": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "minimumMatchedPrompts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20000
+            },
+            "source": {
+              "enum": [
+                "built-in defaults",
+                "profile"
+              ]
+            },
+            "captureWindowGapDaysAbove": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 36500
+            },
+            "largestPromptCaptureSharePctAbove": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "maximumInternalCaptureGapDaysAbove": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 36500
+            }
+          },
+          "additionalProperties": false
+        },
+        "interpretation": {
+          "type": "string"
+        },
+        "captureTiming": {
+          "type": "string"
+        },
+        "effectivePromptSampleSize": {
+          "type": "string"
+        },
+        "promptCaptureConcentration": {
+          "type": "string"
+        },
+        "internalCaptureSpacing": {
+          "type": "string"
+        },
+        "captureTimeline": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "baseline",
+        "current"
+      ],
+      "properties": {
+        "baseline": {
+          "$ref": "#/$defs/input"
+        },
+        "current": {
+          "$ref": "#/$defs/input"
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "baseline_contexts",
+        "current_contexts",
+        "union_contexts",
+        "matched_contexts",
+        "low_support_contexts",
+        "baseline_prompt_groups",
+        "current_prompt_groups",
+        "matched_prompt_groups",
+        "baseline_only_prompt_groups",
+        "current_only_prompt_groups",
+        "prompt_group_jaccard_pct",
+        "max_context_observation_share_shift_pp",
+        "context_mix_total_variation_pp",
+        "prompt_mix_total_variation_pp",
+        "observation_context_balance_is_identical",
+        "prompt_group_mix_is_identical",
+        "warnings"
+      ],
+      "properties": {
+        "baseline_contexts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_contexts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "union_contexts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "matched_contexts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "low_support_contexts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_prompt_groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_prompt_groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "matched_prompt_groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_only_prompt_groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_only_prompt_groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prompt_group_jaccard_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "max_context_observation_share_shift_pp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "context_mix_total_variation_pp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "prompt_mix_total_variation_pp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "observation_context_balance_is_identical": {
+          "type": "boolean"
+        },
+        "prompt_group_mix_is_identical": {
+          "type": "boolean"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 14
+        },
+        "maximum_capture_window_gap_days": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_effective_prompt_sample_size": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_effective_prompt_sample_size": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_capture_redundancy_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "current_capture_redundancy_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "baseline_largest_prompt_capture_share_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "current_largest_prompt_capture_share_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maximum_internal_capture_gap_days": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capture_timeline_rows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40000,
+          "description": "Number of rows in captureTimeline and the day-level timeline CSV."
+        }
+      },
+      "additionalProperties": false
+    },
+    "contexts": {
+      "type": "array",
+      "maxItems": 40000,
+      "items": {
+        "$ref": "#/$defs/context"
+      }
+    },
+    "prompts": {
+      "type": "array",
+      "maxItems": 40000,
+      "items": {
+        "$ref": "#/$defs/prompt"
+      }
+    },
+    "warningGate": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "status",
+        "warningCount"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "not-enabled",
+            "passed",
+            "failed"
+          ]
+        },
+        "warningCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mode": {
+          "enum": [
+            "not-enabled",
+            "all-warnings",
+            "selected-codes"
+          ]
+        },
+        "selectedCodes": {
+          "type": "array",
+          "maxItems": 14,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/warningDetail/properties/code"
+          }
+        },
+        "failedCodes": {
+          "type": "array",
+          "maxItems": 14,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/warningDetail/properties/code"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "warningDetails": {
+      "type": "array",
+      "maxItems": 14,
+      "items": {
+        "$ref": "#/$defs/warningDetail"
+      }
+    },
+    "dimensionCoverage": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "dimension",
+          "baseline_observations",
+          "baseline_missing_observations",
+          "baseline_coverage_pct",
+          "current_observations",
+          "current_missing_observations",
+          "current_coverage_pct",
+          "coverage_delta_pp"
+        ],
+        "properties": {
+          "dimension": {
+            "enum": [
+              "model",
+              "surface",
+              "locale",
+              "topic",
+              "intent"
+            ]
+          },
+          "baseline_observations": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "baseline_missing_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "baseline_coverage_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "current_observations": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "current_missing_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "current_coverage_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "coverage_delta_pp": {
+            "type": "number",
+            "minimum": -100,
+            "maximum": 100
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "captureTimeline": {
+      "type": "array",
+      "maxItems": 40000,
+      "items": {
+        "type": "object",
+        "required": [
+          "context_key",
+          "context_label",
+          "provider",
+          "model",
+          "surface",
+          "locale",
+          "topic",
+          "intent",
+          "observation_date_utc",
+          "baseline_observations",
+          "current_observations",
+          "baseline_observation_share_pct",
+          "current_observation_share_pct",
+          "baseline_unique_prompts",
+          "current_unique_prompts",
+          "baseline_distinct_capture_instants",
+          "current_distinct_capture_instants",
+          "baseline_complete_capture_pct",
+          "current_complete_capture_pct",
+          "status"
+        ],
+        "properties": {
+          "context_key": {
+            "type": "string",
+            "description": "Stable serialized exact context tuple shared with the context and prompt rows."
+          },
+          "context_label": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "surface": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "observation_date_utc": {
+            "type": "string",
+            "format": "date",
+            "description": "UTC calendar date of the observations represented by this row."
+          },
+          "baseline_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "current_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "baseline_observation_share_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "This date/context row\u2019s valid baseline observations as a percentage of all valid baseline observations."
+          },
+          "current_observation_share_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "This date/context row\u2019s valid current observations as a percentage of all valid current observations."
+          },
+          "baseline_unique_prompts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of distinct trimmed exact prompts represented in this baseline context/date."
+          },
+          "current_unique_prompts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of distinct trimmed exact prompts represented in this current context/date."
+          },
+          "baseline_distinct_capture_instants": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Count of distinct UTC instants in the baseline context/date."
+          },
+          "current_distinct_capture_instants": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Count of distinct UTC instants in the current context/date."
+          },
+          "baseline_complete_capture_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Share of baseline observations with complete citation lists; null when this date has no baseline observations."
+          },
+          "current_complete_capture_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Share of current observations with complete citation lists; null when this date has no current observations."
+          },
+          "status": {
+            "enum": [
+              "baseline_only_day",
+              "current_only_day",
+              "shared_day"
+            ],
+            "description": "Whether the exact context/date occurs in both panels or only one."
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Daily UTC capture support by exact provider/model/surface/locale/topic/intent context. Rows cover dates present in either panel; the complete array is bounded by the two 20,000-observation input caps."
+    }
+  },
+  "$defs": {
+    "input": {
+      "type": "object",
+      "required": [
+        "source",
+        "inputObservations",
+        "validObservations",
+        "invalidRows",
+        "duplicateObservationRows"
+      ],
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "inputObservations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "validObservations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalidRows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicateObservationRows": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "context": {
+      "type": "object",
+      "required": [
+        "context_key",
+        "context_label",
+        "provider",
+        "model",
+        "surface",
+        "locale",
+        "topic",
+        "intent",
+        "baseline_observations",
+        "current_observations",
+        "baseline_observation_share_pct",
+        "current_observation_share_pct",
+        "observation_share_delta_pp",
+        "baseline_unique_prompts",
+        "current_unique_prompts",
+        "baseline_prompt_group_share_pct",
+        "current_prompt_group_share_pct",
+        "prompt_group_share_delta_pp",
+        "matched_prompts",
+        "baseline_only_prompts",
+        "current_only_prompts",
+        "prompt_jaccard_pct",
+        "baseline_median_captures_per_prompt",
+        "current_median_captures_per_prompt",
+        "baseline_single_capture_prompt_pct",
+        "current_single_capture_prompt_pct",
+        "baseline_capture_depth_cv",
+        "current_capture_depth_cv",
+        "baseline_incomplete_list_pct",
+        "current_incomplete_list_pct",
+        "baseline_first_observed_utc",
+        "baseline_last_observed_utc",
+        "current_first_observed_utc",
+        "current_last_observed_utc",
+        "status"
+      ],
+      "properties": {
+        "context_key": {
+          "type": "string"
+        },
+        "context_label": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "surface": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "intent": {
+          "type": "string"
+        },
+        "baseline_observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_observations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_observation_share_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_observation_share_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "observation_share_delta_pp": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseline_unique_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_unique_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_prompt_group_share_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "current_prompt_group_share_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "prompt_group_share_delta_pp": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "matched_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_only_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_only_prompts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prompt_jaccard_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "baseline_median_captures_per_prompt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_median_captures_per_prompt": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseline_single_capture_prompt_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "current_single_capture_prompt_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "baseline_capture_depth_cv": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_capture_depth_cv": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_incomplete_list_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_incomplete_list_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseline_first_observed_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "baseline_last_observed_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_first_observed_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_last_observed_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "current_only_context",
+            "baseline_only_context",
+            "matched_context",
+            "no_matched_prompts"
+          ]
+        },
+        "baseline_capture_window_days": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_capture_window_days": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "capture_window_gap_days": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_effective_prompt_sample_size": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_effective_prompt_sample_size": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_capture_redundancy_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_capture_redundancy_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_largest_prompt_capture_share_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "current_largest_prompt_capture_share_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "baseline_largest_internal_capture_gap_days": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_largest_internal_capture_gap_days": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_distinct_capture_instants": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_distinct_capture_instants": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_distinct_capture_dates": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_distinct_capture_dates": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "baseline_observations_per_capture_date": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "current_observations_per_capture_date": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "prompt": {
+      "type": "object",
+      "required": [
+        "context_key",
+        "context_label",
+        "prompt_sha256",
+        "baseline_captures",
+        "current_captures",
+        "baseline_complete_capture_pct",
+        "current_complete_capture_pct",
+        "status"
+      ],
+      "properties": {
+        "context_key": {
+          "type": "string"
+        },
+        "context_label": {
+          "type": "string"
+        },
+        "prompt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "baseline_captures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_captures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_complete_capture_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current_complete_capture_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "current_only_prompt",
+            "baseline_only_prompt",
+            "matched_prompt"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "warningDetail": {
+      "type": "object",
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "observedValue",
+        "thresholdValue",
+        "unit"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "matched-context-coverage",
+            "matched-prompt-support",
+            "context-share-shift",
+            "observation-mix-drift",
+            "prompt-mix-drift",
+            "prompt-overlap",
+            "incomplete-citation-lists",
+            "single-capture-depth",
+            "context-dimension-coverage",
+            "malformed-observations",
+            "duplicate-captures",
+            "capture-window-gap",
+            "prompt-capture-concentration",
+            "within-panel-capture-gap"
+          ]
+        },
+        "severity": {
+          "const": "warning"
+        },
+        "message": {
+          "type": "string"
+        },
+        "observedValue": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "thresholdValue": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gateSelected": {
+          "type": "boolean"
+        },
+        "gateFailed": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

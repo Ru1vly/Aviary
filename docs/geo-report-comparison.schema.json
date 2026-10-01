@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-report-comparison.schema.json",
+  "title": "Aviary GEO report comparison",
+  "description": "Versioned comparison of two saved single-page or batch audit reports, including changed GEO signals and the crawler/preview comparability basis.",
+  "oneOf": [
+    { "$ref": "#/$defs/singlePageComparison" },
+    { "$ref": "#/$defs/batchComparison" }
+  ],
+  "$defs": {
+    "score": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "findingProperties": {
+      "type": "object",
+      "required": ["category", "name", "message"],
+      "properties": {
+        "category": { "type": "string" },
+        "name": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string" }
+      }
+    },
+    "finding": {
+      "allOf": [{ "$ref": "#/$defs/findingProperties" }],
+      "unevaluatedProperties": false
+    },
+    "batchFinding": {
+      "allOf": [
+        { "$ref": "#/$defs/findingProperties" },
+        {
+          "type": "object",
+          "required": ["url"],
+          "properties": { "url": { "type": "string" } }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "geoChange": {
+      "type": "object",
+      "required": ["url", "signal", "before", "after"],
+      "properties": {
+        "url": { "type": "string" },
+        "signal": { "type": "string" },
+        "before": { "type": "string" },
+        "after": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "common": {
+      "type": "object",
+      "required": ["schemaVersion", "geoChanges", "geoComparedBasis"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "geoChanges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/geoChange" }
+        },
+        "geoComparedBasis": {
+          "const": "search-crawler-access-and-preview-controls"
+        }
+      }
+    },
+    "singlePageComparison": {
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "required": [
+            "baselineUrl", "baselineTimestamp", "baselineScore", "currentScore",
+            "scoreDelta", "newFailures", "resolvedFailures", "geoCompared"
+          ],
+          "properties": {
+            "baselineUrl": { "type": "string" },
+            "baselineTimestamp": { "type": "string", "format": "date-time" },
+            "baselineScore": { "$ref": "#/$defs/score" },
+            "currentScore": { "$ref": "#/$defs/score" },
+            "scoreDelta": { "type": ["number", "null"] },
+            "newFailures": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+            "resolvedFailures": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+            "geoCompared": { "type": "boolean" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "batchComparison": {
+      "allOf": [
+        { "$ref": "#/$defs/common" },
+        {
+          "type": "object",
+          "required": [
+            "baselineTimestamp", "currentTimestamp", "baselineAverageScore",
+            "currentAverageScore", "scoreDelta", "newUrls", "removedUrls",
+            "newFailures", "resolvedFailures", "geoComparedPages", "geoUnassessedPages"
+          ],
+          "properties": {
+            "baselineTimestamp": { "type": "string", "format": "date-time" },
+            "currentTimestamp": { "type": "string", "format": "date-time" },
+            "baselineAverageScore": { "$ref": "#/$defs/score" },
+            "currentAverageScore": { "$ref": "#/$defs/score" },
+            "scoreDelta": { "type": ["number", "null"] },
+            "newUrls": { "type": "array", "items": { "type": "string" } },
+            "removedUrls": { "type": "array", "items": { "type": "string" } },
+            "newFailures": { "type": "array", "items": { "$ref": "#/$defs/batchFinding" } },
+            "resolvedFailures": { "type": "array", "items": { "$ref": "#/$defs/batchFinding" } },
+            "geoComparedPages": { "type": "integer", "minimum": 0 },
+            "geoUnassessedPages": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -69,11 +69,7 @@ export class CheckerErrorHandler {
     checkName: string,
     options: GracefulOptions = {}
   ): Promise<SEOCheckResult> {
-    return withGracefulDegradation(
-      checkFn,
-      `${this.checkerName}.${checkName}`,
-      options
-    );
+    return withGracefulDegradation(checkFn, `${this.checkerName}.${checkName}`, options);
   }
 
   /**

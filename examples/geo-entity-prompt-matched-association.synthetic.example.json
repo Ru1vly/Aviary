@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-09-01T09:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "How do I check text contrast?",
+      "answerText": "Aviary checks contrast against the selected background.",
+      "citedUrls": ["https://example.com/guides/contrast"]
+    },
+    {
+      "observedAt": "2026-09-02T09:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "How do I check text contrast?",
+      "answerText": "Measure the text and background with a contrast checker.",
+      "citedUrls": ["https://standards.example.org/contrast"]
+    },
+    {
+      "observedAt": "2026-09-01T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "How can I review keyboard access?",
+      "answerText": "Aviary includes checks for keyboard interaction and focus order.",
+      "citedUrls": ["https://guides.example.org/keyboard", "https://example.com/accessibility/keyboard"]
+    },
+    {
+      "observedAt": "2026-09-02T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "How can I review keyboard access?",
+      "answerText": "Check that every control is reachable and usable from the keyboard.",
+      "citedUrls": ["https://example.com/accessibility/keyboard"]
+    },
+    {
+      "observedAt": "2026-09-01T11:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "What makes a page accessible?",
+      "answerText": "Aviary reviews structure, labels, contrast, and keyboard behavior.",
+      "citedUrls": ["https://example.com/accessibility/overview"]
+    },
+    {
+      "observedAt": "2026-09-02T11:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "What makes a page accessible?",
+      "answerText": "Accessible pages support varied ways of perceiving and operating content.",
+      "citedUrls": []
+    },
+    {
+      "observedAt": "2026-09-01T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "How do I test a screen reader flow?",
+      "answerText": "Aviary can help identify structural issues before assistive-technology review.",
+      "citedUrls": ["https://testing.example.net/screen-readers"]
+    },
+    {
+      "observedAt": "2026-09-02T12:00:00Z",
+      "provider": "ChatGPT Search",
+      "prompt": "How do I test a screen reader flow?",
+      "answerText": "Test headings, labels, focus movement, and announcements with a screen reader.",
+      "citedUrls": ["https://example.com/guides/screen-reader"]
+    }
+  ]
+}

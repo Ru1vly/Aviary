@@ -27,8 +27,12 @@ export class PageQualityChecker extends BaseChecker {
     try {
       const titles = await this.page.evaluate(() => {
         const pageTitle = document.title;
-        const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content');
-        const twitterTitle = document.querySelector('meta[name="twitter:title"]')?.getAttribute('content');
+        const ogTitle = document
+          .querySelector('meta[property="og:title"]')
+          ?.getAttribute('content');
+        const twitterTitle = document
+          .querySelector('meta[name="twitter:title"]')
+          ?.getAttribute('content');
 
         return {
           pageTitle,
@@ -40,7 +44,9 @@ export class PageQualityChecker extends BaseChecker {
 
       // It's actually good if all titles are the same for consistency
       return this.pass(
-        titles.allSame ? 'All title tags are consistent' : 'Title tags vary (ensure intentional variation)',
+        titles.allSame
+          ? 'All title tags are consistent'
+          : 'Title tags vary (ensure intentional variation)',
         titles
       );
     } catch (error) {
@@ -51,9 +57,15 @@ export class PageQualityChecker extends BaseChecker {
   private async checkDuplicateDescriptions(): Promise<CheckOutcome> {
     try {
       const descriptions = await this.page.evaluate(() => {
-        const metaDesc = document.querySelector('meta[name="description"]')?.getAttribute('content');
-        const ogDesc = document.querySelector('meta[property="og:description"]')?.getAttribute('content');
-        const twitterDesc = document.querySelector('meta[name="twitter:description"]')?.getAttribute('content');
+        const metaDesc = document
+          .querySelector('meta[name="description"]')
+          ?.getAttribute('content');
+        const ogDesc = document
+          .querySelector('meta[property="og:description"]')
+          ?.getAttribute('content');
+        const twitterDesc = document
+          .querySelector('meta[name="twitter:description"]')
+          ?.getAttribute('content');
 
         return {
           metaDesc,
@@ -88,11 +100,17 @@ export class PageQualityChecker extends BaseChecker {
       });
 
       if (h1Data.hasDuplicates) {
-        return this.fail(`Duplicate H1 content found (${h1Data.totalH1s} H1s, ${h1Data.uniqueH1s} unique)`, h1Data);
+        return this.fail(
+          `Duplicate H1 content found (${h1Data.totalH1s} H1s, ${h1Data.uniqueH1s} unique)`,
+          h1Data
+        );
       }
 
       if (h1Data.totalH1s > 1) {
-        return this.fail(`Multiple H1 tags found (${h1Data.totalH1s}). Best practice: 1 per page`, h1Data);
+        return this.fail(
+          `Multiple H1 tags found (${h1Data.totalH1s}). Best practice: 1 per page`,
+          h1Data
+        );
       }
 
       return this.pass('Single unique H1 found', h1Data);
@@ -104,9 +122,15 @@ export class PageQualityChecker extends BaseChecker {
   private async checkContentFreshness(): Promise<CheckOutcome> {
     try {
       const dateData = await this.page.evaluate(() => {
-        const modifiedMeta = document.querySelector('meta[property="article:modified_time"]')?.getAttribute('content');
-        const publishedMeta = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content');
-        const timeTags = Array.from(document.querySelectorAll('time')).map((t) => t.getAttribute('datetime'));
+        const modifiedMeta = document
+          .querySelector('meta[property="article:modified_time"]')
+          ?.getAttribute('content');
+        const publishedMeta = document
+          .querySelector('meta[property="article:published_time"]')
+          ?.getAttribute('content');
+        const timeTags = Array.from(document.querySelectorAll('time')).map((t) =>
+          t.getAttribute('datetime')
+        );
 
         return {
           hasModifiedDate: !!modifiedMeta,
@@ -118,10 +142,14 @@ export class PageQualityChecker extends BaseChecker {
         };
       });
 
-      const hasDateIndicators = dateData.hasModifiedDate || dateData.hasPublishedDate || dateData.hasTimeElements;
+      const hasDateIndicators =
+        dateData.hasModifiedDate || dateData.hasPublishedDate || dateData.hasTimeElements;
 
       if (!hasDateIndicators) {
-        return this.fail('No date indicators found (consider adding publication/modified dates)', dateData);
+        return this.fail(
+          'No date indicators found (consider adding publication/modified dates)',
+          dateData
+        );
       }
 
       return this.pass('Date metadata present', dateData);
@@ -135,7 +163,8 @@ export class PageQualityChecker extends BaseChecker {
       const mediaData = await this.page.evaluate(() => {
         return {
           images: document.querySelectorAll('img').length,
-          videos: document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]').length,
+          videos: document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]')
+            .length,
           audio: document.querySelectorAll('audio').length,
         };
       });
@@ -161,7 +190,11 @@ export class PageQualityChecker extends BaseChecker {
         return tocElements.length > 0;
       });
 
-      return this.pass(hasTOC ? 'Table of contents found' : 'No table of contents (consider adding for long content)');
+      return this.pass(
+        hasTOC
+          ? 'Table of contents found'
+          : 'No table of contents (consider adding for long content)'
+      );
     } catch (error) {
       return this.pass('Table of contents check skipped');
     }
@@ -176,7 +209,9 @@ export class PageQualityChecker extends BaseChecker {
       });
 
       const jsonLdScripts = await this.page.evaluate(extractJsonLdBlocks);
-      const hasSchemaAuthor = (jsonLdScripts as JsonLdBlock[]).some((data) => data.author || data.creator);
+      const hasSchemaAuthor = (jsonLdScripts as JsonLdBlock[]).some(
+        (data) => data.author || data.creator
+      );
 
       const authorData = {
         hasAuthorMeta: !!domAuthorData.authorMeta,
@@ -185,10 +220,13 @@ export class PageQualityChecker extends BaseChecker {
         authorMeta: domAuthorData.authorMeta,
       };
 
-      const hasAuthorInfo = authorData.hasAuthorMeta || authorData.hasAuthorLink || authorData.hasSchemaAuthor;
+      const hasAuthorInfo =
+        authorData.hasAuthorMeta || authorData.hasAuthorLink || authorData.hasSchemaAuthor;
 
       return this.pass(
-        hasAuthorInfo ? 'Author information present' : 'No author information (recommended for E-A-T)',
+        hasAuthorInfo
+          ? 'Author information present'
+          : 'No author information (recommended for E-A-T)',
         authorData
       );
     } catch (error) {
@@ -199,7 +237,9 @@ export class PageQualityChecker extends BaseChecker {
   private async checkPublishDate(): Promise<CheckOutcome> {
     try {
       const dateInfo = await this.page.evaluate(() => {
-        const publishedTime = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content');
+        const publishedTime = document
+          .querySelector('meta[property="article:published_time"]')
+          ?.getAttribute('content');
         const timeElements = document.querySelectorAll('time[datetime]');
 
         return {
@@ -212,7 +252,9 @@ export class PageQualityChecker extends BaseChecker {
       const hasDate = dateInfo.hasPublishedMeta || dateInfo.hasTimeElements;
 
       return this.pass(
-        hasDate ? 'Publication date found' : 'No publication date (recommended for content freshness)',
+        hasDate
+          ? 'Publication date found'
+          : 'No publication date (recommended for content freshness)',
         dateInfo
       );
     } catch (error) {
@@ -226,8 +268,9 @@ export class PageQualityChecker extends BaseChecker {
         const content = document.body.textContent || '';
         const hasEmail = /@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/.test(content);
         const hasPhone = /\(\d{3}\)\s*\d{3}-\d{4}|\d{3}-\d{3}-\d{4}/.test(content);
-        const hasAddress = content.toLowerCase().includes('address') &&
-                          (content.includes('Street') || content.includes('Ave') || content.includes('Blvd'));
+        const hasAddress =
+          content.toLowerCase().includes('address') &&
+          (content.includes('Street') || content.includes('Ave') || content.includes('Blvd'));
 
         return {
           hasEmail,
@@ -236,7 +279,11 @@ export class PageQualityChecker extends BaseChecker {
         };
       });
 
-      const contactMethods = [contactData.hasEmail, contactData.hasPhone, contactData.hasAddress].filter(Boolean).length;
+      const contactMethods = [
+        contactData.hasEmail,
+        contactData.hasPhone,
+        contactData.hasAddress,
+      ].filter(Boolean).length;
 
       return this.pass(
         contactMethods > 0
@@ -254,7 +301,9 @@ export class PageQualityChecker extends BaseChecker {
       const socialData = await this.page.evaluate(() => {
         const testimonials = document.querySelectorAll('[class*="testimonial"], [class*="review"]');
         const ratings = document.querySelectorAll('[class*="rating"], [class*="star"]');
-        const socialLinks = document.querySelectorAll('a[href*="facebook"], a[href*="twitter"], a[href*="linkedin"], a[href*="instagram"]');
+        const socialLinks = document.querySelectorAll(
+          'a[href*="facebook"], a[href*="twitter"], a[href*="linkedin"], a[href*="instagram"]'
+        );
 
         return {
           hasTestimonials: testimonials.length > 0,
@@ -265,10 +314,13 @@ export class PageQualityChecker extends BaseChecker {
         };
       });
 
-      const hasSocialProof = socialData.hasTestimonials || socialData.hasRatings || socialData.hasSocialLinks;
+      const hasSocialProof =
+        socialData.hasTestimonials || socialData.hasRatings || socialData.hasSocialLinks;
 
       return this.pass(
-        hasSocialProof ? 'Social proof elements present' : 'No social proof (consider adding reviews/testimonials)',
+        hasSocialProof
+          ? 'Social proof elements present'
+          : 'No social proof (consider adding reviews/testimonials)',
         socialData
       );
     } catch (error) {
@@ -279,10 +331,24 @@ export class PageQualityChecker extends BaseChecker {
   private async checkCallToAction(): Promise<CheckOutcome> {
     try {
       const ctaData = await this.page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('button, [role="button"], a[class*="btn"], a[class*="button"]'));
-        const ctaText = buttons.map((btn) => btn.textContent?.trim().toLowerCase()).filter((text) => text);
+        const buttons = Array.from(
+          document.querySelectorAll('button, [role="button"], a[class*="btn"], a[class*="button"]')
+        );
+        const ctaText = buttons
+          .map((btn) => btn.textContent?.trim().toLowerCase())
+          .filter((text) => text);
 
-        const commonCTAs = ['buy', 'shop', 'subscribe', 'sign up', 'contact', 'get', 'download', 'learn more', 'read more'];
+        const commonCTAs = [
+          'buy',
+          'shop',
+          'subscribe',
+          'sign up',
+          'contact',
+          'get',
+          'download',
+          'learn more',
+          'read more',
+        ];
         const hasCTA = ctaText.some((text) => commonCTAs.some((cta: string) => text.includes(cta)));
 
         return {
@@ -308,7 +374,8 @@ export class PageQualityChecker extends BaseChecker {
         const viewport = document.querySelector('meta[name="viewport"]');
         const viewportContent = viewport?.getAttribute('content') || '';
 
-        const hasTouchIcons = document.querySelectorAll('link[rel*="apple-touch-icon"], link[rel*="icon"]').length > 0;
+        const hasTouchIcons =
+          document.querySelectorAll('link[rel*="apple-touch-icon"], link[rel*="icon"]').length > 0;
         const hasResponsiveImages = document.querySelectorAll('img[srcset], picture').length > 0;
 
         return {
@@ -348,11 +415,13 @@ export class PageQualityChecker extends BaseChecker {
   private async checkPrintStylesheet(): Promise<CheckOutcome> {
     try {
       const hasPrintCSS = await this.page.evaluate(() => {
-        const printLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-          .some((link) => link.getAttribute('media') === 'print');
+        const printLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(
+          (link) => link.getAttribute('media') === 'print'
+        );
 
-        const hasMediaQueries = Array.from(document.querySelectorAll('style'))
-          .some((style) => style.textContent?.includes('@media print'));
+        const hasMediaQueries = Array.from(document.querySelectorAll('style')).some((style) =>
+          style.textContent?.includes('@media print')
+        );
 
         return {
           hasPrintLinks: printLinks,
@@ -397,13 +466,17 @@ export class PageQualityChecker extends BaseChecker {
   private async checkNoIndex(): Promise<CheckOutcome> {
     try {
       const robotsData = await this.page.evaluate(() => {
-        const robotsMeta = document.querySelector('meta[name="robots"]')?.getAttribute('content') || '';
-        const googleBotMeta = document.querySelector('meta[name="googlebot"]')?.getAttribute('content') || '';
+        const robotsMeta =
+          document.querySelector('meta[name="robots"]')?.getAttribute('content') || '';
+        const googleBotMeta =
+          document.querySelector('meta[name="googlebot"]')?.getAttribute('content') || '';
 
-        const hasNoIndex = robotsMeta.toLowerCase().includes('noindex') ||
-                          googleBotMeta.toLowerCase().includes('noindex');
-        const hasNoFollow = robotsMeta.toLowerCase().includes('nofollow') ||
-                           googleBotMeta.toLowerCase().includes('nofollow');
+        const hasNoIndex =
+          robotsMeta.toLowerCase().includes('noindex') ||
+          googleBotMeta.toLowerCase().includes('noindex');
+        const hasNoFollow =
+          robotsMeta.toLowerCase().includes('nofollow') ||
+          googleBotMeta.toLowerCase().includes('nofollow');
 
         return {
           robotsMeta,
@@ -414,7 +487,10 @@ export class PageQualityChecker extends BaseChecker {
       });
 
       if (robotsData.hasNoIndex) {
-        return this.fail('Page has noindex directive (will not be indexed by search engines)', robotsData);
+        return this.fail(
+          'Page has noindex directive (will not be indexed by search engines)',
+          robotsData
+        );
       }
 
       if (robotsData.hasNoFollow) {

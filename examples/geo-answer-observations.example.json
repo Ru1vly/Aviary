@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-09-03T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Accessibility",
+      "intent": "How-to",
+      "prompt": "How do I choose an accessible color palette?",
+      "citedUrls": [
+        "https://example.com/guides/color-accessibility?utm_source=sample#contrast",
+        "https://design.example.org/color-contrast"
+      ],
+      "answerText": "Aviary's guide explains accessible color palettes: measure contrast against the target background and use colors that preserve clear text states. Aviary's accessibility guide walks through the checks.",
+      "model": "Sample model A",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-12T14:20:00+02:00",
+      "provider": "ChatGPT Search",
+      "topic": "Accessibility",
+      "intent": "How-to",
+      "prompt": "How do I choose an accessible color palette?",
+      "citedUrls": [
+        "https://design.example.org/color-contrast",
+        "https://standards.example.net/wcag/colors"
+      ],
+      "citationListComplete": false,
+      "model": "Sample model A",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-13T08:30:00Z",
+      "provider": "Perplexity",
+      "topic": "Accessibility",
+      "intent": "How-to",
+      "prompt": "How do I choose an accessible color palette?",
+      "citedUrls": [
+        "https://example.com/guides/color-accessibility",
+        "https://standards.example.net/wcag/colors"
+      ],
+      "answerText": "Check the contrast ratio, distinguish states with more than color, and verify the palette with assistive technology.",
+      "model": "Sample model B",
+      "surface": "Answer engine",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-13T09:10:00Z",
+      "provider": "Claude",
+      "topic": "Audio equipment",
+      "intent": "Evaluation",
+      "prompt": "What is a good starter kit for home recording?",
+      "citedUrls": [],
+      "model": "Sample model C",
+      "surface": "Web search",
+      "locale": "en-US"
+    }
+  ]
+}

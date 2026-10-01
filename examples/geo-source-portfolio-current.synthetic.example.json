@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Accessibility",
+      "intent": "How-to",
+      "prompt": "How can I check whether a color palette is accessible?",
+      "citedUrls": [
+        "https://example.com/guides/sample-1",
+        "https://standards.example.net/guides/sample-1"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Accessibility",
+      "intent": "Evaluation",
+      "prompt": "Which contrast tools are useful for a product team?",
+      "citedUrls": [
+        "https://example.com/guides/sample-2",
+        "https://ux.example.net/guides/sample-2"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Web performance",
+      "intent": "How-to",
+      "prompt": "How do I reduce render-blocking resources on a website?",
+      "citedUrls": [
+        "https://example.com/guides/sample-3",
+        "https://perf.example.net/guides/sample-3"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Web performance",
+      "intent": "Evaluation",
+      "prompt": "What should I measure before choosing an image format?",
+      "citedUrls": [
+        "https://example.com/guides/sample-4",
+        "https://cdn.example.net/guides/sample-4"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How should I validate canonical URL declarations?",
+      "citedUrls": [
+        "https://example.com/guides/sample-5",
+        "https://crawl.example.net/guides/sample-5"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "Evaluation",
+      "prompt": "What makes a sitemap useful for a large website?",
+      "citedUrls": [
+        "https://search.example.net/guides/sample-6"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Structured data",
+      "intent": "How-to",
+      "prompt": "How do I validate structured data before release?",
+      "citedUrls": [
+        "https://developers.example.net/guides/sample-7"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Structured data",
+      "intent": "Evaluation",
+      "prompt": "Which structured data fields matter for an article page?",
+      "citedUrls": [
+        "https://search.example.net/guides/sample-8"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "AI discoverability",
+      "intent": "How-to",
+      "prompt": "How can I check whether AI crawlers can access my pages?",
+      "citedUrls": [
+        "https://robots.example.net/guides/sample-9"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "AI discoverability",
+      "intent": "Evaluation",
+      "prompt": "What belongs in an llms.txt inventory?",
+      "citedUrls": [
+        "https://docs.example.net/guides/sample-10"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Accessibility",
+      "intent": "How-to",
+      "prompt": "How can I improve keyboard navigation on a long form?",
+      "citedUrls": [
+        "https://forms.example.net/guides/sample-11"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Web performance",
+      "intent": "Evaluation",
+      "prompt": "How should I compare page performance across templates?",
+      "citedUrls": [
+        "https://web.dev.example.net/guides/sample-12"
+      ],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    }
+  ]
+}

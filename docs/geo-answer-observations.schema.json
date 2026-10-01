@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary manually observed AI answers input",
+  "description": "A locally assembled sample of AI answers, their prompts, timestamps, provider labels, cited URLs, and optional answer text. This is not a representative visibility dataset.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "observations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20000,
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "required": [
+        "observedAt",
+        "provider",
+        "prompt",
+        "citedUrls"
+      ],
+      "properties": {
+        "observedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+          "description": "ISO 8601 date-time with explicit timezone; the report groups by UTC month."
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "answerText": {
+          "type": "string",
+          "maxLength": 12000,
+          "description": "Optional captured answer text. Used only for local matching against configured entity names and aliases; raw text is not included in the report."
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Optional operator-assigned topic label; Aviary does not infer it."
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Optional operator-assigned intent label; Aviary does not infer it."
+        },
+        "citedUrls": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          }
+        },
+        "citationListComplete": {
+          "type": "boolean",
+          "description": "Whether citedUrls is a complete list. Defaults to true below 50 URLs and false at 50 URLs; set false when a shorter list was also clipped and true when a 50-URL list is confirmed complete. Incomplete next-timestamp lists make absent citations unobserved rather than lost."
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Optional operator-recorded model or version label; Aviary does not infer or verify it."
+        },
+        "surface": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Optional operator-recorded product surface label, such as Search or Browse; Aviary does not infer or verify it."
+        },
+        "locale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Optional operator-recorded requested locale; Aviary does not infer it from answer text."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

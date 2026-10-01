@@ -27,21 +27,34 @@ export class EcommerceChecker extends BaseChecker {
     if (!this.ecommerceSignalPromise) {
       this.ecommerceSignalPromise = (async () => {
         const jsonLdBlocks = await this.page.evaluate(extractJsonLdBlocks);
-        const hasProductSchema = jsonLdBlocks.some((data) => isSchemaType(data as JsonLdBlock, 'Product'));
+        const hasProductSchema = jsonLdBlocks.some((data) =>
+          isSchemaType(data as JsonLdBlock, 'Product')
+        );
         if (hasProductSchema) return true;
 
         return this.page.evaluate(() => {
           const priceSelectors = [
-            '[class*="price"]', '[id*="price"]',
-            '[itemprop="price"]', '.product-price', '.price',
+            '[class*="price"]',
+            '[id*="price"]',
+            '[itemprop="price"]',
+            '.product-price',
+            '.price',
           ];
-          const hasPriceElement = priceSelectors.some((selector) => document.querySelectorAll(selector).length > 0);
+          const hasPriceElement = priceSelectors.some(
+            (selector) => document.querySelectorAll(selector).length > 0
+          );
           if (hasPriceElement) return true;
 
-          const cartButtons = Array.from(document.querySelectorAll('button, a, input[type="submit"]')).filter((el) => {
+          const cartButtons = Array.from(
+            document.querySelectorAll('button, a, input[type="submit"]')
+          ).filter((el) => {
             const text = el.textContent?.toLowerCase() || '';
             const value = (el as HTMLInputElement).value?.toLowerCase() || '';
-            return text.includes('add to cart') || text.includes('buy now') || value.includes('add to cart');
+            return (
+              text.includes('add to cart') ||
+              text.includes('buy now') ||
+              value.includes('add to cart')
+            );
           });
           return cartButtons.length > 0;
         });
@@ -127,8 +140,11 @@ export class EcommerceChecker extends BaseChecker {
     try {
       const priceData = await this.page.evaluate(() => {
         const priceSelectors = [
-          '[class*="price"]', '[id*="price"]',
-          '[itemprop="price"]', '.product-price', '.price',
+          '[class*="price"]',
+          '[id*="price"]',
+          '[itemprop="price"]',
+          '.product-price',
+          '.price',
         ];
 
         const priceElements = priceSelectors.flatMap((selector) =>
@@ -166,7 +182,10 @@ export class EcommerceChecker extends BaseChecker {
         return this.fail(`Price display issues: ${issues.join(', ')}`, priceData);
       }
 
-      return this.pass(`Price displayed clearly with currency (${priceData.priceElements} price element(s))`, priceData);
+      return this.pass(
+        `Price displayed clearly with currency (${priceData.priceElements} price element(s))`,
+        priceData
+      );
     } catch (error) {
       return this.pass('Price display check skipped');
     }
@@ -176,14 +195,21 @@ export class EcommerceChecker extends BaseChecker {
     try {
       const availabilityData = await this.page.evaluate(() => {
         const availabilityKeywords = [
-          'in stock', 'out of stock', 'available', 'unavailable',
-          'pre-order', 'backorder', 'sold out',
+          'in stock',
+          'out of stock',
+          'available',
+          'unavailable',
+          'pre-order',
+          'backorder',
+          'sold out',
         ];
 
         const bodyText = document.body.textContent?.toLowerCase() || '';
         const hasAvailability = availabilityKeywords.some((keyword) => bodyText.includes(keyword));
 
-        const availabilityElements = Array.from(document.querySelectorAll('[class*="stock"], [class*="availability"], [id*="stock"]'));
+        const availabilityElements = Array.from(
+          document.querySelectorAll('[class*="stock"], [class*="availability"], [id*="stock"]')
+        );
 
         return {
           hasAvailability,
@@ -204,13 +230,18 @@ export class EcommerceChecker extends BaseChecker {
   private async checkReviewsRatings(): Promise<CheckOutcome> {
     try {
       const reviewData = await this.page.evaluate(() => {
-        const reviewElements = Array.from(document.querySelectorAll('[class*="review"], [class*="rating"], [id*="review"]'));
+        const reviewElements = Array.from(
+          document.querySelectorAll('[class*="review"], [class*="rating"], [id*="review"]')
+        );
 
-        const starRatings = Array.from(document.querySelectorAll('[class*="star"], [aria-label*="star"]'));
+        const starRatings = Array.from(
+          document.querySelectorAll('[class*="star"], [aria-label*="star"]')
+        );
 
         const reviewCount = document.body.textContent?.match(/\d+\s*(review|rating)/i);
 
-        const hasAggregateRating = Array.from(document.querySelectorAll('[itemprop="aggregateRating"]')).length > 0;
+        const hasAggregateRating =
+          Array.from(document.querySelectorAll('[itemprop="aggregateRating"]')).length > 0;
 
         return {
           reviewElements: reviewElements.length,
@@ -237,10 +268,16 @@ export class EcommerceChecker extends BaseChecker {
   private async checkAddToCartButton(): Promise<CheckOutcome> {
     try {
       const cartData = await this.page.evaluate(() => {
-        const cartButtons = Array.from(document.querySelectorAll('button, a, input[type="submit"]')).filter((el) => {
+        const cartButtons = Array.from(
+          document.querySelectorAll('button, a, input[type="submit"]')
+        ).filter((el) => {
           const text = el.textContent?.toLowerCase() || '';
           const value = (el as HTMLInputElement).value?.toLowerCase() || '';
-          return text.includes('add to cart') || text.includes('buy now') || value.includes('add to cart');
+          return (
+            text.includes('add to cart') ||
+            text.includes('buy now') ||
+            value.includes('add to cart')
+          );
         });
 
         const hasCartIcon = document.querySelectorAll('[class*="cart"], [id*="cart"]').length > 0;
@@ -255,7 +292,10 @@ export class EcommerceChecker extends BaseChecker {
         return this.pass('No "Add to Cart" button (not an e-commerce product page)');
       }
 
-      return this.pass(`Add to cart functionality present (${cartData.cartButtons} button(s))`, cartData);
+      return this.pass(
+        `Add to cart functionality present (${cartData.cartButtons} button(s))`,
+        cartData
+      );
     } catch (error) {
       return this.pass('Add to cart check skipped');
     }
@@ -264,11 +304,16 @@ export class EcommerceChecker extends BaseChecker {
   private async checkProductImages(): Promise<CheckOutcome> {
     try {
       const imageData = await this.page.evaluate(() => {
-        const productImages = Array.from(document.querySelectorAll('[class*="product"] img, [id*="product"] img'));
+        const productImages = Array.from(
+          document.querySelectorAll('[class*="product"] img, [id*="product"] img')
+        );
 
-        const withAlt = productImages.filter((img) => img.hasAttribute('alt') && img.getAttribute('alt')?.trim());
+        const withAlt = productImages.filter(
+          (img) => img.hasAttribute('alt') && img.getAttribute('alt')?.trim()
+        );
 
-        const hasGallery = document.querySelectorAll('[class*="gallery"], [class*="carousel"]').length > 0;
+        const hasGallery =
+          document.querySelectorAll('[class*="gallery"], [class*="carousel"]').length > 0;
 
         const hasZoom = document.querySelectorAll('[class*="zoom"], [data-zoom]').length > 0;
 
@@ -316,8 +361,10 @@ export class EcommerceChecker extends BaseChecker {
         PRODUCT_DESCRIPTION_MIN_LENGTH
       );
       const descriptionSelectors = [
-        '[class*="description"]', '[id*="description"]',
-        '[itemprop="description"]', '.product-description',
+        '[class*="description"]',
+        '[id*="description"]',
+        '[itemprop="description"]',
+        '.product-description',
       ];
       // Sums text "near" the matched containers, not just their own descendant
       // text -- some sites (confirmed on books.toscrape.com) name only the
@@ -344,10 +391,16 @@ export class EcommerceChecker extends BaseChecker {
       }
 
       if (!descriptionData.hasLongDescription) {
-        return this.fail(`Product description too short (${descriptionData.totalLength} chars, recommended: ${minLength}+)`, descriptionData);
+        return this.fail(
+          `Product description too short (${descriptionData.totalLength} chars, recommended: ${minLength}+)`,
+          descriptionData
+        );
       }
 
-      return this.pass(`Product description present (${descriptionData.totalLength} chars)`, descriptionData);
+      return this.pass(
+        `Product description present (${descriptionData.totalLength} chars)`,
+        descriptionData
+      );
     } catch (error) {
       return this.pass('Product description check skipped');
     }
@@ -360,7 +413,9 @@ export class EcommerceChecker extends BaseChecker {
 
         const hasSKU = /SKU|Product Code|Item Number/i.test(bodyText);
 
-        const skuElements = Array.from(document.querySelectorAll('[class*="sku"], [id*="sku"], [itemprop="sku"]'));
+        const skuElements = Array.from(
+          document.querySelectorAll('[class*="sku"], [id*="sku"], [itemprop="sku"]')
+        );
 
         return {
           hasSKU,
@@ -385,7 +440,9 @@ export class EcommerceChecker extends BaseChecker {
       }
 
       const brandData = await this.page.evaluate(() => {
-        const brandElements = Array.from(document.querySelectorAll('[class*="brand"], [id*="brand"], [itemprop="brand"]'));
+        const brandElements = Array.from(
+          document.querySelectorAll('[class*="brand"], [id*="brand"], [itemprop="brand"]')
+        );
 
         const bodyText = document.body.textContent?.toLowerCase() || '';
         const hasBrandMention = /brand|manufacturer|by\s+[A-Z]/i.test(bodyText);
@@ -414,7 +471,9 @@ export class EcommerceChecker extends BaseChecker {
         const bodyText = document.body.textContent?.toLowerCase() || '';
         const hasShipping = shippingKeywords.some((keyword) => bodyText.includes(keyword));
 
-        const shippingElements = document.querySelectorAll('[class*="shipping"], [class*="delivery"], [id*="shipping"]');
+        const shippingElements = document.querySelectorAll(
+          '[class*="shipping"], [class*="delivery"], [id*="shipping"]'
+        );
 
         return {
           hasShipping,
@@ -470,7 +529,9 @@ export class EcommerceChecker extends BaseChecker {
         const bodyText = document.body.textContent?.toLowerCase() || '';
         const hasPaymentMention = paymentKeywords.some((keyword) => bodyText.includes(keyword));
 
-        const paymentIcons = document.querySelectorAll('[class*="payment"], [class*="card-icon"], [alt*="visa"], [alt*="mastercard"]');
+        const paymentIcons = document.querySelectorAll(
+          '[class*="payment"], [class*="card-icon"], [alt*="visa"], [alt*="mastercard"]'
+        );
 
         return {
           hasPaymentMention,
@@ -505,7 +566,9 @@ export class EcommerceChecker extends BaseChecker {
         const bodyText = document.body.textContent?.toLowerCase() || '';
         const hasSecurityMention = securityKeywords.some((keyword) => bodyText.includes(keyword));
 
-        const securityBadges = document.querySelectorAll('[class*="secure"], [class*="ssl"], [alt*="secure"]');
+        const securityBadges = document.querySelectorAll(
+          '[class*="secure"], [class*="ssl"], [alt*="secure"]'
+        );
 
         return {
           hasSecurityMention,
@@ -534,10 +597,14 @@ export class EcommerceChecker extends BaseChecker {
         const wishlistButtons = Array.from(document.querySelectorAll('button, a')).filter((el) => {
           const text = el.textContent?.toLowerCase() || '';
           const classes = el.className.toLowerCase();
-          return text.includes('wishlist') || text.includes('favorite') || classes.includes('wishlist');
+          return (
+            text.includes('wishlist') || text.includes('favorite') || classes.includes('wishlist')
+          );
         });
 
-        const wishlistIcons = document.querySelectorAll('[class*="heart"], [class*="wishlist"], [class*="favorite"]');
+        const wishlistIcons = document.querySelectorAll(
+          '[class*="heart"], [class*="wishlist"], [class*="favorite"]'
+        );
 
         return {
           wishlistButtons: wishlistButtons.length,
@@ -559,9 +626,15 @@ export class EcommerceChecker extends BaseChecker {
   private async checkRelatedProducts(): Promise<CheckOutcome> {
     try {
       const relatedData = await this.page.evaluate(() => {
-        const relatedSections = Array.from(document.querySelectorAll('[class*="related"], [class*="recommend"], [id*="related"]'));
+        const relatedSections = Array.from(
+          document.querySelectorAll('[class*="related"], [class*="recommend"], [id*="related"]')
+        );
 
-        const relatedProducts = Array.from(document.querySelectorAll('[class*="related"] [class*="product"], [class*="recommend"] [class*="product"]'));
+        const relatedProducts = Array.from(
+          document.querySelectorAll(
+            '[class*="related"] [class*="product"], [class*="recommend"] [class*="product"]'
+          )
+        );
 
         return {
           relatedSections: relatedSections.length,
@@ -574,7 +647,10 @@ export class EcommerceChecker extends BaseChecker {
         return this.pass('No related products section (recommended for cross-selling)');
       }
 
-      return this.pass(`Related products section with ${relatedData.relatedProducts} items`, relatedData);
+      return this.pass(
+        `Related products section with ${relatedData.relatedProducts} items`,
+        relatedData
+      );
     } catch (error) {
       return this.pass('Related products check skipped');
     }

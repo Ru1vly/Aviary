@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-change-gate.schema.json",
+  "title": "Aviary GEO change-gate result",
+  "description": "Versioned pass/fail decision and evidence for a GEO baseline gate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifactType",
+    "schemaVersion",
+    "scope",
+    "baselineTimestamp",
+    "currentTimestamp",
+    "geoComparedBasis",
+    "filters",
+    "passed",
+    "failureReasons",
+    "matchedPages",
+    "comparablePages",
+    "unassessedPages",
+    "totalChanges",
+    "matchingChanges",
+    "currentFailedUrls",
+    "baselineFailedUrls"
+  ],
+  "properties": {
+    "artifactType": { "const": "geo-change-gate" },
+    "schemaVersion": { "const": 1 },
+    "scope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "baselineUrl", "currentUrl"],
+          "properties": {
+            "type": { "const": "single-page" },
+            "baselineUrl": { "type": "string", "format": "uri" },
+            "currentUrl": { "type": "string", "format": "uri" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "batch" }
+          }
+        }
+      ]
+    },
+    "baselineTimestamp": { "type": "string", "format": "date-time" },
+    "currentTimestamp": { "type": "string", "format": "date-time" },
+    "geoComparedBasis": { "const": "search-crawler-access-and-preview-controls" },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signals", "urls", "transitions"],
+      "properties": {
+        "signals": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "urls": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["before", "after"],
+            "properties": {
+              "before": { "type": "string", "minLength": 1 },
+              "after": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "passed": { "type": "boolean" },
+    "failureReasons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "enum": ["no-comparable-data", "unassessed-pages", "selected-changes", "current-audit-errors", "baseline-audit-errors"]
+          },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "matchedPages": { "type": "integer", "minimum": 0 },
+    "comparablePages": { "type": "integer", "minimum": 0 },
+    "unassessedPages": { "type": "integer", "minimum": 0 },
+    "totalChanges": { "type": "integer", "minimum": 0 },
+    "matchingChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "signal", "before", "after"],
+        "properties": {
+          "url": { "type": "string", "minLength": 1 },
+          "signal": { "type": "string", "minLength": 1 },
+          "before": { "type": "string" },
+          "after": { "type": "string" }
+        }
+      }
+    },
+    "currentFailedUrls": { "type": "integer", "minimum": 0 },
+    "baselineFailedUrls": { "type": "integer", "minimum": 0 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "passed": { "const": true } }, "required": ["passed"] },
+      "then": { "properties": { "failureReasons": { "maxItems": 0 } } }
+    },
+    {
+      "if": { "properties": { "passed": { "const": false } }, "required": ["passed"] },
+      "then": { "properties": { "failureReasons": { "minItems": 1 } } }
+    }
+  ]
+}

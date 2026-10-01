@@ -34,18 +34,27 @@ export class URLFactorsChecker extends BaseChecker {
       const warnLength = this.threshold('url-length-acceptable', 'warnLength', URL_WARN_LENGTH);
 
       if (urlLength > maxLength) {
-        return this.fail(`URL is too long (${urlLength} characters). Recommended: under ${warnLength} characters`, {
-          url,
-          length: urlLength,
-        });
+        return this.fail(
+          `URL is too long (${urlLength} characters). Recommended: under ${warnLength} characters`,
+          {
+            url,
+            length: urlLength,
+          }
+        );
       } else if (urlLength > warnLength) {
-        return this.pass(`URL length is acceptable (${urlLength} characters) but could be shorter`, {
-          url,
-          length: urlLength,
-        });
+        return this.pass(
+          `URL length is acceptable (${urlLength} characters) but could be shorter`,
+          {
+            url,
+            length: urlLength,
+          }
+        );
       }
 
-      return this.pass(`URL length is optimal (${urlLength} characters)`, { url, length: urlLength });
+      return this.pass(`URL length is optimal (${urlLength} characters)`, {
+        url,
+        length: urlLength,
+      });
     } catch (error) {
       return this.fail('Error checking URL length');
     }
@@ -159,7 +168,9 @@ export class URLFactorsChecker extends BaseChecker {
         return this.fail('URL does not contain keywords from page title', { urlWords, titleWords });
       }
 
-      return this.pass(`URL contains ${matchingKeywords.length} keyword(s) from title`, { matchingKeywords });
+      return this.pass(`URL contains ${matchingKeywords.length} keyword(s) from title`, {
+        matchingKeywords,
+      });
     } catch (error) {
       return { passed: false, severity: 'info', message: 'URL keyword check skipped due to error' };
     }
@@ -233,13 +244,18 @@ export class URLFactorsChecker extends BaseChecker {
       const maxParams = this.threshold('url-parameters-clean', 'maxParams', URL_MAX_QUERY_PARAMS);
 
       if (paramCount > maxParams && !hasTrackingParams) {
-        return this.fail(`URL has many parameters (${paramCount}). Consider cleaner URLs`, { paramCount });
+        return this.fail(`URL has many parameters (${paramCount}). Consider cleaner URLs`, {
+          paramCount,
+        });
       }
 
-      return this.pass(paramCount === 0 ? 'Clean URL with no parameters' : `URL has ${paramCount} parameter(s)`, {
-        paramCount,
-        hasTrackingParams,
-      });
+      return this.pass(
+        paramCount === 0 ? 'Clean URL with no parameters' : `URL has ${paramCount} parameter(s)`,
+        {
+          paramCount,
+          hasTrackingParams,
+        }
+      );
     } catch (error) {
       return this.pass('URL parameters check skipped');
     }
@@ -254,7 +270,10 @@ export class URLFactorsChecker extends BaseChecker {
       const warnDepth = this.threshold('url-depth-acceptable', 'warnDepth', URL_WARN_DEPTH);
 
       if (depth > maxDepth) {
-        return this.fail(`URL depth is too deep (${depth} levels). Recommended: ${warnDepth} or fewer`, { depth, pathname });
+        return this.fail(
+          `URL depth is too deep (${depth} levels). Recommended: ${warnDepth} or fewer`,
+          { depth, pathname }
+        );
       } else if (depth > warnDepth) {
         return this.pass(`URL depth is acceptable (${depth} levels)`, { depth });
       }
@@ -297,10 +316,13 @@ export class URLFactorsChecker extends BaseChecker {
         });
       }
 
-      return this.pass(hasTrailingSlash ? 'URL has trailing slash' : 'URL structure is consistent', {
-        pathname,
-        hasTrailingSlash,
-      });
+      return this.pass(
+        hasTrailingSlash ? 'URL has trailing slash' : 'URL structure is consistent',
+        {
+          pathname,
+          hasTrailingSlash,
+        }
+      );
     } catch (error) {
       return this.pass('Trailing slash check skipped');
     }

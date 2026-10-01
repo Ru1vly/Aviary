@@ -21,7 +21,9 @@ export class LegalComplianceChecker extends BaseChecker {
     const pool = footerOnly ? links.filter((link) => link.inFooter) : links;
     const matches = pool.filter(
       (link) =>
-        keywords.some((keyword) => link.text.includes(keyword) || (matchHref && link.href.includes(keyword))) ||
+        keywords.some(
+          (keyword) => link.text.includes(keyword) || (matchHref && link.href.includes(keyword))
+        ) ||
         (extra?.(link) ?? false)
     );
 
@@ -74,11 +76,16 @@ export class LegalComplianceChecker extends BaseChecker {
       const termsData = await this.matchLinks(['terms', 'conditions']);
 
       if (!termsData.found) {
-        return this.fail('No terms of service link found (recommended for all websites)', termsData);
+        return this.fail(
+          'No terms of service link found (recommended for all websites)',
+          termsData
+        );
       }
 
       return this.pass(
-        termsData.inFooter ? 'Terms of service link found in footer' : 'Terms of service link found',
+        termsData.inFooter
+          ? 'Terms of service link found in footer'
+          : 'Terms of service link found',
         termsData
       );
     } catch (error) {
@@ -89,7 +96,11 @@ export class LegalComplianceChecker extends BaseChecker {
   private async checkCookieConsent(): Promise<CheckOutcome> {
     try {
       const cookieData = await this.page.evaluate(() => {
-        const cookieBanners = Array.from(document.querySelectorAll('[class*="cookie"], [id*="cookie"], [class*="consent"], [id*="consent"]'));
+        const cookieBanners = Array.from(
+          document.querySelectorAll(
+            '[class*="cookie"], [id*="cookie"], [class*="consent"], [id*="consent"]'
+          )
+        );
         const cookieButtons = Array.from(document.querySelectorAll('button, a')).filter((el) => {
           const text = el.textContent?.toLowerCase() || '';
           return text.includes('cookie') || text.includes('accept') || text.includes('consent');
@@ -114,7 +125,13 @@ export class LegalComplianceChecker extends BaseChecker {
 
   private async checkGDPRCompliance(): Promise<CheckOutcome> {
     try {
-      const gdprKeywords = ['gdpr', 'data protection', 'right to access', 'right to erasure', 'data controller'];
+      const gdprKeywords = [
+        'gdpr',
+        'data protection',
+        'right to access',
+        'right to erasure',
+        'data controller',
+      ];
 
       const hasGDPRMentions = await this.page.evaluate((keywords) => {
         const bodyText = document.body.textContent?.toLowerCase() || '';
@@ -123,15 +140,29 @@ export class LegalComplianceChecker extends BaseChecker {
 
       const gdprLinks = await this.matchLinks(gdprKeywords);
 
-      const gdprData = { hasGDPRMentions, gdprLinks: gdprLinks.count };
+      const gdprData = {
+        hasGDPRMentions,
+        gdprLinks: gdprLinks.count,
+        assessment: 'text-indicators-only',
+        legalSufficiencyVerified: false,
+      };
 
-      if (!gdprData.hasGDPRMentions) {
-        return this.pass('No GDPR mentions (ensure compliance if serving EU users)');
+      if (!gdprData.hasGDPRMentions && gdprData.gdprLinks === 0) {
+        return {
+          ...this.fail(
+            'No GDPR-related indicators detected; this scan cannot assess legal compliance',
+            gdprData
+          ),
+          severity: 'info',
+        };
       }
 
-      return this.pass('GDPR compliance indicators found', gdprData);
+      return this.pass('GDPR-related indicators found; legal compliance is not verified', gdprData);
     } catch (error) {
-      return this.pass('GDPR compliance check skipped');
+      return {
+        ...this.fail('GDPR indicator check unavailable; legal compliance was not assessed'),
+        severity: 'info',
+      };
     }
   }
 
@@ -147,20 +178,31 @@ export class LegalComplianceChecker extends BaseChecker {
         };
       }, ccpaKeywords);
 
-      const ccpaLinks = await this.matchLinks(ccpaKeywords, { matchHref: false });
+      const ccpaLinks = await this.matchLinks(ccpaKeywords);
 
-      const ccpaData = { ...bodyKeywordData, ccpaLinks: ccpaLinks.count };
+      const ccpaData = {
+        ...bodyKeywordData,
+        ccpaLinks: ccpaLinks.count,
+        assessment: 'text-indicators-only',
+        legalSufficiencyVerified: false,
+      };
 
-      if (!ccpaData.hasCCPAMentions) {
-        return this.pass('No CCPA mentions (ensure compliance if serving California users)');
+      if (!ccpaData.hasCCPAMentions && ccpaData.ccpaLinks === 0) {
+        return {
+          ...this.fail(
+            'No CCPA-related indicators detected; this scan cannot assess legal compliance',
+            ccpaData
+          ),
+          severity: 'info',
+        };
       }
 
-      return this.pass(
-        ccpaData.hasDoNotSell ? 'CCPA compliance with "Do Not Sell" option' : 'CCPA compliance indicators found',
-        ccpaData
-      );
+      return this.pass('CCPA-related indicators found; legal compliance is not verified', ccpaData);
     } catch (error) {
-      return this.pass('CCPA compliance check skipped');
+      return {
+        ...this.fail('CCPA indicator check unavailable; legal compliance was not assessed'),
+        severity: 'info',
+      };
     }
   }
 
@@ -168,7 +210,9 @@ export class LegalComplianceChecker extends BaseChecker {
     try {
       const match = await this.matchLinks([], {
         matchHref: false,
-        extra: (link) => (link.text.includes('cookie') && link.text.includes('policy')) || link.href.includes('cookie'),
+        extra: (link) =>
+          (link.text.includes('cookie') && link.text.includes('policy')) ||
+          link.href.includes('cookie'),
       });
       const policyData = { found: match.found, count: match.count };
 
@@ -190,7 +234,9 @@ export class LegalComplianceChecker extends BaseChecker {
         const bodyText = document.body.textContent?.toLowerCase() || '';
         const hasDataProtection = protectionKeywords.some((keyword) => bodyText.includes(keyword));
 
-        const secureIcons = document.querySelectorAll('[class*="secure"], [class*="lock"], [id*="secure"]');
+        const secureIcons = document.querySelectorAll(
+          '[class*="secure"], [class*="lock"], [id*="secure"]'
+        );
 
         return { hasDataProtection, secureIcons: secureIcons.length };
       });
@@ -277,7 +323,9 @@ export class LegalComplianceChecker extends BaseChecker {
 
       const bodyMatches = await this.page.evaluate(() => ({
         phoneNumbers: (document.body.textContent?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/) || []).length,
-        emailAddresses: (document.body.textContent?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || []).length,
+        emailAddresses: (
+          document.body.textContent?.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || []
+        ).length,
       }));
 
       const contactData = {
@@ -288,7 +336,10 @@ export class LegalComplianceChecker extends BaseChecker {
       };
 
       if (contactData.contactMethods === 0) {
-        return this.fail('No contact information found (required for trust and legal compliance)', contactData);
+        return this.fail(
+          'No contact information found (required for trust and legal compliance)',
+          contactData
+        );
       }
 
       return this.pass(`${contactData.contactMethods} contact method(s) found`, contactData);
@@ -300,8 +351,8 @@ export class LegalComplianceChecker extends BaseChecker {
   private async checkDisclaimers(): Promise<CheckOutcome> {
     try {
       const disclaimerLinks = await this.matchLinks(['disclaimer'], { matchHref: false });
-      const hasDisclaimerText = await this.page.evaluate(
-        () => (document.body.textContent?.toLowerCase() || '').includes('disclaimer')
+      const hasDisclaimerText = await this.page.evaluate(() =>
+        (document.body.textContent?.toLowerCase() || '').includes('disclaimer')
       );
 
       const disclaimerData = {

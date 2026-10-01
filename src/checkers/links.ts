@@ -11,59 +11,139 @@ export class LinksChecker extends BaseChecker {
 
   private async checkLinkStructure(): Promise<CheckOutcome> {
     try {
-      const linkData = await this.page.evaluate(() => {
-        const links = Array.from(document.querySelectorAll('a[href]'));
-        const currentHost = window.location.hostname;
+      const captureSitewideLinks = this.sitewideTargetIndexes !== undefined;
+      const linkData = await this.page.evaluate((captureTargets) => {
+        const links = document.querySelectorAll('a[href],area[href]');
+        const currentOrigin = window.location.origin;
+        const hasNamedReference = (link: Element): boolean =>
+          (link.getAttribute('aria-labelledby') ?? '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .some((id) => Boolean(document.getElementById(id)?.textContent?.trim()));
 
-        const internal: string[] = [];
-        const external: string[] = [];
-        const nofollow: string[] = [];
-        const withoutText: string[] = [];
+        let internal = 0;
+        let external = 0;
+        let nofollow = 0;
+        let withoutText = 0;
+        let invalid = 0;
+        let ignored = 0;
+        const invalidPreviews: string[] = [];
+        const candidateTargets = new Set<string>();
+        let candidateTargetsTruncated = false;
+        const maxCandidateTargets = 1_000;
 
         links.forEach((link) => {
           const href = link.getAttribute('href') || '';
-          const text = link.textContent?.trim() || '';
-          const rel = link.getAttribute('rel') || '';
+          const text = link.textContent?.trim() || link.getAttribute('alt')?.trim() || '';
+          const relTokens = (link.getAttribute('rel') || '')
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+          const hasImageName = Array.from(link.querySelectorAll('img[alt]')).some((image) =>
+            Boolean(image.getAttribute('alt')?.trim())
+          );
+          const svg = link.querySelector('svg');
+          const hasSvgName = Boolean(
+            svg &&
+            (svg.getAttribute('aria-label')?.trim() ||
+              svg.querySelector('title')?.textContent?.trim())
+          );
+          const hasDirectName = Boolean(
+            link.getAttribute('aria-label')?.trim() || link.getAttribute('title')?.trim()
+          );
 
           try {
-            if (href.startsWith('#') || href.startsWith('javascript:')) {
-              return; // Skip anchors and javascript links
+            if (href.startsWith('#') || /^(?:javascript|mailto|tel|sms|data|blob):/i.test(href)) {
+              ignored += 1;
+              return;
             }
 
             const url = new URL(href, window.location.href);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+              ignored += 1;
+              return;
+            }
 
-            if (url.hostname === currentHost) {
-              internal.push(href);
+            if (url.origin === currentOrigin) {
+              internal += 1;
             } else {
-              external.push(href);
+              external += 1;
             }
 
-            if (rel.includes('nofollow')) {
-              nofollow.push(href);
+            if (relTokens.includes('nofollow')) {
+              nofollow += 1;
             }
 
-            if (!text && !link.querySelector('img') && !link.querySelector('svg') && !link.getAttribute('aria-label')) {
-              withoutText.push(href);
+            if (
+              !text &&
+              !hasImageName &&
+              !hasSvgName &&
+              !hasDirectName &&
+              !hasNamedReference(link)
+            ) {
+              withoutText += 1;
+            }
+
+            if (
+              captureTargets &&
+              (url.protocol === 'http:' || url.protocol === 'https:') &&
+              !url.username &&
+              !url.password
+            ) {
+              url.hash = '';
+              if (url.href.length > 2_048) {
+                candidateTargetsTruncated = true;
+              } else if (!candidateTargets.has(url.href)) {
+                if (candidateTargets.size < maxCandidateTargets) {
+                  candidateTargets.add(url.href);
+                } else {
+                  candidateTargetsTruncated = true;
+                }
+              }
             }
           } catch {
-            // Invalid URL, treat as internal
-            internal.push(href);
+            invalid += 1;
+            if (invalidPreviews.length < 10) invalidPreviews.push(href.slice(0, 256));
           }
         });
 
         return {
           total: links.length,
-          internal: internal.length,
-          external: external.length,
-          nofollow: nofollow.length,
-          withoutText: withoutText.length,
+          internal,
+          external,
+          nofollow,
+          withoutText,
+          invalid,
+          invalidPreviews,
+          ignored,
+          candidateTargets: [...candidateTargets],
+          candidateTargetsTruncated,
         };
-      });
+      }, captureSitewideLinks);
+      const { candidateTargets, candidateTargetsTruncated, ...linkCounts } = linkData;
+      const details: Record<string, unknown> = { ...linkCounts };
+      if (this.sitewideTargetIndexes) {
+        const sitewideLinkTargets: number[] = [];
+        const maxTargetsPerPage = 250;
+        let sitewideLinkTargetsTruncated = candidateTargetsTruncated;
+        for (const target of candidateTargets) {
+          const index = this.sitewideTargetIndexes.get(target);
+          if (index === undefined) continue;
+          if (sitewideLinkTargets.length >= maxTargetsPerPage) {
+            sitewideLinkTargetsTruncated = true;
+            break;
+          }
+          sitewideLinkTargets.push(index);
+        }
+        details.sitewideLinkTargets = sitewideLinkTargets;
+        details.sitewideLinkTargetsTruncated = sitewideLinkTargetsTruncated;
+      }
 
       const issues: string[] = [];
 
       if (linkData.total === 0) {
-        return this.fail('No links found on page', linkData);
+        return this.fail('No links found on page', details);
       }
 
       if (linkData.internal === 0) {
@@ -73,14 +153,17 @@ export class LinksChecker extends BaseChecker {
       if (linkData.withoutText > 0) {
         issues.push(`${linkData.withoutText} links without descriptive text`);
       }
+      if (linkData.invalid > 0) {
+        issues.push(`${linkData.invalid} invalid link URLs`);
+      }
 
       if (issues.length > 0) {
-        return this.fail(`Link structure issues: ${issues.join(', ')}`, linkData);
+        return this.fail(`Link structure issues: ${issues.join(', ')}`, details);
       }
 
       return this.pass(
         `Good link structure (${linkData.total} links: ${linkData.internal} internal, ${linkData.external} external)`,
-        linkData
+        details
       );
     } catch (error) {
       return this.fail(
@@ -91,112 +174,162 @@ export class LinksChecker extends BaseChecker {
 
   private async checkExternalLinks(): Promise<CheckOutcome> {
     try {
-      const externalLinks = await this.page.evaluate(() => {
-        const links = Array.from(document.querySelectorAll('a[href]'));
-        const currentHost = window.location.hostname;
+      const externalLinkData = await this.page.evaluate(() => {
+        const links = document.querySelectorAll('a[href],area[href]');
+        const currentOrigin = window.location.origin;
+        let total = 0;
+        let withoutNoopener = 0;
+        let withNofollow = 0;
+        let explicitlyOpener = 0;
+        let implicitBlankNoopener = 0;
 
-        return links
-          .map((link) => {
-            const href = link.getAttribute('href') || '';
-            const rel = link.getAttribute('rel') || '';
-            const target = link.getAttribute('target') || '';
+        links.forEach((link) => {
+          const href = link.getAttribute('href') || '';
+          const relTokens = new Set(
+            (link.getAttribute('rel') || '').toLowerCase().split(/\s+/).filter(Boolean)
+          );
+          try {
+            const url = new URL(href, window.location.href);
+            if (
+              (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+              url.origin === currentOrigin
+            )
+              return;
+          } catch {
+            // Ignore invalid URLs.
+            return;
+          }
+          total += 1;
+          if (relTokens.has('nofollow')) withNofollow += 1;
 
-            try {
-              const url = new URL(href, window.location.href);
-              if (url.hostname !== currentHost) {
-                return {
-                  href,
-                  rel,
-                  target,
-                  hasNofollow: rel.includes('nofollow'),
-                  hasNoopener: rel.includes('noopener'),
-                  hasNoreferrer: rel.includes('noreferrer'),
-                };
-              }
-            } catch {
-              // Invalid URL
-            }
-            return null;
-          })
-          .filter((link): link is NonNullable<typeof link> => link !== null);
+          const target = (link.getAttribute('target') || '').trim().toLowerCase();
+          const opensSeparateContext =
+            target !== '' && !['_self', '_parent', '_top'].includes(target);
+          const explicitlyIsolated = relTokens.has('noopener') || relTokens.has('noreferrer');
+          if (opensSeparateContext && relTokens.has('opener') && !explicitlyIsolated) {
+            explicitlyOpener += 1;
+          } else if (opensSeparateContext && target !== '_blank' && !explicitlyIsolated) {
+            withoutNoopener += 1;
+          } else if (opensSeparateContext && target === '_blank' && !explicitlyIsolated) {
+            // Modern browsers implicitly apply noopener to target="_blank".
+            implicitBlankNoopener += 1;
+          }
+        });
+        return { total, withoutNoopener, withNofollow, explicitlyOpener, implicitBlankNoopener };
       });
 
-      if (externalLinks.length === 0) {
+      if (externalLinkData.total === 0) {
         return this.pass('No external links found');
       }
 
       const issues: string[] = [];
-      const linksWithoutNoopener = externalLinks.filter((link) => !link.hasNoopener);
-
-      if (linksWithoutNoopener.length > 0) {
+      if (externalLinkData.withoutNoopener > 0) {
         issues.push(
-          `${linksWithoutNoopener.length} external links missing rel="noopener" (security risk)`
+          `${externalLinkData.withoutNoopener} external links open named browsing contexts without rel="noopener" or rel="noreferrer"`
+        );
+      }
+      if (externalLinkData.explicitlyOpener > 0) {
+        issues.push(
+          `${externalLinkData.explicitlyOpener} external links explicitly retain window.opener`
         );
       }
 
       if (issues.length > 0) {
         return this.fail(issues.join(', '), {
-          total: externalLinks.length,
-          withoutNoopener: linksWithoutNoopener.length,
+          total: externalLinkData.total,
+          withoutNoopener: externalLinkData.withoutNoopener,
+          explicitlyOpener: externalLinkData.explicitlyOpener,
+          implicitBlankNoopener: externalLinkData.implicitBlankNoopener,
         });
       }
 
-      return this.pass(`${externalLinks.length} external links properly configured`, {
-        total: externalLinks.length,
-        withNofollow: externalLinks.filter((link) => link.hasNofollow).length,
+      return this.pass(`${externalLinkData.total} external links checked for opener isolation`, {
+        total: externalLinkData.total,
+        withoutNoopener: externalLinkData.withoutNoopener,
+        explicitlyOpener: externalLinkData.explicitlyOpener,
+        withNofollow: externalLinkData.withNofollow,
+        implicitBlankNoopener: externalLinkData.implicitBlankNoopener,
       });
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'External links check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'External links check skipped due to error',
+      };
     }
   }
 
   private async checkInternalLinks(): Promise<CheckOutcome> {
     try {
-      const internalLinks = await this.page.evaluate(() => {
-        const links = Array.from(document.querySelectorAll('a[href]'));
-        const currentHost = window.location.hostname;
+      const internalLinkData = await this.page.evaluate(() => {
+        const links = document.querySelectorAll('a[href],area[href]');
+        const currentOrigin = window.location.origin;
+        let total = 0;
+        let withoutText = 0;
+        const hasNamedReference = (link: Element): boolean =>
+          (link.getAttribute('aria-labelledby') ?? '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .some((id) => Boolean(document.getElementById(id)?.textContent?.trim()));
 
-        return links
-          .map((link) => {
-            const href = link.getAttribute('href') || '';
-            const text = link.textContent?.trim() || '';
-
-            if (href.startsWith('#') || href.startsWith('javascript:')) {
-              return null;
-            }
-
-            try {
-              const url = new URL(href, window.location.href);
-              if (url.hostname === currentHost) {
-                return { href, text, hasText: text.length > 0 };
-              }
-            } catch {
-              // Relative URL, treat as internal
-              return { href, text, hasText: text.length > 0 };
-            }
-            return null;
-          })
-          .filter((link): link is NonNullable<typeof link> => link !== null);
+        links.forEach((link) => {
+          const href = link.getAttribute('href') || '';
+          if (href.startsWith('#') || href.startsWith('javascript:')) return;
+          let isInternal = false;
+          try {
+            const url = new URL(href, window.location.href);
+            isInternal =
+              (url.protocol === 'http:' || url.protocol === 'https:') &&
+              url.origin === currentOrigin;
+          } catch {
+            // Invalid link URLs are reported by the link-structure check.
+            return;
+          }
+          if (!isInternal) return;
+          total += 1;
+          const text = link.textContent?.trim() || link.getAttribute('alt')?.trim() || '';
+          const hasImageName = Array.from(link.querySelectorAll('img[alt]')).some((image) =>
+            Boolean(image.getAttribute('alt')?.trim())
+          );
+          const svg = link.querySelector('svg');
+          const hasSvgName = Boolean(
+            svg &&
+            (svg.getAttribute('aria-label')?.trim() ||
+              svg.querySelector('title')?.textContent?.trim())
+          );
+          const hasDirectName = Boolean(
+            link.getAttribute('aria-label')?.trim() || link.getAttribute('title')?.trim()
+          );
+          if (!text && !hasImageName && !hasSvgName && !hasDirectName && !hasNamedReference(link))
+            withoutText += 1;
+        });
+        return { total, withoutText };
       });
 
-      if (internalLinks.length === 0) {
+      if (internalLinkData.total === 0) {
         return this.fail('No internal links found - important for SEO and site navigation');
       }
 
-      const linksWithoutText = internalLinks.filter((link) => !link.hasText);
-
-      if (linksWithoutText.length > 0) {
-        return this.fail(`${linksWithoutText.length} internal links missing descriptive text`, {
-          total: internalLinks.length,
-          withoutText: linksWithoutText.length,
-        });
+      if (internalLinkData.withoutText > 0) {
+        return this.fail(
+          `${internalLinkData.withoutText} internal links missing descriptive text`,
+          {
+            total: internalLinkData.total,
+            withoutText: internalLinkData.withoutText,
+          }
+        );
       }
 
-      return this.pass(`${internalLinks.length} internal links with descriptive text`, {
-        total: internalLinks.length,
+      return this.pass(`${internalLinkData.total} internal links with descriptive text`, {
+        total: internalLinkData.total,
       });
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Internal links check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Internal links check skipped due to error',
+      };
     }
   }
 }

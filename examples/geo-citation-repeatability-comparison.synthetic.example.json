@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "method": {
+    "pairing": "SHA-256 prompt ID within exact provider/model/surface/locale/topic/intent context",
+    "delta": "current minus baseline prompt-level mean",
+    "equalPromptWeight": true,
+    "ownedDomainSetSha256": {
+      "baseline": "0000000000000000000000000000000000000000000000000000000000000000",
+      "current": "0000000000000000000000000000000000000000000000000000000000000000",
+      "match": true
+    },
+    "bootstrap": {
+      "requestedIterations": 2000,
+      "intervalDrawLimit": 2000,
+      "budgetCapacityIterations": 2000,
+      "promptMetricSampleBudget": 10000000,
+      "cluster": "matched exact prompt",
+      "deterministic": true
+    },
+    "signTest": {
+      "test": "exact two-sided sign test on non-tied prompt deltas",
+      "multiplicity": "Holm adjustment across all provider/context/metric rows with at least two non-tied prompts",
+      "maximumWorkTerms": 5000000,
+      "workTerms": 4,
+      "familySize": 2,
+      "state": "complete"
+    }
+  },
+  "baselineInput": "baseline-prompts.csv",
+  "currentInput": "current-prompts.csv",
+  "skippedBaselineRows": 0,
+  "skippedCurrentRows": 0,
+  "metricCount": 1,
+  "providerContextMetricRows": [
+    {
+      "provider": "Example AI", "model": "sample-model", "surface": "search", "locale": "en-US", "topic": "sample-topic", "intent": "research",
+      "metric": "citationDomainRboP90", "baselineMean": 0.82, "currentMean": 0.51, "meanPromptDelta": -0.31, "ci95Lower": -0.4, "ci95Upper": -0.2,
+      "intervalState": "estimated", "comparablePrompts": 24, "sharedPrompts": 24, "baselineOnlyPrompts": 0, "currentOnlyPrompts": 0,
+      "sharedPromptsWithoutMetric": 0, "positivePromptChanges": 2, "negativePromptChanges": 20, "tiedPromptChanges": 2,
+      "signTestNonTiedPrompts": 22, "signTestTwoSidedPValue": 0.00012111663818359375,
+      "signTestHolmAdjustedPValue": 0.0002422332763671875, "signTestState": "available"
+    },
+    {
+      "provider": "Small Sample AI", "model": "sample-model", "surface": "search", "locale": "en-US", "topic": "sample-topic", "intent": "research",
+      "metric": "citationDomainRboP90", "baselineMean": 0.8, "currentMean": 0.55, "meanPromptDelta": -0.25, "ci95Lower": -0.6, "ci95Upper": 0.1,
+      "intervalState": "estimated", "comparablePrompts": 4, "sharedPrompts": 4, "baselineOnlyPrompts": 0, "currentOnlyPrompts": 0,
+      "sharedPromptsWithoutMetric": 0, "positivePromptChanges": 0, "negativePromptChanges": 3, "tiedPromptChanges": 1,
+      "signTestNonTiedPrompts": 3, "signTestTwoSidedPValue": 0.25,
+      "signTestHolmAdjustedPValue": 0.25, "signTestState": "available"
+    }
+  ]
+}

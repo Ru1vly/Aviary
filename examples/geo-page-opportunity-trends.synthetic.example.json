@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {"observedAt":"2026-09-02T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 01","citedUrls":["https://review.example/desk-guide"]},
+    {"observedAt":"2026-09-04T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 02","citedUrls":["https://review.example/desk-guide"]},
+    {"observedAt":"2026-09-06T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 03","citedUrls":["https://source.example/a","https://source.example/b","https://source.example/c","https://review.example/desk-guide"]},
+    {"observedAt":"2026-09-08T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 04","citedUrls":["https://example.com/guides/desks","https://review.example/desk-guide"]},
+    {"observedAt":"2026-09-10T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 05","citedUrls":["https://review.example/desk-guide"],"citationListComplete":false},
+    {"observedAt":"2026-09-12T12:00:00Z","provider":"SampleSearch","prompt":"ergonomic desk guide 01","citedUrls":["https://review.example/desk-guide"]},
+    {"observedAt":"2026-09-14T12:00:00Z","provider":"SampleSearch","prompt":"ergonomic desk guide 02","citedUrls":["https://forum.example/desk-setups"]},
+    {"observedAt":"2026-09-16T12:00:00Z","provider":"SampleSearch","prompt":"ergonomic desk guide 03","citedUrls":["https://example.com/guides/desks"]},
+    {"observedAt":"2026-10-02T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 01","citedUrls":["https://review.example/desk-guide"]},
+    {"observedAt":"2026-10-04T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 02","citedUrls":["https://forum.example/desk-setups"]},
+    {"observedAt":"2026-10-06T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 03","citedUrls":["https://forum.example/desk-setups"]},
+    {"observedAt":"2026-10-08T12:00:00Z","provider":"ExampleAI","prompt":"ergonomic desk guide 04","citedUrls":["https://review.example/desk-guide"],"citationListComplete":false},
+    {"observedAt":"2026-10-10T12:00:00Z","provider":"SampleSearch","prompt":"ergonomic desk guide 01","citedUrls":["https://review.example/desk-guide"]},
+    {"observedAt":"2026-10-12T12:00:00Z","provider":"SampleSearch","prompt":"ergonomic desk guide 02","citedUrls":["https://forum.example/desk-setups"]},
+    {"observedAt":"2026-10-14T12:00:00Z","provider":"SampleSearch","prompt":"ergonomic desk guide 03","citedUrls":["https://review.example/desk-guide","https://example.com/guides/desks"]}
+  ]
+}

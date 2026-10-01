@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { BaseChecker, CheckOutcome } from './base';
 import { tokenize } from './shared/text';
 import {
@@ -13,6 +14,9 @@ import {
   TEXT_TO_HTML_MIN_RATIO_PERCENT,
   TEXT_TO_HTML_GOOD_RATIO_PERCENT,
 } from '../config/thresholds';
+
+const MIN_FINGERPRINT_WORD_COUNT = 50;
+const MAX_FINGERPRINT_CHARACTERS = 256_000;
 
 export class ContentChecker extends BaseChecker {
   protected checks() {
@@ -35,20 +39,44 @@ export class ContentChecker extends BaseChecker {
 
       const words = tokenize(content);
       const wordCount = words.length;
+      let contentFingerprint: string | undefined;
+      let normalizedCharacters: number | undefined;
+      if (wordCount >= MIN_FINGERPRINT_WORD_COUNT && content.length <= MAX_FINGERPRINT_CHARACTERS) {
+        const normalizedContent = content
+          .normalize('NFKC')
+          .toLowerCase()
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (normalizedContent.length <= MAX_FINGERPRINT_CHARACTERS) {
+          contentFingerprint = createHash('sha256').update(normalizedContent).digest('hex');
+          normalizedCharacters = normalizedContent.length;
+        }
+      }
+      const details = {
+        wordCount,
+        ...(contentFingerprint ? { contentFingerprint, normalizedCharacters } : {}),
+      };
       const minWords = this.threshold('word-count-adequate', 'minWords', CONTENT_MIN_WORD_COUNT);
-      const excellentWords = this.threshold('word-count-adequate', 'excellentWords', CONTENT_EXCELLENT_WORD_COUNT);
+      const excellentWords = this.threshold(
+        'word-count-adequate',
+        'excellentWords',
+        CONTENT_EXCELLENT_WORD_COUNT
+      );
 
       if (wordCount < minWords) {
-        return this.fail(`Content is too short (${wordCount} words). Recommended: at least ${minWords} words`, {
-          wordCount,
-        });
+        return this.fail(
+          `Content is too short (${wordCount} words). Recommended: at least ${minWords} words`,
+          details
+        );
       } else if (wordCount >= minWords && wordCount < excellentWords) {
-        return this.pass(`Good content length (${wordCount} words)`, { wordCount });
+        return this.pass(`Good content length (${wordCount} words)`, details);
       } else {
-        return this.pass(`Excellent content length (${wordCount} words)`, { wordCount });
+        return this.pass(`Excellent content length (${wordCount} words)`, details);
       }
     } catch (error) {
-      return this.fail(`Error checking word count: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return this.fail(
+        `Error checking word count: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -84,13 +112,24 @@ export class ContentChecker extends BaseChecker {
       const avgSyllablesPerWord = syllables / words.length;
 
       // Flesch Reading Ease formula
-      const fleschScore =
-        206.835 - 1.015 * avgWordsPerSentence - 84.6 * avgSyllablesPerWord;
+      const fleschScore = 206.835 - 1.015 * avgWordsPerSentence - 84.6 * avgSyllablesPerWord;
 
-      const veryEasy = this.threshold('readability-acceptable', 'veryEasyScore', FLESCH_VERY_EASY_SCORE);
+      const veryEasy = this.threshold(
+        'readability-acceptable',
+        'veryEasyScore',
+        FLESCH_VERY_EASY_SCORE
+      );
       const easy = this.threshold('readability-acceptable', 'easyScore', FLESCH_EASY_SCORE);
-      const fairlyEasy = this.threshold('readability-acceptable', 'fairlyEasyScore', FLESCH_FAIRLY_EASY_SCORE);
-      const standard = this.threshold('readability-acceptable', 'standardScore', FLESCH_STANDARD_SCORE);
+      const fairlyEasy = this.threshold(
+        'readability-acceptable',
+        'fairlyEasyScore',
+        FLESCH_FAIRLY_EASY_SCORE
+      );
+      const standard = this.threshold(
+        'readability-acceptable',
+        'standardScore',
+        FLESCH_STANDARD_SCORE
+      );
       const fairlyDifficult = this.threshold(
         'readability-acceptable',
         'fairlyDifficultScore',
@@ -168,19 +207,28 @@ export class ContentChecker extends BaseChecker {
         issues.push('Consider adding lists for better content structure');
       }
 
-      const maxIssues = this.threshold('content-structure-present', 'maxIssues', CONTENT_STRUCTURE_MAX_ISSUES);
+      const maxIssues = this.threshold(
+        'content-structure-present',
+        'maxIssues',
+        CONTENT_STRUCTURE_MAX_ISSUES
+      );
 
       if (issues.length === 0) {
         return this.pass('Content has good structural elements', structure);
       } else {
         return {
           passed: issues.length <= maxIssues,
-          message: issues.length === 1 ? issues[0] : `Content structure issues: ${issues.join(', ')}`,
+          message:
+            issues.length === 1 ? issues[0] : `Content structure issues: ${issues.join(', ')}`,
           details: structure,
         };
       }
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Content structure check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Content structure check skipped due to error',
+      };
     }
   }
 
@@ -211,14 +259,21 @@ export class ContentChecker extends BaseChecker {
       );
 
       if (ratioPercent < minRatio) {
-        return this.fail(`Low text-to-HTML ratio (${ratioPercent}%). Page may have too much code`, ratio);
+        return this.fail(
+          `Low text-to-HTML ratio (${ratioPercent}%). Page may have too much code`,
+          ratio
+        );
       } else if (ratioPercent >= goodRatio) {
         return this.pass(`Excellent text-to-HTML ratio (${ratioPercent}%)`, ratio);
       } else {
         return this.pass(`Acceptable text-to-HTML ratio (${ratioPercent}%)`, ratio);
       }
     } catch (error) {
-      return { passed: false, severity: 'info', message: 'Text-to-HTML ratio check skipped due to error' };
+      return {
+        passed: false,
+        severity: 'info',
+        message: 'Text-to-HTML ratio check skipped due to error',
+      };
     }
   }
 }

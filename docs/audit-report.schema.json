@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary single-page audit report",
+  "description": "JSON written by Aviary for one completed page audit. Check details are checker-specific and may grow as checks evolve.",
+  "type": "object",
+  "required": ["url", "timestamp", "checks", "score", "summary"],
+  "properties": {
+    "url": { "type": "string", "format": "uri" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "navigationWaitUntil": {
+      "type": "string",
+      "enum": ["domcontentloaded", "load", "networkidle"]
+    },
+    "settleAfterNavigationMs": { "type": "integer", "minimum": 0, "maximum": 30000 },
+    "categories": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "checks": {
+      "type": "object",
+      "required": [
+        "metaTags",
+        "headings",
+        "images",
+        "performance",
+        "robotsTxt",
+        "sitemap",
+        "security",
+        "structuredData",
+        "socialMedia",
+        "content",
+        "links",
+        "uiElements",
+        "technical",
+        "accessibility",
+        "urlFactors",
+        "spamDetection",
+        "pageQuality",
+        "advancedImages",
+        "multimedia",
+        "coreWebVitals",
+        "analytics",
+        "mobileUX",
+        "schemaValidation",
+        "resourceOptimization",
+        "legalCompliance",
+        "ecommerce",
+        "internationalization",
+        "heatmap",
+        "geo"
+      ],
+      "properties": {
+        "metaTags": { "$ref": "#/$defs/checkList" },
+        "headings": { "$ref": "#/$defs/checkList" },
+        "images": { "$ref": "#/$defs/checkList" },
+        "performance": { "$ref": "#/$defs/checkList" },
+        "robotsTxt": { "$ref": "#/$defs/checkList" },
+        "sitemap": { "$ref": "#/$defs/checkList" },
+        "security": { "$ref": "#/$defs/checkList" },
+        "structuredData": { "$ref": "#/$defs/checkList" },
+        "socialMedia": { "$ref": "#/$defs/checkList" },
+        "content": { "$ref": "#/$defs/checkList" },
+        "links": { "$ref": "#/$defs/checkList" },
+        "uiElements": { "$ref": "#/$defs/checkList" },
+        "technical": { "$ref": "#/$defs/checkList" },
+        "accessibility": { "$ref": "#/$defs/checkList" },
+        "urlFactors": { "$ref": "#/$defs/checkList" },
+        "spamDetection": { "$ref": "#/$defs/checkList" },
+        "pageQuality": { "$ref": "#/$defs/checkList" },
+        "advancedImages": { "$ref": "#/$defs/checkList" },
+        "multimedia": { "$ref": "#/$defs/checkList" },
+        "coreWebVitals": { "$ref": "#/$defs/checkList" },
+        "analytics": { "$ref": "#/$defs/checkList" },
+        "mobileUX": { "$ref": "#/$defs/checkList" },
+        "schemaValidation": { "$ref": "#/$defs/checkList" },
+        "resourceOptimization": { "$ref": "#/$defs/checkList" },
+        "legalCompliance": { "$ref": "#/$defs/checkList" },
+        "ecommerce": { "$ref": "#/$defs/checkList" },
+        "internationalization": { "$ref": "#/$defs/checkList" },
+        "heatmap": { "$ref": "#/$defs/checkList" },
+        "geo": { "$ref": "#/$defs/checkList" }
+      },
+      "additionalProperties": false
+    },
+    "score": { "$ref": "#/$defs/score" },
+    "summary": { "$ref": "#/$defs/checkSummary" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "score": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+    "count": { "type": "integer", "minimum": 0 },
+    "checkSummary": {
+      "type": "object",
+      "required": ["total", "passed", "failed"],
+      "properties": {
+        "total": { "$ref": "#/$defs/count" },
+        "passed": { "$ref": "#/$defs/count" },
+        "failed": { "$ref": "#/$defs/count" }
+      },
+      "additionalProperties": false
+    },
+    "checkList": { "type": "array", "items": { "$ref": "#/$defs/check" } },
+    "check": {
+      "type": "object",
+      "required": ["passed", "message"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "message": { "type": "string" },
+        "severity": { "type": "string", "enum": ["error", "warning", "info"] },
+        "details": { "type": "object", "additionalProperties": true },
+        "name": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

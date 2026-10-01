@@ -62,7 +62,7 @@ describe('RobotsTxtChecker', () => {
     const accessibleResult = results[1];
     expect(accessibleResult.passed).toBe(false);
     expect(accessibleResult.details?.issues).toEqual(
-      expect.arrayContaining([expect.stringContaining('blocks all crawlers')])
+      expect.arrayContaining([expect.stringContaining('blocks general-purpose crawlers')])
     );
   });
 

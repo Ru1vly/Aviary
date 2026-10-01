@@ -6,8 +6,7 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 env:
   NODE_VERSION: '20'
@@ -24,15 +23,23 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
-      # --no-frozen-lockfile: package.json's optionalDependencies point at
-      # the five @ru1vly/aviary-<platform> packages this same workflow's
-      # publish-platform-packages job publishes for the first time below --
-      # pnpm can't lock a package that doesn't exist on the registry yet, so
-      # a frozen install can never pass on the very first release. Once
-      # v1.0.0 has shipped, regenerate and commit pnpm-lock.yaml with real
-      # resolutions for them and switch this back to --frozen-lockfile.
       - run: pnpm install --frozen-lockfile
+      - name: Reject an already-published root package version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if npm view "@ru1vly/aviary@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::@ru1vly/aviary@$VERSION is already published; choose a new release tag."
+            exit 1
+          fi
+      - run: pnpm audit --audit-level moderate
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust dependency auditor
+        run: cargo install cargo-audit --locked
+      - name: Audit Rust dependencies
+        run: cargo audit
       - run: pnpm run lint
+      - run: pnpm run format:check
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:coverage
@@ -153,6 +160,11 @@ jobs:
     name: Publish platform package (${{ matrix.dir }})
     runs-on: ubuntu-latest
     needs: [build-rust-matrix]
+    env:
+      NODE_VERSION: '24'
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       matrix:
         include:
@@ -186,7 +198,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
-          registry-url: 'https://registry.npmjs.org'
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.5.1
       - uses: actions/download-artifact@v4
         with: { name: '${{ matrix.artifact_name }}', path: 'npm/${{ matrix.dir }}' }
       - uses: actions/download-artifact@v4
@@ -199,12 +212,12 @@ jobs:
           chmod +x "${{ matrix.binary_name }}" "${{ matrix.fast_binary_name }}" || true
       - name: Set version from tag
         working-directory: npm/${{ matrix.dir }}
-        run: npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
-      # Idempotency guard: bootstrap-platform-packages.yml may have already
-      # published this exact version by hand (that's how the first release
-      # gets off the ground at all -- see the comment on the `test` job
-      # above) -- npm rejects republishing an existing version, so skip
-      # instead of failing when that's already happened.
+        run: npm version "$RELEASE_TAG" --no-git-tag-version --allow-same-version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+      # Idempotency guard: the manual recovery workflow may already have
+      # published this version. npm rejects republishing an existing version,
+      # so skip it when the package is already available.
       - name: Check if this version is already published
         id: check
         working-directory: npm/${{ matrix.dir }}
@@ -221,14 +234,17 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         working-directory: npm/${{ matrix.dir }}
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # ── Build & Publish npm package ────────────────────────────
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
     needs: [test, publish-platform-packages]
+    env:
+      NODE_VERSION: '24'
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -236,15 +252,15 @@ jobs:
         with:
           node-version: '${{ env.NODE_VERSION }}'
           cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
-      # --no-frozen-lockfile: see the `test` job above -- same bootstrap gap.
       - run: pnpm install --frozen-lockfile
       # TS only — the native TUI binary now ships via the per-platform
       # optionalDependencies published above, not bundled into dist/.
       - run: pnpm run build:ts
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.5.1
       - name: Set version from tag
         run: |
-          npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
+          npm version "$GITHUB_REF_NAME" --no-git-tag-version --allow-same-version
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -253,29 +269,29 @@ jobs:
               pkg.optionalDependencies[dep] = version;
             }
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            const specPath = 'docs/openapi.yaml';
+            const spec = fs.readFileSync(specPath, 'utf8');
+            const versionedSpec = spec.replace(/^  version: .+$/m, `  version: ${version}`);
+            if (versionedSpec === spec && !spec.includes(`  version: ${version}`)) {
+              throw new Error('OpenAPI document is missing its info.version field.');
+            }
+            fs.writeFileSync(specPath, versionedSpec);
           "
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
-      # pnpm 9's `--no-git-checks` CLI flag mis-forwards a bare `--git-checks`
-      # to the underlying npm call, which npm rejects with
-      # "EUNKNOWNCONFIG: Unknown cli flag: --git-checks" (reproduced locally
-      # with the same pnpm major version CI uses). Setting it as a pnpm
-      # config value via the environment works around the bug.
       - name: Verify package contents (dry run)
-        run: pnpm publish --dry-run --access public
-        env:
-          npm_config_git_checks: 'false'
+        run: npm publish --dry-run --access public
       - name: Publish to npm
-        run: pnpm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          npm_config_git_checks: 'false'
+        run: npm publish --access public
 
   # ── Build & Push Docker Image ───────────────────────────────
   docker:
     name: Docker Image
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, publish-npm]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -305,7 +321,9 @@ jobs:
   github-release:
     name: GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-rust-matrix, publish-npm]
+    needs: [build-rust-matrix, publish-npm, docker]
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -327,8 +345,8 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          TAG="${{ github.ref_name }}"
-          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1)
+          TAG="$RELEASE_TAG"
+          PREV_TAG=$(git tag --sort=-version:refname | grep -F -x -v -- "$TAG" | head -1)
           if [ -n "$PREV_TAG" ]; then
             CHANGELOG=$(git log --oneline "${PREV_TAG}..${TAG}" --no-merges)
           else
@@ -337,6 +355,8 @@ jobs:
           echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}

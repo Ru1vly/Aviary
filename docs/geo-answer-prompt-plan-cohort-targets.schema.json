@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Ru1vly/Aviary/blob/main/docs/geo-answer-prompt-plan-cohort-targets.schema.json",
+  "title": "Aviary GEO prompt-plan cohort targets and paired-group budgets",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "targets"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "targets": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/cohortTarget"
+      }
+    }
+  },
+  "$defs": {
+    "cohortTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "intent"
+      ],
+      "properties": {
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "intent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "minimumPromptsPerProviderCohort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maximumPairedFollowUpGroups": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "required": [
+                "topic"
+              ],
+              "properties": {
+                "topic": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "required": [
+                "intent"
+              ],
+              "properties": {
+                "intent": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "required": [
+                "minimumPromptsPerProviderCohort"
+              ]
+            },
+            {
+              "required": [
+                "maximumPairedFollowUpGroups"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

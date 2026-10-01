@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-domain-paired-reach-comparison.schema.json",
+  "title": "Aviary GEO paired domain reach comparison",
+  "type": "object",
+  "required": ["source", "schemaVersion", "summary", "rows"],
+  "properties": {
+    "source": { "const": "Aviary paired answer citation domain reach comparison" },
+    "schemaVersion": { "const": 1 },
+    "summary": { "$ref": "#/$defs/row" },
+    "rows": { "type": "array", "items": { "$ref": "#/$defs/row" } }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "row": {
+      "type": ["object", "null"],
+      "properties": {
+        "row_type": { "enum": ["summary", "domain-provider"] },
+        "provider": { "type": ["string", "null"] },
+        "domain": { "type": ["string", "null"] },
+        "baseline_provider_prompt_groups": { "type": ["integer", "null"] },
+        "current_provider_prompt_groups": { "type": ["integer", "null"] },
+        "shared_exact_prompt_groups": { "type": ["integer", "null"] },
+        "comparable_prompt_groups": { "type": ["integer", "null"] },
+        "unknown_domain_prompt_groups": { "type": ["integer", "null"] },
+        "baseline_present_prompts": { "type": ["integer", "null"] },
+        "current_present_prompts": { "type": ["integer", "null"] },
+        "gained_prompts": { "type": ["integer", "null"] },
+        "lost_prompts": { "type": ["integer", "null"] },
+        "present_both_periods": { "type": ["integer", "null"] },
+        "absent_both_periods": { "type": ["integer", "null"] },
+        "baseline_reach_percent": { "type": ["number", "null"] },
+        "current_reach_percent": { "type": ["number", "null"] },
+        "reach_change_percentage_points": { "type": ["number", "null"] },
+        "paired_prompt_bootstrap_ci95_lower_pp": { "type": ["number", "null"] },
+        "paired_prompt_bootstrap_ci95_upper_pp": { "type": ["number", "null"] },
+        "leave_one_prompt_out_minimum_change_pp": { "type": ["number", "null"] },
+        "leave_one_prompt_out_maximum_change_pp": { "type": ["number", "null"] },
+        "exact_two_sided_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "holm_adjusted_mcnemar_p_value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "holm_family_size": { "type": ["integer", "null"] },
+        "paired_prompt_bootstrap_resamples": { "type": ["integer", "null"] },
+        "comparison_complete": { "type": "boolean" },
+        "prompt_catalog_complete": { "type": "boolean" },
+        "domain_catalog_complete": { "type": "boolean" },
+        "source_detail_complete": { "type": "boolean" },
+        "holm_family_complete": { "type": "boolean" },
+        "output_rows_truncated": { "type": "boolean" },
+        "interpretation_note": { "type": "string" }
+      },
+      "required": ["row_type"],
+      "additionalProperties": false
+    }
+  }
+}

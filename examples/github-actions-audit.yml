@@ -1,0 +1,114 @@
+name: Weekly SEO audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'
+
+permissions: {}
+
+concurrency:
+  group: aviary-seo-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Aviary
+        run: git clone --depth 1 --branch main https://github.com/Ru1vly/Aviary.git .aviary
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: .aviary/pnpm-lock.yaml
+
+      - name: Install and build Aviary
+        working-directory: .aviary
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build:ts
+          pnpm exec playwright install chromium --with-deps
+
+      - name: Restore latest successful baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: reports/baseline.json
+          key: aviary-seo-baseline-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            aviary-seo-baseline-
+
+      - name: Restore successful audit history
+        uses: actions/cache/restore@v4
+        with:
+          path: reports/history.jsonl
+          key: aviary-seo-history-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            aviary-seo-history-
+
+      - name: Run Aviary audit
+        env:
+          AVIARY_URL: ${{ secrets.AVIARY_TARGET_URL }}
+        run: |
+          mkdir -p reports
+          touch reports/history.jsonl
+          if [ -z "$AVIARY_URL" ]; then
+            echo "::error::Set the AVIARY_TARGET_URL repository secret before running this workflow."
+            exit 1
+          fi
+
+          args=(--output reports/current.json --junit reports/aviary.xml --sarif reports/aviary.sarif --markdown reports/aviary.md --pdf reports/aviary.pdf --history reports/history.jsonl)
+          if [ -f reports/baseline.json ]; then
+            args+=(--baseline reports/baseline.json --fail-on-regression)
+          fi
+
+          if node .aviary/dist/cli.js "${args[@]}"; then
+            audit_exit_code=0
+          else
+            audit_exit_code=$?
+          fi
+          touch reports/audit-attempted
+          exit "$audit_exit_code"
+
+      - name: Build history dashboard
+        if: always()
+        run: |
+          if [ -f reports/history.jsonl ]; then
+            node .aviary/dist/cli.js --history-report reports/history.jsonl --html reports/history.html
+          fi
+
+      - name: Prepare next baseline
+        if: success()
+        run: cp reports/current.json reports/baseline.json
+
+      - name: Save successful baseline
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: reports/baseline.json
+          key: aviary-seo-baseline-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save audit history
+        if: always() && hashFiles('reports/audit-attempted') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: reports/history.jsonl
+          key: aviary-seo-history-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aviary-seo-report
+          path: |
+            reports/aviary.*
+            reports/current.json
+            reports/history.html
+          if-no-files-found: warn

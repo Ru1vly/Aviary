@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-08-20T10:00:00Z",
+      "provider": "Sample assistant A",
+      "prompt": "How should I measure AI answer citations?",
+      "citedUrls": ["https://example.com/guides/answer-capture"]
+    },
+    {
+      "observedAt": "2026-08-20T12:00:00Z",
+      "provider": "Sample assistant B",
+      "prompt": "How should I measure AI answer citations?",
+      "citedUrls": []
+    }
+  ]
+}

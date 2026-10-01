@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-panel-comparability-thresholds.schema.json",
+  "title": "GEO panel comparability warning threshold profile",
+  "description": "Optional GEO panel warning cutoffs and selected warning-code gate policy. Omitted numeric thresholds use the CLI defaults.",
+  "type": "object",
+  "required": [
+    "schemaVersion"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "contextShareShiftPp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 10,
+          "description": "Warn when a nonzero context observation-share shift reaches this many percentage points."
+        },
+        "contextMixTotalVariationPp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 10,
+          "description": "Warn when observation-mix total variation reaches this many percentage points; zero warns on any nonzero drift."
+        },
+        "promptMixTotalVariationPp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 10,
+          "description": "Warn when unique prompt-group mix total variation reaches this many percentage points; zero warns on any nonzero drift."
+        },
+        "promptJaccardPctBelow": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 50,
+          "description": "Warn when any matched context prompt-set Jaccard falls below this percentage."
+        },
+        "incompleteListPctAbove": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 10,
+          "description": "Warn when a context has a greater incomplete citation-list percentage."
+        },
+        "singleCapturePromptPctAbove": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 80,
+          "description": "Warn when any context has a greater share of prompts with one capture."
+        },
+        "contextDimensionCoveragePctBelow": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 80,
+          "description": "Warn when any optional context dimension has a lower coverage percentage."
+        },
+        "minimumMatchedPrompts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000,
+          "default": 10,
+          "description": "Warn when a matched context has fewer shared exact prompts."
+        },
+        "duplicateCapturePctAbove": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0,
+          "description": "Warn when either panel has a greater exact-duplicate capture percentage; zero preserves the default warning on any duplicate."
+        },
+        "captureWindowGapDaysAbove": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 36500,
+          "default": 180,
+          "description": "Warn when any exact-context baseline/current capture-window gap is greater than this number of days; zero warns on any nonzero gap."
+        },
+        "largestPromptCaptureSharePctAbove": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 30,
+          "description": "Warn when any context has a greater share of captures attributable to its most repeated exact prompt."
+        },
+        "maximumInternalCaptureGapDaysAbove": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 36500,
+          "default": 180,
+          "description": "Warn when any exact context has a gap between distinct capture timestamps inside a panel that exceeds this number of days."
+        }
+      },
+      "additionalProperties": false
+    },
+    "failOnWarningCodes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "matched-context-coverage",
+          "matched-prompt-support",
+          "context-share-shift",
+          "observation-mix-drift",
+          "prompt-mix-drift",
+          "prompt-overlap",
+          "incomplete-citation-lists",
+          "single-capture-depth",
+          "context-dimension-coverage",
+          "malformed-observations",
+          "duplicate-captures",
+          "capture-window-gap",
+          "prompt-capture-concentration",
+          "within-panel-capture-gap"
+        ]
+      },
+      "description": "Optional warning codes that should fail the preflight after reports are written when present.",
+      "maxItems": 14
+    }
+  },
+  "additionalProperties": false
+}

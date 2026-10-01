@@ -1,8 +1,12 @@
 {
   "name": "@ru1vly/aviary-darwin-arm64",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Prebuilt aviary TUI binary for darwin/arm64 -- internal optionalDependency of @ru1vly/aviary, not for direct use.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ru1vly/Aviary.git"
+  },
   "os": ["darwin"],
   "cpu": ["arm64"],
   "files": ["tui", "aviary-fast"]

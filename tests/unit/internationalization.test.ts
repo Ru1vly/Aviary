@@ -24,7 +24,7 @@ describe('InternationalizationChecker', () => {
   it('fails when <html> has no lang attribute, and when lang is malformed', async () => {
     expect(byName(await checkerFor({}).checkAll(), 'language-declaration-valid').passed).toBe(false);
     expect(
-      byName(await checkerFor({ htmlAttrs: { lang: 'english' } }).checkAll(), 'language-declaration-valid').passed
+      byName(await checkerFor({ htmlAttrs: { lang: 'en_US' } }).checkAll(), 'language-declaration-valid').passed
     ).toBe(false);
     expect(
       byName(await checkerFor({ htmlAttrs: { lang: 'en-US' } }).checkAll(), 'language-declaration-valid').passed

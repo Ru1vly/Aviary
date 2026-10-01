@@ -1,0 +1,27 @@
+{
+  "source": "Aviary AI crawler route-family failure gate",
+  "schemaVersion": 1,
+  "thresholdPercentagePoints": 10,
+  "minimumRequestsPerPeriod": 10,
+  "matchedFamilies": 4,
+  "matchedFamiliesBelowSupport": 1,
+  "matchedFamiliesCompared": 3,
+  "supportInsufficient": false,
+  "familiesAboveThreshold": [
+    {
+      "analysisIndex": 0,
+      "crawlerToken": "GPTBot",
+      "pathFamily": "/articles/*",
+      "baselineRequests": 120,
+      "currentRequests": 100,
+      "baselineFailureRatePercent": 2,
+      "currentFailureRatePercent": 18,
+      "increasePercentagePoints": 16
+    }
+  ],
+  "baselinePathCatalogTruncated": false,
+  "currentPathCatalogTruncated": false,
+  "baselineOutputRowsTruncated": false,
+  "currentOutputRowsTruncated": false,
+  "incomplete": false
+}

@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary GEO platform matrix",
+  "description": "Page-level observations joined by normalized URL from Google Search Generative AI and Bing AI Performance exports. Platform metrics remain distinct; optional within-export shares and their percentage-point gap describe separate metric distributions, not equivalent performance. Platform share overlap describes the portion of each export's metric attributed to shared URLs. Optional periodComparison compares separate Google and Bing page metrics and within-platform shares across saved matrices. Optional sitemap membership is exact list presence only and does not establish indexing or citation eligibility. Optional path-family groups aggregate URL observations by origin and a selected path prefix; platform metric sums stay separate. Export-only coverage means only that a URL was absent from one input file. Optional current-audit language grouping describes joined page coverage and does not establish causation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "schemaVersion",
+    "googleSearchAiPages",
+    "bingAiPages",
+    "pagesObservedByBoth",
+    "pagesOnlyInGoogleExport",
+    "pagesOnlyInBingExport",
+    "googleExportRowSummedImpressions",
+    "rowsWithoutUsableUrl",
+    "pages",
+    "pagesTruncated",
+    "note"
+  ],
+  "properties": {
+    "source": { "const": "Aviary cross-platform GEO page matrix" },
+    "schemaVersion": { "const": 1 },
+    "periodComparison": { "$ref": "#/$defs/periodComparison" },
+    "googleSourceFile": { "type": "string" },
+    "bingSourceFile": { "type": "string" },
+    "googleSearchAiPages": { "type": "integer", "minimum": 0 },
+    "bingAiPages": { "type": "integer", "minimum": 0 },
+    "pagesObservedByBoth": { "type": "integer", "minimum": 0 },
+    "pagesOnlyInGoogleExport": { "type": "integer", "minimum": 0 },
+    "pagesOnlyInBingExport": { "type": "integer", "minimum": 0 },
+    "googleExportRowSummedImpressions": { "type": "number", "minimum": 0 },
+    "googleUsableUrlRowSummedImpressions": { "type": "number", "minimum": 0 },
+    "bingExportRowSummedCitations": { "type": "number", "minimum": 0 },
+    "bingUsableUrlRowSummedCitations": { "type": "number", "minimum": 0 },
+    "bingExportRowSummedCitedPages": { "type": "number", "minimum": 0 },
+    "auditBridge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "googlePagesMatchedByCanonical",
+        "googlePagesWithAmbiguousAuditUrl",
+        "googlePagesWithAmbiguousCanonical",
+        "bingPagesMatchedByCanonical",
+        "bingPagesWithAmbiguousAuditUrl",
+        "bingPagesWithAmbiguousCanonical"
+      ],
+      "properties": {
+        "googlePagesMatchedByCanonical": { "type": "integer", "minimum": 0 },
+        "googlePagesWithAmbiguousAuditUrl": { "type": "integer", "minimum": 0 },
+        "googlePagesWithAmbiguousCanonical": { "type": "integer", "minimum": 0 },
+        "bingPagesMatchedByCanonical": { "type": "integer", "minimum": 0 },
+        "bingPagesWithAmbiguousAuditUrl": { "type": "integer", "minimum": 0 },
+        "bingPagesWithAmbiguousCanonical": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "platformShareOverlap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pagesWithBothShareMetrics", "note"],
+      "properties": {
+        "pagesWithBothShareMetrics": { "type": "integer", "minimum": 0 },
+        "googleMetricShareOnBothExportUrlsPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "bingMetricShareOnBothExportUrlsPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "medianAbsoluteShareGapPercentagePoints": { "type": "number", "minimum": 0, "maximum": 100 },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sitemapCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sitemapUrl", "sitemapUrlsDiscovered", "pagesFoundInSuppliedSitemapList", "pagesNotFoundInSuppliedSitemapList", "pagesWithPossibleAliasMatchFromTruncatedSourceLists", "sitemapResultMayBeTruncated", "note"],
+      "properties": {
+        "sitemapUrl": { "type": "string", "format": "uri" },
+        "sitemapUrlsDiscovered": { "type": "integer", "minimum": 0 },
+        "pagesFoundInSuppliedSitemapList": { "type": "integer", "minimum": 0 },
+        "pagesNotFoundInSuppliedSitemapList": { "type": "integer", "minimum": 0 },
+        "pagesWithPossibleAliasMatchFromTruncatedSourceLists": { "type": "integer", "minimum": 0 },
+        "sitemapResultMayBeTruncated": { "type": "boolean" },
+        "googleMetricShareOnListedPagesPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "bingMetricShareOnListedPagesPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "pathFamilyDepth": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "pathFamilyCount": { "type": "integer", "minimum": 0 },
+    "pathFamilies": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/pathFamily" } },
+    "pathFamiliesTruncated": { "type": "boolean" },
+    "currentAuditExposure": { "$ref": "#/$defs/currentAuditExposure" },
+    "documentLanguageCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "joinedPagesAnalyzed",
+        "pagesWithCurrentAudit",
+        "languageProfilesAssessed",
+        "pagesWithDeclaredLanguage",
+        "assessedPagesWithoutDeclaredLanguage",
+        "pagesWithValidDeclaredLanguageTag",
+        "pagesWithInvalidDeclaredLanguageTag",
+        "pagesWithDeclaredLanguageTagNotValidated",
+        "pagesWithAuditButLanguageNotAssessed",
+        "pagesWithoutCurrentAudit",
+        "languages",
+        "languagesTruncated",
+        "note"
+      ],
+      "properties": {
+        "joinedPagesAnalyzed": { "type": "integer", "minimum": 0 },
+        "pagesWithCurrentAudit": { "type": "integer", "minimum": 0 },
+        "languageProfilesAssessed": { "type": "integer", "minimum": 0 },
+        "pagesWithDeclaredLanguage": { "type": "integer", "minimum": 0 },
+        "assessedPagesWithoutDeclaredLanguage": { "type": "integer", "minimum": 0 },
+        "pagesWithValidDeclaredLanguageTag": { "type": "integer", "minimum": 0 },
+        "pagesWithInvalidDeclaredLanguageTag": { "type": "integer", "minimum": 0 },
+        "pagesWithDeclaredLanguageTagNotValidated": { "type": "integer", "minimum": 0 },
+        "pagesWithAuditButLanguageNotAssessed": { "type": "integer", "minimum": 0 },
+        "pagesWithoutCurrentAudit": { "type": "integer", "minimum": 0 },
+        "languages": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["language", "pages", "pagesObservedByBoth", "googleExportOnlyPages", "bingExportOnlyPages", "googleObservedPagePercent", "bingObservedPagePercent", "googlePagesWithImpressions", "googleRowSummedImpressions", "bingPagesWithCitations", "validLanguageTagPages", "invalidLanguageTagPages", "languageTagValidationUnavailablePages"],
+            "properties": {
+              "language": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "pages": { "type": "integer", "minimum": 1 },
+              "pagesObservedByBoth": { "type": "integer", "minimum": 0 },
+              "googleExportOnlyPages": { "type": "integer", "minimum": 0 },
+              "bingExportOnlyPages": { "type": "integer", "minimum": 0 },
+              "googleObservedPagePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+              "bingObservedPagePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+              "googlePagesWithImpressions": { "type": "integer", "minimum": 0 },
+              "googleRowSummedImpressions": { "type": "number", "minimum": 0 },
+              "bingPagesWithCitations": { "type": "integer", "minimum": 0 },
+              "bingRowSummedCitations": { "type": "number", "minimum": 0 },
+              "validLanguageTagPages": { "type": "integer", "minimum": 0 },
+              "invalidLanguageTagPages": { "type": "integer", "minimum": 0 },
+              "languageTagValidationUnavailablePages": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "languagesTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rowsWithoutUsableUrl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["googleRows", "bingRows"],
+      "properties": {
+        "googleRows": { "type": "integer", "minimum": 0 },
+        "bingRows": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "coverage",
+          "googleSourceUrls",
+          "bingSourceUrls",
+          "googleSourceUrlsTruncated",
+          "bingSourceUrlsTruncated"
+        ],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "pathFamily": { "type": "string", "format": "uri" },
+          "coverage": { "enum": ["both-observed", "google-export-only", "bing-export-only"] },
+          "googleSourceUrls": { "type": "array", "maxItems": 10, "items": { "type": "string", "format": "uri" } },
+          "bingSourceUrls": { "type": "array", "maxItems": 10, "items": { "type": "string", "format": "uri" } },
+          "googleSourceUrlsTruncated": { "type": "boolean" },
+          "bingSourceUrlsTruncated": { "type": "boolean" },
+          "sitemapMembership": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["state"],
+            "properties": {
+              "state": { "enum": ["found-in-supplied-sitemap-list", "not-found-in-supplied-sitemap-list", "possible-match-source-list-truncated"] },
+              "matchedVia": { "enum": ["matrix-url", "export-url-alias", "matched-audit-url"] }
+            }
+          },
+          "currentAuditSignals": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["auditUrl", "googlebot", "bingbot"],
+            "properties": {
+              "auditUrl": { "type": "string", "format": "uri" },
+              "googlebot": { "$ref": "#/$defs/crawlerSignals" },
+              "bingbot": { "$ref": "#/$defs/crawlerSignals" },
+              "dataNoSnippetElements": { "type": "integer", "minimum": 0 },
+              "dataNoSnippetWords": { "type": "integer", "minimum": 0 },
+              "pageContent": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "questionHeadings": { "type": "integer", "minimum": 0 },
+                  "conciseAnswerBlocks": { "type": "integer", "minimum": 0 },
+                  "externalContentLinks": { "type": "integer", "minimum": 0 },
+                  "externalSourceLinks": { "type": "integer", "minimum": 0 },
+                  "referenceSectionLinks": { "type": "integer", "minimum": 0 },
+                  "visibleAuthor": { "type": "boolean" },
+                  "visibleDate": { "type": "boolean" },
+                  "documentLanguage": { "type": "string", "maxLength": 80 },
+                  "documentLanguageValid": { "type": "boolean" },
+                  "documentLanguageAssessed": { "type": "boolean" }
+                }
+              }
+            }
+          },
+          "googleSearchAiImpressions": { "type": "number", "minimum": 0 },
+          "googleImpressionSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "bingAiCitations": { "type": "number", "minimum": 0 },
+          "bingCitationSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "platformShareGapPercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 },
+          "bingCitedPages": { "type": "number", "minimum": 0 },
+          "bingAverageCitationShare": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "pagesTruncated": { "type": "boolean" },
+    "note": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "periodComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baselineReturnedPageGroups", "currentReturnedPageGroups", "baselinePagesTruncated", "currentPagesTruncated", "pagesPresentInBothReturnedLists", "pagesOnlyInCurrentReturnedList", "pagesOnlyInBaselineReturnedList", "googlePagesWithComparableImpressions", "bingPagesWithComparableCitations", "googlePagesWithComparableShare", "bingPagesWithComparableShare", "googlePagesWithIncreasingShare", "googlePagesWithDecreasingShare", "bingPagesWithIncreasingShare", "bingPagesWithDecreasingShare", "pages", "pagesTruncated", "note"],
+      "properties": {
+        "baselineGoogleSourceFile": { "type": "string" },
+        "baselineBingSourceFile": { "type": "string" },
+        "currentGoogleSourceFile": { "type": "string" },
+        "currentBingSourceFile": { "type": "string" },
+        "baselineReturnedPageGroups": { "type": "integer", "minimum": 0 },
+        "currentReturnedPageGroups": { "type": "integer", "minimum": 0 },
+        "baselinePagesTruncated": { "type": "boolean" },
+        "currentPagesTruncated": { "type": "boolean" },
+        "pagesPresentInBothReturnedLists": { "type": "integer", "minimum": 0 },
+        "pagesOnlyInCurrentReturnedList": { "type": "integer", "minimum": 0 },
+        "pagesOnlyInBaselineReturnedList": { "type": "integer", "minimum": 0 },
+        "googlePagesWithComparableImpressions": { "type": "integer", "minimum": 0 },
+        "bingPagesWithComparableCitations": { "type": "integer", "minimum": 0 },
+        "googlePagesWithComparableShare": { "type": "integer", "minimum": 0 },
+        "bingPagesWithComparableShare": { "type": "integer", "minimum": 0 },
+        "googlePagesWithIncreasingShare": { "type": "integer", "minimum": 0 },
+        "googlePagesWithDecreasingShare": { "type": "integer", "minimum": 0 },
+        "bingPagesWithIncreasingShare": { "type": "integer", "minimum": 0 },
+        "bingPagesWithDecreasingShare": { "type": "integer", "minimum": 0 },
+        "matchedGoogleImpressionChange": { "type": "number" },
+        "matchedBingCitationChange": { "type": "number" },
+        "pages": { "type": "array", "maxItems": 1000, "items": { "$ref": "#/$defs/pagePeriodChange" } },
+        "pagesTruncated": { "type": "boolean" },
+        "pathFamilyComparison": { "$ref": "#/$defs/pathFamilyComparison" },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "pagePeriodChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "state"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "state": { "enum": ["current-only", "baseline-only", "present-both"] },
+        "baselineGoogleImpressions": { "type": "number", "minimum": 0 },
+        "currentGoogleImpressions": { "type": "number", "minimum": 0 },
+        "googleImpressionChange": { "type": "number" },
+        "googleImpressionShareChangePercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 },
+        "baselineBingCitations": { "type": "number", "minimum": 0 },
+        "currentBingCitations": { "type": "number", "minimum": 0 },
+        "bingCitationChange": { "type": "number" },
+        "bingCitationShareChangePercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 }
+      }
+    },
+    "pathFamilyComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathFamilyDepth", "baselineFamilyCount", "currentFamilyCount", "familiesPresentInBothReturnedLists", "familiesOnlyInCurrentReturnedList", "familiesOnlyInBaselineReturnedList", "baselineFamiliesTruncated", "currentFamiliesTruncated", "families", "familiesTruncated", "note"],
+      "properties": {
+        "pathFamilyDepth": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "baselineFamilyCount": { "type": "integer", "minimum": 0 },
+        "currentFamilyCount": { "type": "integer", "minimum": 0 },
+        "familiesPresentInBothReturnedLists": { "type": "integer", "minimum": 0 },
+        "familiesOnlyInCurrentReturnedList": { "type": "integer", "minimum": 0 },
+        "familiesOnlyInBaselineReturnedList": { "type": "integer", "minimum": 0 },
+        "baselineFamiliesTruncated": { "type": "boolean" },
+        "currentFamiliesTruncated": { "type": "boolean" },
+        "families": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/pathFamilyPeriodChange" } },
+        "familiesTruncated": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "pathFamilyPeriodChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "state", "baselinePageGroups", "currentPageGroups"],
+      "properties": {
+        "family": { "type": "string", "format": "uri" },
+        "state": { "enum": ["current-only", "baseline-only", "present-both"] },
+        "baselinePageGroups": { "type": "integer", "minimum": 0 },
+        "currentPageGroups": { "type": "integer", "minimum": 0 },
+        "baselineGoogleImpressions": { "type": "number", "minimum": 0 },
+        "currentGoogleImpressions": { "type": "number", "minimum": 0 },
+        "googleImpressionChange": { "type": "number" },
+        "googleImpressionShareChangePercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 },
+        "baselineBingCitations": { "type": "number", "minimum": 0 },
+        "currentBingCitations": { "type": "number", "minimum": 0 },
+        "bingCitationChange": { "type": "number" },
+        "bingCitationShareChangePercentagePoints": { "type": "number", "minimum": -100, "maximum": 100 }
+      }
+    },
+    "currentAuditExposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["joinedPageGroups", "pagesWithCurrentAudit", "googlebotAccessAssessedPages", "bingbotAccessAssessedPages", "controls", "note"],
+      "properties": {
+        "joinedPageGroups": { "type": "integer", "minimum": 0 },
+        "pagesWithCurrentAudit": { "type": "integer", "minimum": 0 },
+        "googlebotAccessAssessedPages": { "type": "integer", "minimum": 0 },
+        "bingbotAccessAssessedPages": { "type": "integer", "minimum": 0 },
+        "controls": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/auditExposureControl" } },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "auditExposureControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["control", "pages", "pagesAssessed"],
+      "properties": {
+        "control": { "enum": ["googlebot-currently-blocked", "bingbot-currently-blocked", "indexing-restricted", "snippet-restricted", "data-nosnippet-present"] },
+        "pages": { "type": "integer", "minimum": 0 },
+        "pagesAssessed": { "type": "integer", "minimum": 0 },
+        "googleImpressionSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "bingCitationSharePercent": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "pathFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "joinedPageGroups", "googlePageGroups", "bingPageGroups", "pagesObservedByBoth", "pagesWithCurrentAudit", "googlebotBlockedPages", "bingbotBlockedPages", "pagesWithIndexingRestrictions", "pagesWithSnippetRestrictions", "sampleUrls", "sampleUrlsTruncated"],
+      "properties": {
+        "family": { "type": "string", "format": "uri" },
+        "joinedPageGroups": { "type": "integer", "minimum": 1 },
+        "googlePageGroups": { "type": "integer", "minimum": 0 },
+        "bingPageGroups": { "type": "integer", "minimum": 0 },
+        "pagesObservedByBoth": { "type": "integer", "minimum": 0 },
+        "googleImpressions": { "type": "number", "minimum": 0 },
+        "googleImpressionSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "bingCitations": { "type": "number", "minimum": 0 },
+        "bingCitationSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "pagesWithCurrentAudit": { "type": "integer", "minimum": 0 },
+        "googlebotBlockedPages": { "type": "integer", "minimum": 0 },
+        "bingbotBlockedPages": { "type": "integer", "minimum": 0 },
+        "pagesWithIndexingRestrictions": { "type": "integer", "minimum": 0 },
+        "pagesWithSnippetRestrictions": { "type": "integer", "minimum": 0 },
+        "sampleUrls": { "type": "array", "maxItems": 5, "items": { "type": "string", "format": "uri" } },
+        "sampleUrlsTruncated": { "type": "boolean" }
+      }
+    },
+    "crawlerSignals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["access"],
+      "properties": {
+        "access": { "enum": ["allowed", "blocked", "not-assessed"] },
+        "noindex": { "type": "boolean" },
+        "noSnippet": { "type": "boolean" },
+        "maxSnippetZero": { "type": "boolean" }
+      }
+    }
+  }
+}

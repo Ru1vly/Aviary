@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-09-20T10:00:00Z",
+      "provider": "Sample assistant A",
+      "prompt": "How should I measure AI answer citations?",
+      "citedUrls": ["https://example.com/guides/geo-observability"]
+    },
+    {
+      "observedAt": "2026-09-21T10:00:00Z",
+      "provider": "Sample assistant A",
+      "prompt": "Which GEO metrics should I track?",
+      "citedUrls": ["https://example.com/guides/geo-observability"],
+      "citationListComplete": false
+    },
+    {
+      "observedAt": "2026-09-20T12:00:00Z",
+      "provider": "Sample assistant B",
+      "prompt": "How should I measure AI answer citations?",
+      "citedUrls": ["https://example.com/guides/geo-observability"]
+    },
+    {
+      "observedAt": "2026-09-22T12:00:00Z",
+      "provider": "Sample assistant B",
+      "prompt": "How can I check AI crawler access?",
+      "citedUrls": []
+    }
+  ]
+}

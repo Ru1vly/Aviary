@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-09-04T11:20:00Z",
+      "provider": "Sample assistant A",
+      "prompt": "How should I measure AI answer citations?",
+      "citedUrls": [
+        "https://example.com/guides/geo-observability#sources",
+        "https://industry.example.org/measurement-guide"
+      ]
+    },
+    {
+      "observedAt": "2026-09-12T15:45:00Z",
+      "provider": "Sample assistant B",
+      "prompt": "What is a useful GEO measurement approach?",
+      "citedUrls": [
+        "https://example.com/guides/geo-observability",
+        "https://standards.example.net/ai-search"
+      ]
+    },
+    {
+      "observedAt": "2026-09-16T08:10:00Z",
+      "provider": "Sample assistant A",
+      "prompt": "How do I audit crawler access for AI search?",
+      "citedUrls": [
+        "https://guides.example.org/robots-for-ai-search"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary batch audit report",
+  "description": "JSON written by Aviary for a batch of page audits, including per-URL failures.",
+  "type": "object",
+  "required": ["timestamp", "summary", "results"],
+  "properties": {
+    "timestamp": { "type": "string", "format": "date-time" },
+    "summary": {
+      "type": "object",
+      "required": ["requestedUrls", "completedUrls", "failedUrls", "passedChecks", "failedChecks", "averageScore"],
+      "properties": {
+        "requestedUrls": { "$ref": "#/$defs/count" },
+        "concurrency": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "completedUrls": { "$ref": "#/$defs/count" },
+        "failedUrls": { "$ref": "#/$defs/count" },
+        "passedChecks": { "$ref": "#/$defs/count" },
+        "failedChecks": { "$ref": "#/$defs/count" },
+        "averageScore": { "$ref": "audit-report.schema.json#/$defs/score" }
+      },
+      "additionalProperties": false
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/completedResult" },
+          { "$ref": "#/$defs/failedResult" }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "completedResult": {
+      "type": "object",
+      "required": ["status", "url", "report"],
+      "properties": {
+        "status": { "const": "complete" },
+        "url": { "type": "string", "format": "uri" },
+        "report": { "$ref": "audit-report.schema.json" }
+      },
+      "additionalProperties": false
+    },
+    "failedResult": {
+      "type": "object",
+      "required": ["status", "url", "error"],
+      "properties": {
+        "status": { "const": "error" },
+        "url": { "type": "string", "format": "uri" },
+        "error": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

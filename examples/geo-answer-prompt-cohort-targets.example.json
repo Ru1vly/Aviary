@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "topic": "Accessibility",
+      "intent": "How-to",
+      "minimumPromptsPerProviderCohort": 40,
+      "maximumPairedFollowUpGroups": 24
+    },
+    {
+      "topic": "Audio equipment",
+      "intent": "Evaluation",
+      "minimumPromptsPerProviderCohort": 25
+    }
+  ]
+}

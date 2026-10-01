@@ -38,8 +38,16 @@ export class AdvancedImagesChecker extends BaseChecker {
     try {
       const images = await this.getImages();
       const formats: Record<string, number> = {};
-      const extMinLength = this.threshold('image-formats-modern', 'extMinLength', IMAGE_EXTENSION_MIN_LENGTH);
-      const extMaxLength = this.threshold('image-formats-modern', 'extMaxLength', IMAGE_EXTENSION_MAX_LENGTH);
+      const extMinLength = this.threshold(
+        'image-formats-modern',
+        'extMinLength',
+        IMAGE_EXTENSION_MIN_LENGTH
+      );
+      const extMaxLength = this.threshold(
+        'image-formats-modern',
+        'extMaxLength',
+        IMAGE_EXTENSION_MAX_LENGTH
+      );
 
       images.forEach((img) => {
         const src = img.src || '';
@@ -94,14 +102,18 @@ export class AdvancedImagesChecker extends BaseChecker {
       const formatData = { totalImages: images.length, formats };
 
       const oldFormats = ['bmp', 'tiff', 'tif'];
-      const hasOldFormats = Object.keys(formatData.formats).some((fmt: string) => oldFormats.includes(fmt));
+      const hasOldFormats = Object.keys(formatData.formats).some((fmt: string) =>
+        oldFormats.includes(fmt)
+      );
 
       if (hasOldFormats) {
         return this.fail('Images use outdated formats (BMP, TIFF). Use JPG, PNG, WebP', formatData);
       }
 
       // Filter out 'unknown' and 'dynamic' for the display message
-      const knownFormats = Object.keys(formatData.formats).filter((f) => f !== 'unknown' && f !== 'dynamic');
+      const knownFormats = Object.keys(formatData.formats).filter(
+        (f) => f !== 'unknown' && f !== 'dynamic'
+      );
       const displayFormats = knownFormats.length > 0 ? knownFormats.join(', ') : 'various formats';
 
       return this.pass(`Images use modern formats (${displayFormats})`, formatData);
@@ -123,11 +135,20 @@ export class AdvancedImagesChecker extends BaseChecker {
         responsiveCount: withSrcset.length + inPicture.length,
       };
 
-      const responsivePercentage = responsiveData.totalImages > 0
-        ? (responsiveData.responsiveCount / responsiveData.totalImages) * 100
-        : 0;
-      const minCount = this.threshold('responsive-images-adequate', 'minCount', RESPONSIVE_IMAGES_MIN_COUNT);
-      const minPercent = this.threshold('responsive-images-adequate', 'minPercent', RESPONSIVE_IMAGES_MIN_PERCENT);
+      const responsivePercentage =
+        responsiveData.totalImages > 0
+          ? (responsiveData.responsiveCount / responsiveData.totalImages) * 100
+          : 0;
+      const minCount = this.threshold(
+        'responsive-images-adequate',
+        'minCount',
+        RESPONSIVE_IMAGES_MIN_COUNT
+      );
+      const minPercent = this.threshold(
+        'responsive-images-adequate',
+        'minPercent',
+        RESPONSIVE_IMAGES_MIN_PERCENT
+      );
 
       if (responsiveData.totalImages > minCount && responsivePercentage < minPercent) {
         return this.fail(
@@ -166,7 +187,10 @@ export class AdvancedImagesChecker extends BaseChecker {
       );
 
       if (lazyData.totalImages > lazyLoadMinCount && lazyData.lazyLoaded === 0) {
-        return this.fail('No lazy loading on images (consider adding loading="lazy" for performance)', lazyData);
+        return this.fail(
+          'No lazy loading on images (consider adding loading="lazy" for performance)',
+          lazyData
+        );
       }
 
       return this.pass(
@@ -233,7 +257,9 @@ export class AdvancedImagesChecker extends BaseChecker {
   private async checkDecorativeImages(): Promise<CheckOutcome> {
     try {
       const images = await this.getImages();
-      const decorative = images.filter((img) => img.alt === '' || img.role === 'presentation' || img.role === 'none');
+      const decorative = images.filter(
+        (img) => img.alt === '' || img.role === 'presentation' || img.role === 'none'
+      );
 
       const decorativeData = {
         totalImages: images.length,
@@ -264,7 +290,10 @@ export class AdvancedImagesChecker extends BaseChecker {
       });
 
       if (figureData.totalFigures > 0 && figureData.withCaptions === 0) {
-        return this.fail(`${figureData.totalFigures} <figure> elements missing <figcaption>`, figureData);
+        return this.fail(
+          `${figureData.totalFigures} <figure> elements missing <figcaption>`,
+          figureData
+        );
       }
 
       return this.pass(
@@ -286,9 +315,10 @@ export class AdvancedImagesChecker extends BaseChecker {
 
       const srcsetData = {
         imagesWithSrcset: withSrcset.length,
-        avgSrcsetSizes: srcsetSizes.length > 0
-          ? srcsetSizes.reduce((a: number, b: number) => a + b, 0) / srcsetSizes.length
-          : 0,
+        avgSrcsetSizes:
+          srcsetSizes.length > 0
+            ? srcsetSizes.reduce((a: number, b: number) => a + b, 0) / srcsetSizes.length
+            : 0,
       };
 
       return this.pass(
@@ -324,7 +354,9 @@ export class AdvancedImagesChecker extends BaseChecker {
       const hasWebP = combined.withWebP > 0 || combined.directWebP > 0;
 
       return this.pass(
-        hasWebP ? 'WebP format in use (excellent for performance)' : 'No WebP images (consider for better compression)',
+        hasWebP
+          ? 'WebP format in use (excellent for performance)'
+          : 'No WebP images (consider for better compression)',
         combined
       );
     } catch (error) {

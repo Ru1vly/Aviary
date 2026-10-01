@@ -4,8 +4,8 @@ import { CHECKER_REGISTRY } from '../../src/checkers/registry';
 import { BaseChecker } from '../../src/checkers/base';
 
 describe('CHECKER_REGISTRY', () => {
-  it('has exactly 28 entries', () => {
-    expect(CHECKER_REGISTRY).toHaveLength(28);
+  it('has exactly 29 entries', () => {
+    expect(CHECKER_REGISTRY).toHaveLength(29);
   });
 
   it('has unique keys', () => {
@@ -61,7 +61,7 @@ describe('CHECKER_REGISTRY', () => {
   });
 
   // Cross-language drift guard: tui/src/main.rs's populate_categories()
-  // hand-maintains its own copy of this same 28-key list (it can't import
+  // hand-maintains its own copy of this same 29-key list (it can't import
   // a TS module), in the same order. This fixture mirrors that Rust list
   // exactly — if either side adds, removes, renames, or reorders a
   // checker without updating the other, this test catches it. See the
@@ -97,6 +97,7 @@ describe('CHECKER_REGISTRY', () => {
       'ecommerce',
       'internationalization',
       'heatmap',
+      'geo',
     ];
 
     expect(CHECKER_REGISTRY.map((c) => c.key)).toEqual(RUST_TUI_KEYS);

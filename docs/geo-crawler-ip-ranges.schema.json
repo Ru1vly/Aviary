@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aviary caller-supplied GEO crawler IP ranges",
+  "description": "Offline CIDR ranges supplied by the operator for comparing logged source addresses with recognized crawler user-agent claims. Ranges are not fetched or authenticated by Aviary and must be maintained by the operator.",
+  "type": "object",
+  "required": ["schemaVersion", "crawlers"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "crawlers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/crawlerRanges" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "crawlerRanges": {
+      "type": "object",
+      "required": ["token", "cidrs"],
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "description": "A built-in crawler token or a token also supplied with --geo-crawler-token."
+        },
+        "cidrs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Strict IPv4 or IPv6 CIDR; runtime validation rejects hostnames, zone identifiers, and unsupported forms."
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

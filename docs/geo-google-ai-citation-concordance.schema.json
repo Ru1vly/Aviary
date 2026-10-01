@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-google-ai-citation-concordance.schema.json",
+  "title": "Aviary Google AI citation concordance report",
+  "description": "Page-level URL overlap between one Google Search or Discover Generative AI page export and locally observed answer citation pages. Impression and citation metrics remain distinct.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source", "schemaVersion", "googleAiSurface", "googleAiDatasetKind", "pathDepth", "auditCanonicalBridgeAvailable",
+    "auditPagesAvailable", "auditPagesSkipped", "exactUrlMatchedPages", "auditCanonicalMatchedPages",
+    "googleAiUrlsWithAmbiguousCanonical", "answerCitationUrlsWithAmbiguousCanonical",
+    "answerObservations", "answerIncompleteCitationListObservations", "ownedDomainAssessmentEnabled", "answerCitationSourcePages",
+    "answerCitationPagesTruncated", "googleAiPageRows", "googleAiUniquePages",
+    "googleAiPageImpressions", "matchedPages", "matchedGoogleAiImpressions",
+    "matchedImpressionSharePercent", "matchedCitationEvents", "matchedPageAnswerPairs",
+    "matchedPagePromptPairs", "googleAiOnlyPages", "observedAnswerOnlyPages", "rows",
+    "pathFamilies", "note"
+  ],
+  "properties": {
+    "source": { "const": "Google AI impressions and observed answer citation URL concordance" },
+    "schemaVersion": { "const": 1 },
+    "googleAiSurface": { "enum": ["search", "discover"] },
+    "googleAiDatasetKind": { "const": "page" },
+    "pathDepth": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "auditCanonicalBridgeAvailable": { "type": "boolean" },
+    "auditPagesAvailable": { "type": "integer", "minimum": 0 },
+    "auditPagesSkipped": { "type": "integer", "minimum": 0 },
+    "exactUrlMatchedPages": { "type": "integer", "minimum": 0 },
+    "auditCanonicalMatchedPages": { "type": "integer", "minimum": 0 },
+    "googleAiUrlsWithAmbiguousCanonical": { "type": "integer", "minimum": 0 },
+    "answerCitationUrlsWithAmbiguousCanonical": { "type": "integer", "minimum": 0 },
+    "googleAiSourceFile": { "type": "string" },
+    "answerObservations": { "type": "integer", "minimum": 0 },
+    "answerIncompleteCitationListObservations": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+    "ownedDomainAssessmentEnabled": { "type": "boolean" },
+    "answerCitationSourcePages": { "type": "integer", "minimum": 0 },
+    "answerCitationPagesTruncated": { "type": "boolean" },
+    "providerMetricCountsAvailable": { "type": "boolean" },
+    "answerProviderSamplesAvailable": { "type": "boolean" },
+    "answerProviderSamples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "observations", "uniquePrompts", "citationEvents", "incompleteCitationListObservations"],
+        "properties": {
+          "provider": { "type": "string" },
+          "observations": { "type": "integer", "minimum": 0 },
+          "uniquePrompts": { "type": "integer", "minimum": 0 },
+          "citationEvents": { "type": "integer", "minimum": 0 },
+          "incompleteCitationListObservations": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }
+        }
+      }
+    },
+    "answerCitationEvents": { "type": "integer", "minimum": 0 },
+    "answerCitationEventsInRetainedPages": { "type": "integer", "minimum": 0 },
+    "answerCitationEventDetailCoveragePercent": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 100 }, { "type": "null" }] },
+    "matchedCitationEventShareOfAllAnswerEventsPercent": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 100 }, { "type": "null" }] },
+    "googleAiPageRows": { "type": "integer", "minimum": 0 },
+    "googleAiUniquePages": { "type": "integer", "minimum": 0 },
+    "googleAiPageImpressions": { "type": "integer", "minimum": 0 },
+    "matchedPages": { "type": "integer", "minimum": 0 },
+    "matchedGoogleAiImpressions": { "type": "integer", "minimum": 0 },
+    "matchedImpressionSharePercent": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 100 }, { "type": "null" }] },
+    "matchedCitationEvents": { "type": "integer", "minimum": 0 },
+    "matchedPageAnswerPairs": { "type": "integer", "minimum": 0 },
+    "matchedPagePromptPairs": { "type": "integer", "minimum": 0 },
+    "googleAiOnlyPages": { "type": "integer", "minimum": 0 },
+    "observedAnswerOnlyPages": { "type": "integer", "minimum": 0 },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "joinState", "ambiguousAuditCanonical"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "joinState": { "enum": ["matched", "google-ai-only", "observed-answer-only"] },
+          "joinMethod": { "enum": ["exact-normalized-url", "audit-canonical"] },
+          "ambiguousAuditCanonical": { "type": "boolean" },
+          "googleAiImpressions": { "type": "integer", "minimum": 0 },
+          "shareOfGoogleAiPageImpressionsPercent": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 100 }, { "type": "null" }] },
+          "citationEvents": { "type": "integer", "minimum": 0 },
+          "pageAnswerPairs": { "type": "integer", "minimum": 0 },
+          "pagePromptPairs": { "type": "integer", "minimum": 0 },
+          "citationEventSharePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+          "owned": { "type": "boolean" },
+          "providers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "providerMetrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["provider", "citationEvents", "pageAnswerPairs", "pagePromptPairs"],
+              "properties": {
+                "provider": { "type": "string" },
+                "citationEvents": { "type": "integer", "minimum": 0 },
+                "pageAnswerPairs": { "type": "integer", "minimum": 0 },
+                "pagePromptPairs": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "pathFamilies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pathFamily", "pages", "googleAiPages", "citedPages", "matchedPages",
+          "exactUrlMatchedPages", "auditCanonicalMatchedPages",
+          "googleAiOnlyPages", "observedAnswerOnlyPages", "googleAiImpressions",
+          "matchedGoogleAiImpressions", "citationEvents", "matchedCitationEvents",
+          "matchedPageAnswerPairs", "matchedPagePromptPairs"
+        ],
+        "properties": {
+          "pathFamily": { "type": "string", "format": "uri" },
+          "pages": { "type": "integer", "minimum": 0 },
+          "googleAiPages": { "type": "integer", "minimum": 0 },
+          "citedPages": { "type": "integer", "minimum": 0 },
+          "matchedPages": { "type": "integer", "minimum": 0 },
+          "exactUrlMatchedPages": { "type": "integer", "minimum": 0 },
+          "auditCanonicalMatchedPages": { "type": "integer", "minimum": 0 },
+          "googleAiOnlyPages": { "type": "integer", "minimum": 0 },
+          "observedAnswerOnlyPages": { "type": "integer", "minimum": 0 },
+          "googleAiImpressions": { "type": "integer", "minimum": 0 },
+          "matchedGoogleAiImpressions": { "type": "integer", "minimum": 0 },
+          "citationEvents": { "type": "integer", "minimum": 0 },
+          "matchedCitationEvents": { "type": "integer", "minimum": 0 },
+          "matchedPageAnswerPairs": { "type": "integer", "minimum": 0 },
+          "matchedPagePromptPairs": { "type": "integer", "minimum": 0 },
+          "ownedCitedPages": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "note": { "type": "string" }
+  }
+}

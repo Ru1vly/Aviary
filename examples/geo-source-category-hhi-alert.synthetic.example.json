@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-07-05T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I configure canonical URLs?",
+      "citedUrls": ["https://publisher.example/canonical-urls", "https://news.example/canonical-urls"]
+    },
+    {
+      "observedAt": "2026-07-06T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How should I handle duplicate pages?",
+      "citedUrls": ["https://publisher.example/duplicate-pages", "https://news.example/duplicate-pages"]
+    },
+    {
+      "observedAt": "2026-07-07T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do XML sitemaps help discovery?",
+      "citedUrls": ["https://publisher.example/xml-sitemaps", "https://news.example/xml-sitemaps"]
+    },
+    {
+      "observedAt": "2026-07-08T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I diagnose crawl waste?",
+      "citedUrls": ["https://publisher.example/crawl-waste", "https://news.example/crawl-waste"]
+    },
+    {
+      "observedAt": "2026-07-09T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How can I fix redirect chains?",
+      "citedUrls": ["https://publisher.example/redirect-chains", "https://news.example/redirect-chains"]
+    },
+    {
+      "observedAt": "2026-09-05T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I configure canonical URLs?",
+      "citedUrls": ["https://publisher.example/canonical-urls", "https://publisher.example/canonical-urls/checklist"]
+    },
+    {
+      "observedAt": "2026-09-06T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How should I handle duplicate pages?",
+      "citedUrls": ["https://publisher.example/duplicate-pages", "https://publisher.example/duplicate-pages/checklist"]
+    },
+    {
+      "observedAt": "2026-09-07T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do XML sitemaps help discovery?",
+      "citedUrls": ["https://publisher.example/xml-sitemaps", "https://publisher.example/xml-sitemaps/checklist"]
+    },
+    {
+      "observedAt": "2026-09-08T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How do I diagnose crawl waste?",
+      "citedUrls": ["https://publisher.example/crawl-waste", "https://publisher.example/crawl-waste/checklist"]
+    },
+    {
+      "observedAt": "2026-09-09T10:00:00Z",
+      "provider": "ChatGPT Search",
+      "topic": "Technical SEO",
+      "intent": "How-to",
+      "prompt": "How can I fix redirect chains?",
+      "citedUrls": ["https://publisher.example/redirect-chains", "https://publisher.example/redirect-chains/checklist"]
+    }
+  ]
+}

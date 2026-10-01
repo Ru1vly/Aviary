@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aviary.dev/schemas/geo-citation-repeatability.schema.json",
+  "title": "Aviary GEO Citation Repeatability Report",
+  "type": "object",
+  "required": ["schemaVersion", "method", "input", "sourceObservationCount", "skippedObservationCount", "invalidCitationUrlCount", "invalidCompletenessMetadataCount", "eligiblePromptGroups", "providerRows"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "method": {
+      "type": "object",
+      "required": ["adjacentCapturesOnly", "simultaneousTimestampPolicy", "normalizedCitationIdentity", "equalPromptWeight", "promptDetailCsv", "promptIdentifiers", "invalidCitationUrlsMakeListIncomplete", "invalidCompletenessMetadataMakesListIncomplete", "rankBiasedOverlapP", "rankBiasedOverlapEstimator", "bootstrap", "ownedDomains", "ownedDomainSetSha256"],
+      "properties": {
+        "adjacentCapturesOnly": { "const": true },
+        "simultaneousTimestampPolicy": { "const": "exclude equal-time pairs and adjacent pairs touching duplicated timestamps" },
+        "normalizedCitationIdentity": { "const": "HTTP(S) URL with lowercase dot-trimmed host; default port, query, fragment, and trailing non-root slash removed" },
+        "equalPromptWeight": { "const": true },
+        "promptDetailCsv": { "type": "string", "minLength": 1 },
+        "promptIdentifiers": { "const": "SHA-256 of trimmed exact prompt text; raw prompt text omitted" },
+        "invalidCitationUrlsMakeListIncomplete": { "const": true },
+        "invalidCompletenessMetadataMakesListIncomplete": { "const": true },
+        "rankBiasedOverlapP": { "const": 0.9 },
+        "rankBiasedOverlapEstimator": { "const": "finite extrapolated; residual assigned final observed prefix overlap" },
+        "bootstrap": { "type": "object", "required": ["requestedIterations", "intervalDrawLimit", "budgetCapacityIterations", "promptMetricSampleBudget", "cluster", "deterministic"], "properties": { "requestedIterations": { "const": 2000 }, "intervalDrawLimit": { "type": "integer", "minimum": 0, "maximum": 2000 }, "budgetCapacityIterations": { "type": "integer", "minimum": 0, "maximum": 2000 }, "promptMetricSampleBudget": { "const": 10000000 }, "cluster": { "const": "exact provider/prompt/context group" }, "deterministic": { "const": true } }, "additionalProperties": false },
+        "ownedDomains": { "type": "array", "items": { "type": "string" } },
+        "ownedDomainSetSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "input": { "type": "string" },
+    "sourceObservationCount": { "type": "integer", "minimum": 0 },
+    "skippedObservationCount": { "type": "integer", "minimum": 0 },
+    "invalidCitationUrlCount": { "type": "integer", "minimum": 0 },
+    "invalidCompletenessMetadataCount": { "type": "integer", "minimum": 0 },
+    "eligiblePromptGroups": { "type": "integer", "minimum": 0 },
+    "providerRows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["provider", "firstCaptureAtUtc", "lastCaptureAtUtc", "matchedPromptCount", "adjacentCapturePairs", "excludedIncompletePairs", "excludedSimultaneousTimestampPairs", "excludedAmbiguousTimestampBoundaryPairs", "promptsWithoutComparablePairs", "medianCaptureGapDays", "citationListCompleteness"],
+        "properties": {
+          "provider": { "type": "string", "minLength": 1 },
+          "model": { "type": "string" }, "surface": { "type": "string" }, "locale": { "type": "string" }, "topic": { "type": "string" }, "intent": { "type": "string" },
+          "firstCaptureAtUtc": { "type": "string", "format": "date-time" }, "lastCaptureAtUtc": { "type": "string", "format": "date-time" },
+          "matchedPromptCount": { "type": "integer", "minimum": 0 }, "adjacentCapturePairs": { "type": "integer", "minimum": 0 },
+          "excludedIncompletePairs": { "type": "integer", "minimum": 0 }, "excludedSimultaneousTimestampPairs": { "type": "integer", "minimum": 0 }, "excludedAmbiguousTimestampBoundaryPairs": { "type": "integer", "minimum": 0 }, "promptsWithoutComparablePairs": { "type": "integer", "minimum": 0 },
+          "medianCaptureGapDays": { "type": ["number", "null"], "minimum": 0 },
+          "citationListCompleteness": { "enum": ["incomplete-pairs-excluded", "some-prompts-without-adjacent-pairs", "all-adjacent-pairs-comparable"] }
+        },
+        "patternProperties": {
+          "^(citationSetJaccard|topThreeJaccard|citationDomainJaccard|topThreeDomainJaccard|citationUrlRboP90|citationDomainRboP90|ownedCitationPresenceAgreement|ownedFirstPositionPersistence)(PromptBalancedMean|Ci95Lower|Ci95Upper)$": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+          "^(citationSetJaccard|topThreeJaccard|citationDomainJaccard|topThreeDomainJaccard|citationUrlRboP90|citationDomainRboP90|ownedCitationPresenceAgreement|ownedFirstPositionPersistence)CiState$": { "enum": ["estimated", "one-prompt", "no-comparable-prompts", "work-budget-exceeded"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "Synthetic Answer Search",
+      "topic": "GEO source diversity",
+      "intent": "Evaluation",
+      "prompt": "How can a brand improve its source diversity in AI answers?",
+      "citedUrls": ["https://news.example/guides/source-diversity"],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "Synthetic Answer Search",
+      "topic": "GEO source diversity",
+      "intent": "Evaluation",
+      "prompt": "Which publishers are most often cited for answer engine optimization?",
+      "citedUrls": ["https://news.example/research/answer-engines"],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "Synthetic Answer Search",
+      "topic": "GEO source diversity",
+      "intent": "How-to",
+      "prompt": "How should teams measure citations across AI answer providers?",
+      "citedUrls": ["https://news.example/handbook/citation-measurement"],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    },
+    {
+      "observedAt": "2026-09-15T10:00:00Z",
+      "provider": "Synthetic Answer Search",
+      "topic": "GEO source diversity",
+      "intent": "Comparison",
+      "prompt": "What is the difference between source concentration and source turnover?",
+      "citedUrls": ["https://news.example/analysis/source-turnover"],
+      "citationListComplete": true,
+      "model": "Synthetic sample model",
+      "surface": "Search",
+      "locale": "en-US"
+    }
+  ]
+}

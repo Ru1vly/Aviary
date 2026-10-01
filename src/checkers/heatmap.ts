@@ -101,66 +101,82 @@ export class HeatmapChecker extends BaseChecker {
       'goodTargetHeightPx',
       HEATMAP_GOOD_CLICK_TARGET_HEIGHT_PX
     );
-    const heatmapData = await this.page.evaluate(({ goodTargetWidth, goodTargetHeight }) => {
-      // Get all interactive elements
-      const interactiveSelectors = [
-        'a', 'button', 'input', 'select', 'textarea',
-        '[onclick]', '[role="button"]', '[role="link"]',
-        '[tabindex]', '.btn', '.button', '.cta'
-      ];
+    const heatmapData = await this.page.evaluate(
+      ({ goodTargetWidth, goodTargetHeight }) => {
+        // Get all interactive elements
+        const interactiveSelectors = [
+          'a',
+          'button',
+          'input',
+          'select',
+          'textarea',
+          '[onclick]',
+          '[role="button"]',
+          '[role="link"]',
+          '[tabindex]',
+          '.btn',
+          '.button',
+          '.cta',
+        ];
 
-      const elements = document.querySelectorAll(interactiveSelectors.join(','));
-      const points: { x: number; y: number; value: number; element: string }[] = [];
+        const elements = document.querySelectorAll(interactiveSelectors.join(','));
+        const points: { x: number; y: number; value: number; element: string }[] = [];
 
-      elements.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          // Calculate center point
-          const x = Math.round(rect.left + rect.width / 2);
-          const y = Math.round(rect.top + rect.height / 2 + window.scrollY);
+        elements.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            // Calculate center point
+            const x = Math.round(rect.left + rect.width / 2);
+            const y = Math.round(rect.top + rect.height / 2 + window.scrollY);
 
-          // Calculate importance value based on element properties
-          let value = 50;
+            // Calculate importance value based on element properties
+            let value = 50;
 
-          // Boost for buttons and CTAs
-          if (el.tagName === 'BUTTON' || el.classList.contains('cta') || el.classList.contains('btn')) {
-            value += 30;
+            // Boost for buttons and CTAs
+            if (
+              el.tagName === 'BUTTON' ||
+              el.classList.contains('cta') ||
+              el.classList.contains('btn')
+            ) {
+              value += 30;
+            }
+
+            // Boost for larger elements
+            if (rect.width > goodTargetWidth && rect.height > goodTargetHeight) {
+              value += 15;
+            }
+
+            // Boost for elements above the fold
+            if (rect.top < window.innerHeight) {
+              value += 20;
+            }
+
+            // Boost for prominent colors (approximation)
+            const style = getComputedStyle(el);
+            const bgColor = style.backgroundColor;
+            if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+              value += 10;
+            }
+
+            points.push({
+              x,
+              y,
+              value: Math.min(value, 100),
+              element: `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${el.className ? '.' + el.className.split(' ')[0] : ''}`,
+            });
           }
+        });
 
-          // Boost for larger elements
-          if (rect.width > goodTargetWidth && rect.height > goodTargetHeight) {
-            value += 15;
-          }
-
-          // Boost for elements above the fold
-          if (rect.top < window.innerHeight) {
-            value += 20;
-          }
-
-          // Boost for prominent colors (approximation)
-          const style = getComputedStyle(el);
-          const bgColor = style.backgroundColor;
-          if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
-            value += 10;
-          }
-
-          points.push({
-            x,
-            y,
-            value: Math.min(value, 100),
-            element: `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${el.className ? '.' + el.className.split(' ')[0] : ''}`
-          });
-        }
-      });
-
-      return {
-        points,
-        totalInteractive: elements.length,
-        viewportHeight: window.innerHeight,
-        pageHeight: document.documentElement.scrollHeight,
-        pageWidth: document.documentElement.scrollWidth,
-      };
-    }, { goodTargetWidth, goodTargetHeight });
+        return {
+          points,
+          totalInteractive: elements.length,
+          viewportHeight: window.innerHeight,
+          pageHeight: document.documentElement.scrollHeight,
+          pageWidth: document.documentElement.scrollWidth,
+        };
+      },
+      { goodTargetWidth, goodTargetHeight }
+    );
 
     const minGoodDistributionPoints = this.threshold(
       'click-heatmap-generated',
@@ -291,8 +307,16 @@ export class HeatmapChecker extends BaseChecker {
       };
     }, paragraphMinLength);
 
-    const scrollRatioMin = this.threshold('scroll-depth-reasonable', 'scrollRatioMin', HEATMAP_SCROLL_RATIO_MIN);
-    const scrollRatioMax = this.threshold('scroll-depth-reasonable', 'scrollRatioMax', HEATMAP_SCROLL_RATIO_MAX);
+    const scrollRatioMin = this.threshold(
+      'scroll-depth-reasonable',
+      'scrollRatioMin',
+      HEATMAP_SCROLL_RATIO_MIN
+    );
+    const scrollRatioMax = this.threshold(
+      'scroll-depth-reasonable',
+      'scrollRatioMax',
+      HEATMAP_SCROLL_RATIO_MAX
+    );
     const isReasonableLength =
       scrollData.scrollRatio >= scrollRatioMin && scrollData.scrollRatio <= scrollRatioMax;
     const hasContentDistribution = scrollData.depthAnalysis.every(
@@ -336,88 +360,97 @@ export class HeatmapChecker extends BaseChecker {
     );
     const attentionData = await this.page.evaluate(
       ({ minElementSize, heroImageMinWidth, heroImageMinHeight }) => {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
 
-      // Find high-attention elements
-      const attentionElements: { selector: string; score: number; zone: string; bounds: ElementBounds }[] = [];
+        // Find high-attention elements
+        const attentionElements: {
+          selector: string;
+          score: number;
+          zone: string;
+          bounds: ElementBounds;
+        }[] = [];
 
-      // Headings
-      document.querySelectorAll('h1, h2, h3').forEach((el, i) => {
-        const rect = el.getBoundingClientRect();
-        let score = el.tagName === 'H1' ? 100 : el.tagName === 'H2' ? 80 : 60;
+        // Headings
+        document.querySelectorAll('h1, h2, h3').forEach((el, i) => {
+          const rect = el.getBoundingClientRect();
+          let score = el.tagName === 'H1' ? 100 : el.tagName === 'H2' ? 80 : 60;
 
-        // Boost if above fold
-        if (rect.top < viewportHeight) {
-          score += 20;
-        }
+          // Boost if above fold
+          if (rect.top < viewportHeight) {
+            score += 20;
+          }
 
-        attentionElements.push({
-          selector: `${el.tagName.toLowerCase()}:nth-of-type(${i + 1})`,
-          score: Math.min(score, 100),
-          zone: rect.top < viewportHeight * 0.6 ? 'hero-area' : 'below-fold',
-          bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+          attentionElements.push({
+            selector: `${el.tagName.toLowerCase()}:nth-of-type(${i + 1})`,
+            score: Math.min(score, 100),
+            zone: rect.top < viewportHeight * 0.6 ? 'hero-area' : 'below-fold',
+            bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+          });
         });
-      });
 
-      // Images
-      document.querySelectorAll('img').forEach((el, i) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.width < minElementSize || rect.height < minElementSize) return;
+        // Images
+        document.querySelectorAll('img').forEach((el, i) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.width < minElementSize || rect.height < minElementSize) return;
 
-        let score = 50;
+          let score = 50;
 
-        // Large images get more attention
-        if (rect.width > heroImageMinWidth && rect.height > heroImageMinHeight) {
-          score += 30;
-        }
+          // Large images get more attention
+          if (rect.width > heroImageMinWidth && rect.height > heroImageMinHeight) {
+            score += 30;
+          }
 
-        // Above fold boost
-        if (rect.top < viewportHeight) {
-          score += 20;
-        }
+          // Above fold boost
+          if (rect.top < viewportHeight) {
+            score += 20;
+          }
 
-        attentionElements.push({
-          selector: `img:nth-of-type(${i + 1})`,
-          score: Math.min(score, 100),
-          zone: rect.top < viewportHeight ? 'above-fold' : 'below-fold',
-          bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+          attentionElements.push({
+            selector: `img:nth-of-type(${i + 1})`,
+            score: Math.min(score, 100),
+            zone: rect.top < viewportHeight ? 'above-fold' : 'below-fold',
+            bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+          });
         });
-      });
 
-      // CTAs and buttons
-      document.querySelectorAll('button, .cta, .btn, a.button, [role="button"]').forEach((el, i) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.width === 0) return;
+        // CTAs and buttons
+        document
+          .querySelectorAll('button, .cta, .btn, a.button, [role="button"]')
+          .forEach((el, i) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0) return;
 
-        let score = 70;
+            let score = 70;
 
-        // Primary CTAs (usually larger, colored)
-        const style = getComputedStyle(el);
-        if (style.backgroundColor && style.backgroundColor !== 'transparent') {
-          score += 15;
-        }
+            // Primary CTAs (usually larger, colored)
+            const style = getComputedStyle(el);
+            if (style.backgroundColor && style.backgroundColor !== 'transparent') {
+              score += 15;
+            }
 
-        // Above fold boost
-        if (rect.top < viewportHeight) {
-          score += 15;
-        }
+            // Above fold boost
+            if (rect.top < viewportHeight) {
+              score += 15;
+            }
 
-        attentionElements.push({
-          selector: `cta:nth-of-type(${i + 1})`,
-          score: Math.min(score, 100),
-          zone: rect.top < viewportHeight ? 'above-fold' : 'below-fold',
-          bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-        });
-      });
+            attentionElements.push({
+              selector: `cta:nth-of-type(${i + 1})`,
+              score: Math.min(score, 100),
+              zone: rect.top < viewportHeight ? 'above-fold' : 'below-fold',
+              bounds: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+            });
+          });
 
-      return {
-        viewportWidth,
-        viewportHeight,
-        attentionElements: attentionElements.sort((a, b) => b.score - a.score).slice(0, 20),
-        fPatternCoverage: attentionElements.filter((e) => e.zone === 'hero-area' || e.zone === 'above-fold').length,
-        totalElements: attentionElements.length,
-      };
+        return {
+          viewportWidth,
+          viewportHeight,
+          attentionElements: attentionElements.sort((a, b) => b.score - a.score).slice(0, 20),
+          fPatternCoverage: attentionElements.filter(
+            (e) => e.zone === 'hero-area' || e.zone === 'above-fold'
+          ).length,
+          totalElements: attentionElements.length,
+        };
       },
       { minElementSize, heroImageMinWidth, heroImageMinHeight }
     );
@@ -464,9 +497,13 @@ export class HeatmapChecker extends BaseChecker {
 
       const ctaSelectors = [
         'button[type="submit"]',
-        '.cta', '.btn-primary', '.btn-cta',
-        'a.button', 'a.btn',
-        '[data-cta]', '[role="button"]',
+        '.cta',
+        '.btn-primary',
+        '.btn-cta',
+        'a.button',
+        'a.btn',
+        '[data-cta]',
+        '[role="button"]',
         'button:not([type="button"])',
       ];
 
@@ -547,62 +584,70 @@ export class HeatmapChecker extends BaseChecker {
     );
     const foldData = await this.page.evaluate(
       ({ heroImageMinWidth, heroImageMinHeight, valuePropMinLength }) => {
-      const viewportHeight = window.innerHeight;
+        const viewportHeight = window.innerHeight;
 
-      const checks = {
-        hasH1: false,
-        hasHeroImage: false,
-        hasCTA: false,
-        hasValueProposition: false,
-        contentDensity: 0,
-      };
+        const checks = {
+          hasH1: false,
+          hasHeroImage: false,
+          hasCTA: false,
+          hasValueProposition: false,
+          contentDensity: 0,
+        };
 
-      // Check for H1 above fold
-      const h1 = document.querySelector('h1');
-      if (h1) {
-        const rect = h1.getBoundingClientRect();
-        checks.hasH1 = rect.top < viewportHeight && rect.bottom > 0;
-      }
-
-      // Check for hero image
-      const images = document.querySelectorAll('img');
-      images.forEach((img) => {
-        const rect = img.getBoundingClientRect();
-        if (rect.top < viewportHeight && rect.width > heroImageMinWidth && rect.height > heroImageMinHeight) {
-          checks.hasHeroImage = true;
+        // Check for H1 above fold
+        const h1 = document.querySelector('h1');
+        if (h1) {
+          const rect = h1.getBoundingClientRect();
+          checks.hasH1 = rect.top < viewportHeight && rect.bottom > 0;
         }
-      });
 
-      // Check for CTA
-      const ctaElements = document.querySelectorAll('button, .cta, .btn, a.button');
-      ctaElements.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.top < viewportHeight && rect.width > 0) {
-          checks.hasCTA = true;
-        }
-      });
+        // Check for hero image
+        const images = document.querySelectorAll('img');
+        images.forEach((img) => {
+          const rect = img.getBoundingClientRect();
+          if (
+            rect.top < viewportHeight &&
+            rect.width > heroImageMinWidth &&
+            rect.height > heroImageMinHeight
+          ) {
+            checks.hasHeroImage = true;
+          }
+        });
 
-      // Check for value proposition (subheading or prominent text)
-      const subheadings = document.querySelectorAll('h2, .subtitle, .tagline, [class*="hero"] p');
-      subheadings.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.top < viewportHeight && el.textContent && el.textContent.length > valuePropMinLength) {
-          checks.hasValueProposition = true;
-        }
-      });
+        // Check for CTA
+        const ctaElements = document.querySelectorAll('button, .cta, .btn, a.button');
+        ctaElements.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < viewportHeight && rect.width > 0) {
+            checks.hasCTA = true;
+          }
+        });
 
-      // Calculate content density
-      const elementsAboveFold = document.querySelectorAll('h1, h2, h3, p, img, button, a');
-      let aboveFoldCount = 0;
-      elementsAboveFold.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.top < viewportHeight && rect.bottom > 0) {
-          aboveFoldCount++;
-        }
-      });
-      checks.contentDensity = aboveFoldCount;
+        // Check for value proposition (subheading or prominent text)
+        const subheadings = document.querySelectorAll('h2, .subtitle, .tagline, [class*="hero"] p');
+        subheadings.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (
+            rect.top < viewportHeight &&
+            el.textContent &&
+            el.textContent.length > valuePropMinLength
+          ) {
+            checks.hasValueProposition = true;
+          }
+        });
 
-      return checks;
+        // Calculate content density
+        const elementsAboveFold = document.querySelectorAll('h1, h2, h3, p, img, button, a');
+        let aboveFoldCount = 0;
+        elementsAboveFold.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < viewportHeight && rect.bottom > 0) {
+            aboveFoldCount++;
+          }
+        });
+        checks.contentDensity = aboveFoldCount;
+
+        return checks;
       },
       { heroImageMinWidth, heroImageMinHeight, valuePropMinLength }
     );
@@ -614,7 +659,11 @@ export class HeatmapChecker extends BaseChecker {
       foldData.hasValueProposition,
     ].filter(Boolean).length;
 
-    const minScore = this.threshold('above-fold-content-strong', 'minScore', HEATMAP_MIN_ATTENTION_SCORE);
+    const minScore = this.threshold(
+      'above-fold-content-strong',
+      'minScore',
+      HEATMAP_MIN_ATTENTION_SCORE
+    );
     const passed = score >= minScore;
 
     return {
@@ -643,7 +692,15 @@ export class HeatmapChecker extends BaseChecker {
 
       // Click prediction points
       const clickPrediction: { x: number; y: number; value: number; element: string }[] = [];
-      const interactiveSelectors = ['a', 'button', 'input', '[onclick]', '[role="button"]', '.btn', '.cta'];
+      const interactiveSelectors = [
+        'a',
+        'button',
+        'input',
+        '[onclick]',
+        '[role="button"]',
+        '.btn',
+        '.cta',
+      ];
 
       document.querySelectorAll(interactiveSelectors.join(',')).forEach((el) => {
         const rect = el.getBoundingClientRect();

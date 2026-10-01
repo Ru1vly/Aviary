@@ -25,20 +25,84 @@ export class InternationalizationChecker extends BaseChecker {
   private async checkHreflangTags(): Promise<CheckOutcome> {
     try {
       const hreflangData = await this.page.evaluate(() => {
-        const hreflangTags = Array.from(document.querySelectorAll('link[rel="alternate"][hreflang]')) as HTMLLinkElement[];
-
-        const languages = hreflangTags.map((tag) => tag.hreflang);
+        const hreflangTags = Array.from(
+          document.querySelectorAll('link[rel="alternate"][hreflang]')
+        ) as HTMLLinkElement[];
+        const invalidTags = new Set<string>();
+        const canonicalize = (
+          value: string,
+          allowXDefault = true,
+          recordInvalid = true
+        ): string | undefined => {
+          const trimmed = value.trim();
+          if (allowXDefault && trimmed.toLowerCase() === 'x-default') return 'x-default';
+          try {
+            return Intl.getCanonicalLocales(trimmed)[0]?.toLowerCase();
+          } catch {
+            if (recordInvalid) invalidTags.add(trimmed.slice(0, 100) || '(empty)');
+            return undefined;
+          }
+        };
+        const languages = hreflangTags
+          .map((tag) => canonicalize(tag.hreflang))
+          .filter((tag): tag is string => tag !== undefined);
         const uniqueLanguages = new Set(languages);
-
         const hasXDefault = languages.includes('x-default');
-        const hasSelfReference = hreflangTags.some((tag) => tag.href === window.location.href);
+        const currentUrl = new URL(window.location.href);
+        currentUrl.hash = '';
+        const selfReference = hreflangTags.find((tag) => {
+          const href = tag.getAttribute('href')?.trim();
+          if (!href) return false;
+          try {
+            const alternateUrl = new URL(href, currentUrl);
+            alternateUrl.hash = '';
+            return alternateUrl.href === currentUrl.href;
+          } catch {
+            return false;
+          }
+        });
+        const hasSelfReference = selfReference !== undefined;
+        const declaredLanguage = document.documentElement.getAttribute('lang')?.trim() || undefined;
+        const canonicalDeclaredLanguage = declaredLanguage
+          ? canonicalize(declaredLanguage, false, false)
+          : undefined;
+        const selfHreflang = selfReference ? canonicalize(selfReference.hreflang) : undefined;
+        const primarySubtag = (tag: string | undefined): string | undefined =>
+          tag?.split('-')[0]?.toLowerCase();
+        const scriptSubtag = (tag: string | undefined): string | undefined =>
+          tag
+            ?.split('-')
+            .find((subtag) => /^[A-Za-z]{4}$/.test(subtag))
+            ?.toLowerCase();
+        const primaryLanguageMismatch = Boolean(
+          canonicalDeclaredLanguage &&
+          selfHreflang &&
+          selfHreflang !== 'x-default' &&
+          primarySubtag(canonicalDeclaredLanguage) !== primarySubtag(selfHreflang)
+        );
+        const scriptLanguageMismatch = Boolean(
+          canonicalDeclaredLanguage &&
+          selfHreflang &&
+          selfHreflang !== 'x-default' &&
+          scriptSubtag(canonicalDeclaredLanguage) &&
+          scriptSubtag(selfHreflang) &&
+          scriptSubtag(canonicalDeclaredLanguage) !== scriptSubtag(selfHreflang)
+        );
 
         return {
           count: hreflangTags.length,
           uniqueLanguages: uniqueLanguages.size,
           hasXDefault,
           hasSelfReference,
-          languages: Array.from(uniqueLanguages),
+          languages: Array.from(uniqueLanguages).slice(0, 50),
+          languagesTruncated: uniqueLanguages.size > 50,
+          invalidLanguageTagCount: invalidTags.size,
+          invalidLanguageTags: Array.from(invalidTags).slice(0, 10),
+          invalidLanguageTagsTruncated: invalidTags.size > 10,
+          ...(declaredLanguage ? { declaredLanguage: declaredLanguage.slice(0, 100) } : {}),
+          ...(selfHreflang ? { selfHreflang } : {}),
+          primaryLanguageMismatch,
+          scriptLanguageMismatch,
         };
       });
 
@@ -55,12 +119,21 @@ export class InternationalizationChecker extends BaseChecker {
       if (!hreflangData.hasSelfReference) {
         issues.push('missing self-referencing hreflang');
       }
+      if (hreflangData.invalidLanguageTagCount > 0) {
+        issues.push(`${hreflangData.invalidLanguageTagCount} invalid hreflang language tag(s)`);
+      }
+      if (hreflangData.primaryLanguageMismatch || hreflangData.scriptLanguageMismatch) {
+        issues.push('self-referencing hreflang conflicts with the document lang declaration');
+      }
 
       if (issues.length > 0) {
         return this.fail(`Hreflang issues: ${issues.join(', ')}`, hreflangData);
       }
 
-      return this.pass(`Hreflang properly configured for ${hreflangData.uniqueLanguages} language(s)`, hreflangData);
+      return this.pass(
+        `Hreflang properly configured for ${hreflangData.uniqueLanguages} language(s)`,
+        hreflangData
+      );
     } catch (error) {
       return this.pass('Hreflang tags check skipped');
     }
@@ -69,31 +142,48 @@ export class InternationalizationChecker extends BaseChecker {
   private async checkLanguageDeclaration(): Promise<CheckOutcome> {
     try {
       const langData = await this.page.evaluate(() => {
-        const htmlLang = document.documentElement.getAttribute('lang');
+        const htmlLang = document.documentElement.getAttribute('lang')?.trim() || undefined;
         const htmlXmlLang = document.documentElement.getAttribute('xml:lang');
 
         const metaContentLanguage = document.querySelector('meta[http-equiv="content-language"]');
+        let canonicalLanguage: string | undefined;
+        let isValid = false;
+        if (htmlLang) {
+          try {
+            canonicalLanguage = Intl.getCanonicalLocales(htmlLang)[0];
+            isValid = canonicalLanguage !== undefined;
+          } catch {
+            isValid = false;
+          }
+        }
 
         return {
           htmlLang,
           htmlXmlLang,
           hasMetaContentLanguage: !!metaContentLanguage,
-          isValid: !!htmlLang && /^[a-z]{2}(-[A-Z]{2})?$/.test(htmlLang),
+          canonicalLanguage,
+          isValid,
         };
       });
 
       if (!langData.htmlLang) {
-        return this.fail('Missing lang attribute on <html> tag (required for accessibility)', langData);
-      }
-
-      if (!langData.isValid) {
         return this.fail(
-          `Invalid lang attribute format: "${langData.htmlLang}" (use ISO 639-1 codes like "en" or "en-US")`,
+          'Missing lang attribute on <html> tag (required for accessibility)',
           langData
         );
       }
 
-      return this.pass(`Language declared as "${langData.htmlLang}"`, langData);
+      if (!langData.isValid) {
+        return this.fail(
+          `Invalid lang attribute format: "${langData.htmlLang}" (use a valid BCP 47 language tag such as "en", "en-GB", or "zh-Hant")`,
+          langData
+        );
+      }
+
+      return this.pass(
+        `Language declared as "${langData.htmlLang}"${langData.canonicalLanguage && langData.canonicalLanguage !== langData.htmlLang ? ` (canonical form "${langData.canonicalLanguage}")` : ''}`,
+        langData
+      );
     } catch (error) {
       return this.pass('Language declaration check skipped');
     }
@@ -130,7 +220,10 @@ export class InternationalizationChecker extends BaseChecker {
 
       const warnings: string[] = [];
 
-      if (contentData.hasCJK && !['zh', 'ja', 'ko'].some((l) => contentData.declaredLang.startsWith(l))) {
+      if (
+        contentData.hasCJK &&
+        !['zh', 'ja', 'ko'].some((l) => contentData.declaredLang.startsWith(l))
+      ) {
         warnings.push('CJK characters found but lang not set to Chinese/Japanese/Korean');
       }
 
@@ -138,7 +231,10 @@ export class InternationalizationChecker extends BaseChecker {
         warnings.push('Arabic characters found but lang not set to Arabic');
       }
 
-      if (contentData.hasCyrillic && !['ru', 'uk', 'bg', 'sr'].some((l) => contentData.declaredLang.startsWith(l))) {
+      if (
+        contentData.hasCyrillic &&
+        !['ru', 'uk', 'bg', 'sr'].some((l) => contentData.declaredLang.startsWith(l))
+      ) {
         warnings.push('Cyrillic characters found but lang not matching');
       }
 
@@ -155,9 +251,13 @@ export class InternationalizationChecker extends BaseChecker {
   private async checkAlternateLanguages(): Promise<CheckOutcome> {
     try {
       const alternateData = await this.page.evaluate(() => {
-        const alternateLangs = Array.from(document.querySelectorAll('link[rel="alternate"][hreflang]')) as HTMLLinkElement[];
+        const alternateLangs = Array.from(
+          document.querySelectorAll('link[rel="alternate"][hreflang]')
+        ) as HTMLLinkElement[];
 
-        const canonicalUrl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+        const canonicalUrl = document.querySelector(
+          'link[rel="canonical"]'
+        ) as HTMLLinkElement | null;
 
         const alternateUrls = alternateLangs.map((link) => ({
           hreflang: link.hreflang,
@@ -173,10 +273,13 @@ export class InternationalizationChecker extends BaseChecker {
       });
 
       if (alternateData.count === 0) {
-        return this.pass('No alternate language versions declared');
+        return this.pass('No alternate language versions declared', alternateData);
       }
 
-      return this.pass(`${alternateData.count} alternate language version(s) declared`, alternateData);
+      return this.pass(
+        `${alternateData.count} alternate language version(s) declared`,
+        alternateData
+      );
     } catch (error) {
       return this.pass('Alternate languages check skipped');
     }
@@ -225,7 +328,10 @@ export class InternationalizationChecker extends BaseChecker {
       }
 
       if (!charsetData.isUTF8) {
-        return this.fail(`Charset is "${charsetData.charset}" (UTF-8 recommended for international sites)`, charsetData);
+        return this.fail(
+          `Charset is "${charsetData.charset}" (UTF-8 recommended for international sites)`,
+          charsetData
+        );
       }
 
       return this.pass('Charset properly set to UTF-8', charsetData);
@@ -237,7 +343,9 @@ export class InternationalizationChecker extends BaseChecker {
   private async checkLanguageSwitcher(): Promise<CheckOutcome> {
     try {
       const switcherData = await this.page.evaluate(() => {
-        const langSwitchers = Array.from(document.querySelectorAll('[class*="lang"], [class*="language"], [id*="lang"]')).filter((el) => {
+        const langSwitchers = Array.from(
+          document.querySelectorAll('[class*="lang"], [class*="language"], [id*="lang"]')
+        ).filter((el) => {
           const tag = el.tagName.toLowerCase();
           return tag === 'select' || tag === 'a' || tag === 'button';
         });
@@ -259,7 +367,10 @@ export class InternationalizationChecker extends BaseChecker {
       });
 
       if (hreflangCount > 1 && !switcherData.hasLanguageSwitcher) {
-        return this.fail('Multiple languages available but no visible language switcher', switcherData);
+        return this.fail(
+          'Multiple languages available but no visible language switcher',
+          switcherData
+        );
       }
 
       if (!switcherData.hasLanguageSwitcher) {
@@ -297,15 +408,21 @@ export class InternationalizationChecker extends BaseChecker {
       });
 
       if (hreflangCount > 1 && !urlData.hasLocalization) {
-        return this.fail('Multiple languages but URLs not localized (use subdomain, path, or parameter)', urlData);
+        return this.fail(
+          'Multiple languages but URLs not localized (use subdomain, path, or parameter)',
+          urlData
+        );
       }
 
       if (!urlData.hasLocalization) {
         return this.pass('Single language site, no URL localization needed');
       }
 
-      const method = urlData.hasLangSubdomain ? 'subdomain' :
-        urlData.hasLangPath ? 'path' : 'parameter';
+      const method = urlData.hasLangSubdomain
+        ? 'subdomain'
+        : urlData.hasLangPath
+          ? 'path'
+          : 'parameter';
 
       return this.pass(`URLs localized using ${method} strategy`, urlData);
     } catch (error) {
@@ -326,11 +443,12 @@ export class InternationalizationChecker extends BaseChecker {
           { symbol: '₹', name: 'INR' },
         ];
 
-        const foundCurrencies = currencies.filter((curr) =>
-          bodyText.includes(curr.symbol) || bodyText.includes(curr.name)
+        const foundCurrencies = currencies.filter(
+          (curr) => bodyText.includes(curr.symbol) || bodyText.includes(curr.name)
         );
 
-        const currencySwitcher = Array.from(document.querySelectorAll('[class*="currency"], [id*="currency"]')).length > 0;
+        const currencySwitcher =
+          Array.from(document.querySelectorAll('[class*="currency"], [id*="currency"]')).length > 0;
 
         return {
           foundCurrencies: foundCurrencies.map((c) => c.name),
@@ -392,7 +510,10 @@ export class InternationalizationChecker extends BaseChecker {
         return this.pass('No date/time information to check');
       }
 
-      return this.pass(`${dateData.timeElements} date/time element(s) with proper datetime attribute`, dateData);
+      return this.pass(
+        `${dateData.timeElements} date/time element(s) with proper datetime attribute`,
+        dateData
+      );
     } catch (error) {
       return this.pass('Date/time format check skipped');
     }
@@ -449,7 +570,9 @@ export class InternationalizationChecker extends BaseChecker {
         const langElements = document.querySelectorAll('[lang]');
 
         const uniqueLangs = new Set(
-          Array.from(langElements).map((el) => el.getAttribute('lang')).filter((l) => l)
+          Array.from(langElements)
+            .map((el) => el.getAttribute('lang'))
+            .filter((l) => l)
         );
 
         return {
@@ -464,7 +587,10 @@ export class InternationalizationChecker extends BaseChecker {
         return this.pass('Single language site');
       }
 
-      return this.pass(`Multilingual site with ${multilingualData.uniqueLangs.length} language(s)`, multilingualData);
+      return this.pass(
+        `Multilingual site with ${multilingualData.uniqueLangs.length} language(s)`,
+        multilingualData
+      );
     } catch (error) {
       return this.pass('Multilingual content check skipped');
     }
@@ -489,7 +615,9 @@ export class InternationalizationChecker extends BaseChecker {
       }
 
       return this.pass(
-        geoData.metaGeoTags > 0 ? 'Geo-targeting meta tags present' : 'Location-based content detected',
+        geoData.metaGeoTags > 0
+          ? 'Geo-targeting meta tags present'
+          : 'Location-based content detected',
         geoData
       );
     } catch (error) {
@@ -501,11 +629,14 @@ export class InternationalizationChecker extends BaseChecker {
     try {
       const metadataData = await this.page.evaluate(() => {
         const title = document.title;
-        const description = document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
+        const description =
+          document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
 
         const htmlLang = document.documentElement.getAttribute('lang') || '';
 
-        const ogLocale = document.querySelector('meta[property="og:locale"]')?.getAttribute('content');
+        const ogLocale = document
+          .querySelector('meta[property="og:locale"]')
+          ?.getAttribute('content');
 
         const hreflangTags = document.querySelectorAll('link[rel="alternate"][hreflang]');
 
@@ -560,7 +691,9 @@ export class InternationalizationChecker extends BaseChecker {
       }
 
       return this.pass(
-        unicodeData.hasEmoji ? 'Unicode support with UTF-8 (including emoji)' : 'Unicode support with UTF-8',
+        unicodeData.hasEmoji
+          ? 'Unicode support with UTF-8 (including emoji)'
+          : 'Unicode support with UTF-8',
         unicodeData
       );
     } catch (error) {

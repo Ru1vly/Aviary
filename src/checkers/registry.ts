@@ -29,6 +29,7 @@ import { LegalComplianceChecker } from './legalCompliance';
 import { EcommerceChecker } from './ecommerce';
 import { InternationalizationChecker } from './internationalization';
 import { HeatmapChecker } from './heatmap';
+import { GeoChecker } from './geo';
 
 /** What every checker needs to be constructed, regardless of which subset it actually uses. */
 export interface CheckerContext {
@@ -42,6 +43,8 @@ export interface CheckerContext {
    * as a post-hoc fallback (see src/index.ts).
    */
   config: SEOConfig;
+  /** @internal Batch URL positions used only by the Links checker. */
+  sitewideTargetIndexes?: ReadonlyMap<string, number>;
 }
 
 export interface Checker {
@@ -58,10 +61,10 @@ export interface CheckerDescriptor {
 }
 
 /**
- * Single source of truth for the 28 checkers: which class implements each
+ * Single source of truth for the registered checkers: which class implements each
  * category, its display label/icon, and how to construct it.
  *
- * Before this existed, the same 28-item list (in the same order, so one
+ * Before this existed, the same 29-item list (in the same order, so one
  * misordered entry would silently mislabel a whole category) was
  * hand-maintained in four places: SEOChecker.runAllCheckers() and the
  * report-object construction in src/index.ts, the `sections` array in
@@ -76,25 +79,120 @@ export interface CheckerDescriptor {
  * just to be listed here.
  */
 export const CHECKER_REGISTRY: CheckerDescriptor[] = [
-  { key: 'metaTags', label: 'Meta Tags', icon: '🏷️', create: (ctx) => new MetaTagsChecker({ ...ctx, checkerKey: 'metaTags' }) },
-  { key: 'headings', label: 'Headings', icon: '📝', create: (ctx) => new HeadingsChecker({ ...ctx, checkerKey: 'headings' }) },
-  { key: 'images', label: 'Images', icon: '🖼️', create: (ctx) => new ImagesChecker({ ...ctx, checkerKey: 'images' }) },
-  { key: 'performance', label: 'Performance', icon: '⚡', create: (ctx) => new PerformanceChecker({ ...ctx, checkerKey: 'performance' }) },
-  { key: 'robotsTxt', label: 'Robots.txt', icon: '🤖', create: (ctx) => new RobotsTxtChecker({ ...ctx, checkerKey: 'robotsTxt' }) },
-  { key: 'sitemap', label: 'Sitemap', icon: '🗺️', create: (ctx) => new SitemapChecker({ ...ctx, checkerKey: 'sitemap' }) },
-  { key: 'security', label: 'Security', icon: '🔒', create: (ctx) => new SecurityChecker({ ...ctx, checkerKey: 'security' }) },
-  { key: 'structuredData', label: 'Structured Data', icon: '📋', create: (ctx) => new StructuredDataChecker({ ...ctx, checkerKey: 'structuredData' }) },
-  { key: 'socialMedia', label: 'Social Media', icon: '📱', create: (ctx) => new SocialMediaChecker({ ...ctx, checkerKey: 'socialMedia' }) },
-  { key: 'content', label: 'Content', icon: '📄', create: (ctx) => new ContentChecker({ ...ctx, checkerKey: 'content' }) },
-  { key: 'links', label: 'Links', icon: '🔗', create: (ctx) => new LinksChecker({ ...ctx, checkerKey: 'links' }) },
-  { key: 'uiElements', label: 'UI Elements', icon: '🎨', create: (ctx) => new UIElementsChecker({ ...ctx, checkerKey: 'uiElements' }) },
-  { key: 'technical', label: 'Technical SEO', icon: '⚙️', create: (ctx) => new TechnicalChecker({ ...ctx, checkerKey: 'technical' }) },
-  { key: 'accessibility', label: 'Accessibility', icon: '♿', create: (ctx) => new AccessibilityChecker({ ...ctx, checkerKey: 'accessibility' }) },
-  { key: 'urlFactors', label: 'URL Factors', icon: '🌐', create: (ctx) => new URLFactorsChecker({ ...ctx, checkerKey: 'urlFactors' }) },
-  { key: 'spamDetection', label: 'Spam Detection', icon: '🚫', create: (ctx) => new SpamDetectionChecker({ ...ctx, checkerKey: 'spamDetection' }) },
-  { key: 'pageQuality', label: 'Page Quality', icon: '⭐', create: (ctx) => new PageQualityChecker({ ...ctx, checkerKey: 'pageQuality' }) },
-  { key: 'advancedImages', label: 'Advanced Images', icon: '📷', create: (ctx) => new AdvancedImagesChecker({ ...ctx, checkerKey: 'advancedImages' }) },
-  { key: 'multimedia', label: 'Multimedia', icon: '🎬', create: (ctx) => new MultimediaChecker({ ...ctx, checkerKey: 'multimedia' }) },
+  {
+    key: 'metaTags',
+    label: 'Meta Tags',
+    icon: '🏷️',
+    create: (ctx) => new MetaTagsChecker({ ...ctx, checkerKey: 'metaTags' }),
+  },
+  {
+    key: 'headings',
+    label: 'Headings',
+    icon: '📝',
+    create: (ctx) => new HeadingsChecker({ ...ctx, checkerKey: 'headings' }),
+  },
+  {
+    key: 'images',
+    label: 'Images',
+    icon: '🖼️',
+    create: (ctx) => new ImagesChecker({ ...ctx, checkerKey: 'images' }),
+  },
+  {
+    key: 'performance',
+    label: 'Performance',
+    icon: '⚡',
+    create: (ctx) => new PerformanceChecker({ ...ctx, checkerKey: 'performance' }),
+  },
+  {
+    key: 'robotsTxt',
+    label: 'Robots.txt',
+    icon: '🤖',
+    create: (ctx) => new RobotsTxtChecker({ ...ctx, checkerKey: 'robotsTxt' }),
+  },
+  {
+    key: 'sitemap',
+    label: 'Sitemap',
+    icon: '🗺️',
+    create: (ctx) => new SitemapChecker({ ...ctx, checkerKey: 'sitemap' }),
+  },
+  {
+    key: 'security',
+    label: 'Security',
+    icon: '🔒',
+    create: (ctx) => new SecurityChecker({ ...ctx, checkerKey: 'security' }),
+  },
+  {
+    key: 'structuredData',
+    label: 'Structured Data',
+    icon: '📋',
+    create: (ctx) => new StructuredDataChecker({ ...ctx, checkerKey: 'structuredData' }),
+  },
+  {
+    key: 'socialMedia',
+    label: 'Social Media',
+    icon: '📱',
+    create: (ctx) => new SocialMediaChecker({ ...ctx, checkerKey: 'socialMedia' }),
+  },
+  {
+    key: 'content',
+    label: 'Content',
+    icon: '📄',
+    create: (ctx) => new ContentChecker({ ...ctx, checkerKey: 'content' }),
+  },
+  {
+    key: 'links',
+    label: 'Links',
+    icon: '🔗',
+    create: (ctx) => new LinksChecker({ ...ctx, checkerKey: 'links' }),
+  },
+  {
+    key: 'uiElements',
+    label: 'UI Elements',
+    icon: '🎨',
+    create: (ctx) => new UIElementsChecker({ ...ctx, checkerKey: 'uiElements' }),
+  },
+  {
+    key: 'technical',
+    label: 'Technical SEO',
+    icon: '⚙️',
+    create: (ctx) => new TechnicalChecker({ ...ctx, checkerKey: 'technical' }),
+  },
+  {
+    key: 'accessibility',
+    label: 'Accessibility',
+    icon: '♿',
+    create: (ctx) => new AccessibilityChecker({ ...ctx, checkerKey: 'accessibility' }),
+  },
+  {
+    key: 'urlFactors',
+    label: 'URL Factors',
+    icon: '🌐',
+    create: (ctx) => new URLFactorsChecker({ ...ctx, checkerKey: 'urlFactors' }),
+  },
+  {
+    key: 'spamDetection',
+    label: 'Spam Detection',
+    icon: '🚫',
+    create: (ctx) => new SpamDetectionChecker({ ...ctx, checkerKey: 'spamDetection' }),
+  },
+  {
+    key: 'pageQuality',
+    label: 'Page Quality',
+    icon: '⭐',
+    create: (ctx) => new PageQualityChecker({ ...ctx, checkerKey: 'pageQuality' }),
+  },
+  {
+    key: 'advancedImages',
+    label: 'Advanced Images',
+    icon: '📷',
+    create: (ctx) => new AdvancedImagesChecker({ ...ctx, checkerKey: 'advancedImages' }),
+  },
+  {
+    key: 'multimedia',
+    label: 'Multimedia',
+    icon: '🎬',
+    create: (ctx) => new MultimediaChecker({ ...ctx, checkerKey: 'multimedia' }),
+  },
   // Label is "Core Web Vitals" — this checker now measures real LCP/CLS/FCP/
   // TTFB via a `web-vitals` PerformanceObserver injected before navigation
   // (src/index.ts's launch()), alongside its original Navigation/Resource
@@ -114,13 +212,66 @@ export const CHECKER_REGISTRY: CheckerDescriptor[] = [
   //     `longtask` entries) is the disclosed lab proxy instead, the same
   //     substitution Lighthouse makes for the same reason.
   // See docs/ACCURACY_LIMITATIONS.md.
-  { key: 'coreWebVitals', label: 'Core Web Vitals', icon: '📊', create: (ctx) => new CoreWebVitalsChecker({ ...ctx, checkerKey: 'coreWebVitals' }) },
-  { key: 'analytics', label: 'Analytics & Tracking', icon: '📈', create: (ctx) => new AnalyticsChecker({ ...ctx, checkerKey: 'analytics' }) },
-  { key: 'mobileUX', label: 'Mobile UX', icon: '📲', create: (ctx) => new MobileUXChecker({ ...ctx, checkerKey: 'mobileUX' }) },
-  { key: 'schemaValidation', label: 'Schema Validation', icon: '✅', create: (ctx) => new SchemaValidationChecker({ ...ctx, checkerKey: 'schemaValidation' }) },
-  { key: 'resourceOptimization', label: 'Resource Optimization', icon: '🚀', create: (ctx) => new ResourceOptimizationChecker({ ...ctx, checkerKey: 'resourceOptimization' }) },
-  { key: 'legalCompliance', label: 'Legal & Compliance', icon: '⚖️', create: (ctx) => new LegalComplianceChecker({ ...ctx, checkerKey: 'legalCompliance' }) },
-  { key: 'ecommerce', label: 'E-commerce', icon: '🛒', create: (ctx) => new EcommerceChecker({ ...ctx, checkerKey: 'ecommerce' }) },
-  { key: 'internationalization', label: 'Internationalization', icon: '🌍', create: (ctx) => new InternationalizationChecker({ ...ctx, checkerKey: 'internationalization' }) },
-  { key: 'heatmap', label: 'Heatmap & UX', icon: '🔥', create: (ctx) => new HeatmapChecker({ ...ctx, checkerKey: 'heatmap' }) },
+  {
+    key: 'coreWebVitals',
+    label: 'Core Web Vitals',
+    icon: '📊',
+    create: (ctx) => new CoreWebVitalsChecker({ ...ctx, checkerKey: 'coreWebVitals' }),
+  },
+  {
+    key: 'analytics',
+    label: 'Analytics & Tracking',
+    icon: '📈',
+    create: (ctx) => new AnalyticsChecker({ ...ctx, checkerKey: 'analytics' }),
+  },
+  {
+    key: 'mobileUX',
+    label: 'Mobile UX',
+    icon: '📲',
+    create: (ctx) => new MobileUXChecker({ ...ctx, checkerKey: 'mobileUX' }),
+  },
+  {
+    key: 'schemaValidation',
+    label: 'Schema Validation',
+    icon: '✅',
+    create: (ctx) => new SchemaValidationChecker({ ...ctx, checkerKey: 'schemaValidation' }),
+  },
+  {
+    key: 'resourceOptimization',
+    label: 'Resource Optimization',
+    icon: '🚀',
+    create: (ctx) =>
+      new ResourceOptimizationChecker({ ...ctx, checkerKey: 'resourceOptimization' }),
+  },
+  {
+    key: 'legalCompliance',
+    label: 'Legal & Compliance',
+    icon: '⚖️',
+    create: (ctx) => new LegalComplianceChecker({ ...ctx, checkerKey: 'legalCompliance' }),
+  },
+  {
+    key: 'ecommerce',
+    label: 'E-commerce',
+    icon: '🛒',
+    create: (ctx) => new EcommerceChecker({ ...ctx, checkerKey: 'ecommerce' }),
+  },
+  {
+    key: 'internationalization',
+    label: 'Internationalization',
+    icon: '🌍',
+    create: (ctx) =>
+      new InternationalizationChecker({ ...ctx, checkerKey: 'internationalization' }),
+  },
+  {
+    key: 'heatmap',
+    label: 'Heatmap & UX',
+    icon: '🔥',
+    create: (ctx) => new HeatmapChecker({ ...ctx, checkerKey: 'heatmap' }),
+  },
+  {
+    key: 'geo',
+    label: 'AI Discoverability (GEO)',
+    icon: '✳️',
+    create: (ctx) => new GeoChecker({ ...ctx, checkerKey: 'geo' }),
+  },
 ];

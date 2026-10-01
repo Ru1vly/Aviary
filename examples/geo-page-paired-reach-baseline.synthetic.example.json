@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 01",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk?utm_source=baseline#setup",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 02",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 03",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 04",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 05",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 06",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 07",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 08",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 09",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    },
+    {
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provider": "ExampleAI",
+      "prompt": "How do I choose an ergonomic desk? 10",
+      "citedUrls": [
+        "https://publisher.example/guides/desk-preferences",
+        "https://publisher.example/guides/chair-adjustment",
+        "https://publisher.example/guides/ergonomic-desk",
+        "https://publisher.example/support/desk-faq"
+      ]
+    }
+  ]
+}

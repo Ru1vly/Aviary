@@ -92,7 +92,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkPersonSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const personSchemas = schemas.filter((data): data is PersonSchema => isSchemaType<PersonSchema>(data, 'Person'));
+      const personSchemas = schemas.filter((data): data is PersonSchema =>
+        isSchemaType<PersonSchema>(data, 'Person')
+      );
 
       if (personSchemas.length === 0) {
         return this.pass('No Person schema (optional, useful for personal brands)');
@@ -227,7 +229,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkFAQSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const faqSchemas = schemas.filter((data): data is FAQPageSchema => isSchemaType<FAQPageSchema>(data, 'FAQPage'));
+      const faqSchemas = schemas.filter((data): data is FAQPageSchema =>
+        isSchemaType<FAQPageSchema>(data, 'FAQPage')
+      );
 
       if (faqSchemas.length === 0) {
         return this.pass('No FAQPage schema (use for FAQ pages to get rich results)');
@@ -253,7 +257,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkHowToSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const howToSchemas = schemas.filter((data): data is HowToSchema => isSchemaType<HowToSchema>(data, 'HowTo'));
+      const howToSchemas = schemas.filter((data): data is HowToSchema =>
+        isSchemaType<HowToSchema>(data, 'HowTo')
+      );
 
       if (howToSchemas.length === 0) {
         return this.pass('No HowTo schema (use for tutorial/how-to content)');
@@ -314,7 +320,9 @@ export class SchemaValidationChecker extends BaseChecker {
   private async checkEventSchema(): Promise<CheckOutcome> {
     try {
       const schemas = await this.getJsonLd();
-      const eventSchemas = schemas.filter((data): data is EventSchema => isSchemaType<EventSchema>(data, 'Event'));
+      const eventSchemas = schemas.filter((data): data is EventSchema =>
+        isSchemaType<EventSchema>(data, 'Event')
+      );
 
       if (eventSchemas.length === 0) {
         return this.pass('No Event schema (use for event pages)');
@@ -423,7 +431,9 @@ export class SchemaValidationChecker extends BaseChecker {
       };
 
       return this.pass(
-        schemaData.hasPotentialAction ? 'WebSite schema with search action' : 'WebSite schema present',
+        schemaData.hasPotentialAction
+          ? 'WebSite schema with search action'
+          : 'WebSite schema present',
         schemaData
       );
     } catch (error) {
@@ -492,7 +502,9 @@ export class SchemaValidationChecker extends BaseChecker {
     try {
       const allSchemas = await this.getJsonLd();
 
-      const contexts = allSchemas.map((schema) => schema['@context']).filter((ctx): ctx is string => !!ctx);
+      const contexts = allSchemas
+        .map((schema) => schema['@context'])
+        .filter((ctx): ctx is string => !!ctx);
 
       const validContexts = contexts.filter(
         (ctx: string) => ctx === 'https://schema.org' || ctx === 'http://schema.org'
@@ -509,7 +521,10 @@ export class SchemaValidationChecker extends BaseChecker {
       }
 
       if (schemaData.validContexts < schemaData.totalContexts) {
-        return this.fail(`${schemaData.totalContexts - schemaData.validContexts} schemas with invalid @context`, schemaData);
+        return this.fail(
+          `${schemaData.totalContexts - schemaData.validContexts} schemas with invalid @context`,
+          schemaData
+        );
       }
 
       return this.pass('All schemas use valid schema.org context', schemaData);
