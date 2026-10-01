@@ -55,7 +55,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 ## Release blockers and maintainer actions
 
 1. **Recover the coverage gate.** The latest full run passed 510 tests but failed the configured 80% minimums: statements 55.31%, branches 37.49%, functions 52.49%, and lines 56.53%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
-2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. On 2026-10-01, `npm trust list` was rejected with `E403` for the configured token, so the publisher settings could not be inspected or updated from this session. With an OTP-capable npm account, run `npm trust github <package> --repository Ru1vly/Aviary --file release.yml --allow-publish` for each package:
+2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. On 2026-10-01, `npm trust list` was rejected with `E403` for the configured token, so the publisher settings could not be inspected or updated from this session. The current `npm trust` management command requires npm 11.15.0 or newer; the workflow's npm 11.5.1 meets npm's separate minimum for publishing through trusted publishers. With an OTP-capable npm account and npm 11.15.0+, run `npm trust github <package> --repository Ru1vly/Aviary --file release.yml --allow-publish` for each package:
 
    ```sh
    for package in \
@@ -70,7 +70,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
    done
    ```
 
-   The release workflow currently defines no GitHub environment, so do not pass `--environment`. See [npm's trusted publisher setup guide](https://docs.npmjs.com/trusted-publishers/). Publishing should use OIDC provenance; do not add a broad npm token to the release workflow.
+   The release workflow currently defines no GitHub environment, so do not pass `--environment`. See [npm's trusted publisher setup guide](https://docs.npmjs.com/trusted-publishers/) and the [npm trust command requirements](https://docs.npmjs.com/cli/v11/commands/npm-trust/). Publishing should use OIDC provenance; do not add a broad npm token to the release workflow.
 
 3. **Recheck release controls.** Verify workflow permissions, tag protection, bootstrap secrets, and current CI/Security Scan/bootstrap results on the final release commit. The last observed passing runs are from before this candidate.
 4. **Keep the 1.0.0 versions deprecated.** The five platform versions are referenced by the root 1.0.0 package and cannot be removed while it remains published. The root version's downloads and owner count meet two policy criteria, but its dependents are unverified and the configured npm token cannot perform the OTP-protected unpublish operation. Retain the warnings unless an owner confirms root-package eligibility and uses an OTP-capable account flow. See [npm's unpublish policy](https://docs.npmjs.com/policies/unpublish/).
