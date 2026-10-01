@@ -28,7 +28,7 @@ The build, audit, test, and install checks below passed on the release candidate
 - A fresh simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,079,338 unpacked bytes, and 2,012,259 compressed bytes**, includes `CHANGELOG.md` and `docs/openapi.yaml`, and excludes `reports/` and this handoff. It uses the current compiled output; repeat from a clean checkout on the final release commit.
 - A fresh versioned 0.2.0 tarball install with optional native packages omitted loaded 348 exports and `AviaryApiClient`; CLI help succeeded, `CHANGELOG.md` was present, and the packaged OpenAPI version was 0.2.0. The earlier clean-install smoke verified API health and served OpenAPI versions, MCP initialization, and the Linux x64 binary.
 - Local Markdown links and the package-boundary links in packed Markdown files.
-- Compared compiled CLI help with the README and GEO guide: all 383 long-form CLI options are documented. `pnpm run check:cli-docs` now repeats this check in CI and the tagged-release test job.
+- Compared compiled CLI help with the README and GEO guide: all 390 switches are documented (383 long options and 7 shortcuts). `pnpm run check:cli-docs` now repeats this check in CI and the tagged-release test job.
 - Parsed the release workflow YAML, checked the release-notes shell step, and verified it uses the curated `0.2.0` notes and falls back to commit subjects for `0.1.1`.
 
 These are local candidate checks, not evidence that CI has passed on this branch. The latest observed main CI run succeeded on 2026-09-19 and Security Scan on 2026-09-28; both predate the candidate work.

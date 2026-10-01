@@ -902,6 +902,7 @@ The command-line interface supports the following parameters:
 | `--viewport` | | string | Set simulator window size (e.g. `1920x1080` or `375x667`) |
 | `--init-config`| | boolean | Create a default configuration template file in the CWD |
 | `--doctor` | | boolean | Check Node.js, Chromium, environment, and configuration readiness; add `--json` for structured output |
+| `--help` | `-h` | boolean | Print the CLI usage and available options |
 | `--version` | `-V` | boolean | Print the installed Aviary version |
 | `--completion` | | `bash`, `zsh`, or `fish` | Print a shell completion definition to stdout |
 
@@ -1218,7 +1219,7 @@ pnpm exec playwright install chromium
 # Compile TypeScript code to distribution folder
 pnpm run build
 
-# Check that every CLI option appears in the README or GEO guide
+# Check that every CLI option and shortcut appears in the README or GEO guide
 pnpm run check:cli-docs
 
 # Run unit and integration tests
