@@ -20,7 +20,7 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 ## Verification snapshot
 
-The following checks passed on the current source before the latest documentation-only edits:
+The build, audit, test, and install checks below passed on the release candidate. Follow-up documentation and release-workflow edits were checked separately:
 
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
@@ -28,6 +28,8 @@ The following checks passed on the current source before the latest documentatio
 - A fresh simulated `@ru1vly/aviary@0.2.0` package dry run on a temporary copy applied the release workflow's root/platform versioning and OpenAPI version update. It contains **573 files, 12,079,338 unpacked bytes, and 2,012,259 compressed bytes**, includes `CHANGELOG.md` and `docs/openapi.yaml`, and excludes `reports/` and this handoff. It uses the current compiled output; repeat from a clean checkout on the final release commit.
 - A clean install of the simulated 0.2.0 JavaScript tarball with optional native packages omitted. The package loaded 348 exports and `AviaryApiClient`; CLI help succeeded and included the latest GEO report options. API health and served OpenAPI versions matched 0.2.0. Earlier clean-install smoke also verified MCP initialization and the Linux x64 binary.
 - Local Markdown links and the package-boundary links in packed Markdown files.
+- Compared compiled CLI help with the README and GEO guide: all 383 long-form CLI options are documented.
+- Parsed the release workflow YAML, checked the release-notes shell step, and verified it uses the curated `0.2.0` notes and falls back to commit subjects for `0.1.1`.
 
 These are local candidate checks, not evidence that CI has passed on this branch. The latest observed main CI run succeeded on 2026-09-19 and Security Scan on 2026-09-28; both predate the candidate work.
 
