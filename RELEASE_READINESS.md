@@ -7,7 +7,7 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The candidate and follow-up commits are local; `main` has not been pushed or tagged. Two required release conditions remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete run passes **477 tests across 57 files**, with **46.61% statement, 47.68% line, 44.37% function, and 29.99% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
+1. The tagged workflow requires at least 80% coverage. The latest complete run passes **480 tests across 58 files**, with **47.02% statement, 48.11% line, 44.75% function, and 30.15% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
 The release candidate is prepared for review, but the coverage threshold, npm trusted-publisher setup, a clean-checkout verification, and the required CI/security gates must pass on the final release commit before tagging.
@@ -22,7 +22,7 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 The build, audit, test, and install checks below passed on the release candidate. Follow-up documentation and release-workflow edits were checked separately:
 
-- Rechecked the current source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The full test suite passed 477 tests, while `pnpm run test:coverage` exited at the documented 80% thresholds.
+- Rechecked the current source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The full test suite passed 480 tests, while `pnpm run test:coverage` exited at the documented 80% thresholds.
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
 - The 477-test suite. Coverage still fails the configured 80% thresholds as described above.
@@ -57,12 +57,12 @@ These are local candidate checks, not evidence that CI has passed on this branch
 5. **Inspect the actual release artifacts.** Repeat a clean-checkout build, package dry run, and install smoke; verify platform installers and tarballs on supported systems. Keep generated reports out of the package.
 6. **Update the separate website.** Correct the homepage check/category count to 242/29, deploy, and regenerate the live homepage report.
 
-Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 477 tests passed):
+Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 480 tests passed):
 
 | Module                                          | Uncovered statements | Statement coverage |
 | ----------------------------------------------- | -------------------: | -----------------: |
 | `src/geo/answerCitationObservationsReporter.ts` |        4,319 / 5,094 |                15% |
-| `src/geo/answerCitationPromptSimilarity.ts`     |        2,067 / 2,088 |                 1% |
+| `src/geo/answerCitationPromptSimilarity.ts`     |        1,938 / 2,088 |                 7% |
 | `src/geo/answerCitationObservations.ts`         |        1,823 / 3,471 |                47% |
 | `src/geo/answerCitationPagePairedReach.ts`      |        1,009 / 1,344 |                25% |
 | `src/reporter.ts`                               |            783 / 864 |                 9% |
