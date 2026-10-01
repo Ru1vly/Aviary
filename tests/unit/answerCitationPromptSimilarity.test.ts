@@ -6,6 +6,7 @@ import type {
 import {
   analyzeAiAnswerCitationPromptFamilyPartition,
   renderAiAnswerCitationPromptFamiliesCsv,
+  renderAiAnswerCitationPromptFamilySourceRarefactionCsv,
   renderAiAnswerCitationPromptSimilarityCsv,
 } from '../../src/geo/answerCitationPromptSimilarity';
 
@@ -86,6 +87,23 @@ describe('AI answer citation prompt similarity', () => {
     expect(csv).toContain('articulation_prompts_json');
     expect(csv).toContain('alpha bravo');
     expect(csv).toContain('family-00001');
+  });
+
+  it('labels source rarefaction as a family-level sampling estimate', () => {
+    const csv = renderAiAnswerCitationPromptFamilySourceRarefactionCsv(
+      report([
+        profile('blue apples sweet fruit'),
+        profile('blue apples ripe fruit'),
+        profile('quantum computing qubits'),
+      ]),
+      0.1,
+      3
+    );
+
+    expect(csv).toContain('lexical-prompt-family');
+    expect(csv).toContain('family_similarity_threshold');
+    expect(csv).toContain('family_candidate_pairs_considered');
+    expect(csv).toContain('Search');
   });
 
   it('rejects invalid similarity thresholds', () => {
