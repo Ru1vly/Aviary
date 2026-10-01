@@ -35,16 +35,7 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Report review bundle
 
-`reports/` contains **348 generated files (about 39 MB)** and is untracked local evidence. Keep it out of the npm tarball and do not commit the full raw capture set wholesale.
-
-- [Live-site nine-page GEO review](reports/aviary-rs-live/sitewide-recheck-2026-10-01/README.md): batch report, HTML dashboard, PDF, typed summary, page CSV, and opportunity review.
-- [Live-site homepage recheck](reports/aviary-rs-live/usage-window-recheck-2026-10-01/README.md): JSON, HTML, PDF, and Markdown outputs.
-- [Release-candidate homepage report](reports/aviary-rs-live/release-candidate-2026-10-01/README.md): live CLI capture and generation details.
-- [Robots-policy replay](reports/aviary-rs-live/robots-policy-2026-10-01/README.md): saved-audit replay with JSON, standalone HTML, and PDF. The 17 configured tokens allowed all nine tested URLs; this is a snapshot, not evidence that crawlers fetched or cited them.
-- [Synthetic GEO workflow index](reports/geo-toolbox-finalization-2026-10-01/index.html): linked index for 60 offline artifacts. These use synthetic fixture inputs and are regression evidence, not live provider observations.
-- [GEO report-rendering regressions](reports/geo-report-recheck-2026-10-01/README.md): synthetic CSV, JSON, and dashboard artifacts for repaired comparison pipelines.
-
-The live-site crawls found nine static-link routes. All nine audits completed and all 72 GEO checks passed; mean initial-HTML/rendered phrase overlap was 28.5%. This measures captured page text and audit checks, not search ranking, GEO readiness, or AI citation likelihood. Static-link discovery can miss client-rendered routes.
+`reports/` contains the full local generated report set (about 39 MB); the raw JSON, HTML, PDF, and CSV artifacts stay out of the npm tarball and are not committed wholesale. The compact [release-candidate evidence brief](reports/RELEASE_EVIDENCE.md) is tracked for review and records the live-site results, synthetic workflow outputs, interpretation limits, and local artifact locations.
 
 ## Known limitations and follow-up
 
