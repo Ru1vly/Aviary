@@ -538,6 +538,10 @@ export function renderAiAnswerCitationProviderSourceNetworkEdgeDriftCsv(
     output_rows_truncated: outputRowsTruncated,
     interpretation_note: `Difference-in-differences is the change from baseline to current in provider B minus provider A edge reach, on shared exact prompts with complete source lists. Normal-approximation intervals and p-values are withheld below ${MIN_NORMAL_INTERVAL_PROMPTS} matched prompts. Intervals are nominal and not adjusted; Holm correction applies only to the complete eligible-test family. Model, surface, locale, or capture context may still shift within exact prompts. These observational data do not establish causal provider effects.`,
   });
-  const output = [summary, ...rows.slice(0, MAX_OUTPUT_ROWS)];
+  const output = [
+    Object.fromEntries(headers.map((header) => [header, header])),
+    summary,
+    ...rows.slice(0, MAX_OUTPUT_ROWS),
+  ];
   return `${output.map((row) => headers.map((header) => csvCell(row[header] ?? '')).join(',')).join('\r\n')}\r\n`;
 }
