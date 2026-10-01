@@ -83,28 +83,28 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 512 tests passed):
 
-| Module                                             | Uncovered statements | Statement coverage |
-| -------------------------------------------------- | -------------------: | -----------------: |
-| `src/geo/answerCitationObservationsReporter.ts`    |        3,951 / 5,094 |                22% |
-| `src/geo/answerCitationObservations.ts`            |        1,324 / 3,471 |                62% |
-| `src/geo/answerCitationPagePairedReach.ts`         |          892 / 1,344 |                34% |
-| `src/reporter.ts`                                  |            783 / 864 |                 9% |
-| `src/geo/aiCrawlerLogs.ts`                         |          737 / 1,379 |                47% |
-| `src/sitewide.ts`                                  |            504 / 856 |                41% |
-| `src/geo/bingAiPerformance.ts`                     |            437 / 832 |                47% |
-| `src/geo/answerCitationSourcePortfolioDrift.ts`    |            348 / 648 |                46% |
-| `src/geo/aiCrawlerPathFamilies.ts`                 |            283 / 560 |                49% |
-| `src/crawler.ts`                                   |            234 / 626 |                63% |
-| `src/geo/googleSurfaceMatrix.ts`                   |            224 / 230 |                 3% |
-| `src/geo/aiCrawlerLogComparison.ts`                |            222 / 226 |                 2% |
-| `src/scoring.ts`                                   |            179 / 457 |                61% |
-| `src/geo/answerCitationPromptSimilarity.ts`        |          176 / 2,088 |                92% |
-| `src/api/server.ts`                                |            167 / 414 |                60% |
-| `src/geo/aiCrawlerLogsReporter.ts`                 |            165 / 220 |                25% |
-| `src/geo/googleAiCitationConcordanceComparison.ts` |            149 / 149 |                 0% |
-| `src/geo/platformMatrix.ts`                        |            103 / 378 |                73% |
-| `src/geo/xlsxWorksheetCsv.ts`                      |            103 / 111 |                 7% |
-| `src/checkers/geo.ts`                              |            101 / 584 |                83% |
+| Module                                          | Uncovered statements | Statement coverage |
+| ----------------------------------------------- | -------------------: | -----------------: |
+| `src/geo/answerCitationObservationsReporter.ts` |        3,951 / 5,094 |                22% |
+| `src/geo/answerCitationObservations.ts`         |        1,324 / 3,471 |                62% |
+| `src/geo/answerCitationPagePairedReach.ts`      |          892 / 1,344 |                34% |
+| `src/reporter.ts`                               |            783 / 864 |                 9% |
+| `src/geo/aiCrawlerLogs.ts`                      |          737 / 1,379 |                47% |
+| `src/sitewide.ts`                               |            504 / 856 |                41% |
+| `src/geo/bingAiPerformance.ts`                  |            437 / 832 |                47% |
+| `src/geo/answerCitationSourcePortfolioDrift.ts` |            348 / 648 |                46% |
+| `src/geo/aiCrawlerPathFamilies.ts`              |            283 / 560 |                49% |
+| `src/crawler.ts`                                |            234 / 626 |                63% |
+| `src/geo/googleSurfaceMatrix.ts`                |            224 / 230 |                 3% |
+| `src/geo/aiCrawlerLogComparison.ts`             |            222 / 226 |                 2% |
+| `src/scoring.ts`                                |            179 / 457 |                61% |
+| `src/geo/answerCitationPromptSimilarity.ts`     |          176 / 2,088 |                92% |
+| `src/api/server.ts`                             |            167 / 414 |                60% |
+| `src/geo/aiCrawlerLogsReporter.ts`              |            165 / 220 |                25% |
+| `src/geo/platformMatrix.ts`                     |            103 / 378 |                73% |
+| `src/geo/xlsxWorksheetCsv.ts`                   |            103 / 111 |                 7% |
+| `src/checkers/geo.ts`                           |            101 / 584 |                83% |
+| `src/index.ts`                                  |             97 / 243 |                60% |
 
 ## Clean-checkout verification
 
