@@ -50,4 +50,47 @@ describe('observed AI-answer citation report', () => {
     expect(html).not.toContain('</script><script>alert(2)</script>');
     expect(html).not.toContain('session=private');
   });
+
+  it('renders monthly, provider, execution-context, and answer-length panels from varied captures', () => {
+    const prompts = [
+      'Which guide explains indoor cat nutrition?',
+      'What food works best for a senior cat?',
+      'How do I compare cat food ingredients?',
+    ];
+    const observations = ['2026-09-12', '2026-10-12'].flatMap((day, monthIndex) =>
+      ['Search', 'Assistant'].flatMap((provider, providerIndex) =>
+        prompts.map((prompt, promptIndex) => ({
+          observedAt: `${day}T0${promptIndex}:00:00Z`,
+          provider,
+          prompt,
+          answerText: `Compare ingredients and review nutrition label ${promptIndex}.`,
+          citedUrls:
+            (monthIndex + providerIndex + promptIndex) % 2 === 0
+              ? ['https://owned.example/guides/cat-food', 'https://independent.example/review']
+              : ['https://independent.example/review'],
+          citationListComplete: (monthIndex + promptIndex) % 3 !== 0,
+          topic: 'cat care',
+          intent: promptIndex === 2 ? 'comparison' : 'research',
+          model: providerIndex === 0 ? 'search-v2' : 'assistant-v3',
+          surface: providerIndex === 0 ? 'web' : 'answer panel',
+          locale: 'en-US',
+        }))
+      )
+    );
+    const report = analyzeAiAnswerCitationObservations(
+      { schemaVersion: 1, observations },
+      ['owned.example'],
+      '2026-10-13T00:00:00Z',
+      ['Aviary']
+    );
+
+    const html = renderAiAnswerCitationObservationHtml(report);
+
+    expect(html).toContain('Citation coverage by recorded execution context');
+    expect(html).toContain('Citation patterns by captured answer length');
+    expect(html).toContain('research');
+    expect(html).toContain('owned.example');
+    expect(html).toContain('2026-09');
+    expect(html).toContain('2026-10');
+  });
 });
