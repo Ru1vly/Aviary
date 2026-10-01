@@ -5,12 +5,12 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 ## Release decision
 
-**Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The candidate and follow-up commits are local; `main` has not been pushed or tagged. Two required release conditions remain:
+**Do not publish yet.** npm currently has no `0.2.0` for the root or any of the five platform packages, and no `v0.2.0` Git tag exists. The candidate and follow-up commits are local; `main` has not been pushed or tagged. Two known hard blockers remain:
 
 1. The tagged workflow requires at least 80% coverage. The latest complete run passes **491 tests across 61 files**, with **53.38% statement, 54.60% line, 51.08% function, and 35.78% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds.
 2. npm trusted publishing has not been configured for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release.
 
-The release candidate is prepared for review, but the coverage threshold, npm trusted-publisher setup, a clean-checkout verification, and the required CI/security gates must pass on the final release commit before tagging.
+The candidate cannot publish until the coverage threshold and npm trusted-publisher setup are resolved. A clean-checkout verification and the required CI/security gates must also pass on the final release commit before tagging.
 
 ## Included work
 
@@ -41,21 +41,36 @@ These are local candidate checks, not evidence that CI has passed on this branch
 
 ## Known limitations and follow-up
 
-- The live Aviary homepage still says “235 checks across 28 categories”; the current CLI reports **242 checks across 29 categories**. The website source is maintained separately. Update it there and regenerate the homepage capture.
+- The live Aviary homepage still says “235 checks across 28 categories”; the current CLI reports **242 checks across 29 categories**. I updated the corresponding landing-page, metadata, README, quickstart, and support copy in the separate `/home/r1/Projects/Aviary-Docs` checkout. That checkout already contains in-progress uncommitted work, so these copy updates are also uncommitted and have not been deployed. Before release, review and commit the website work without losing the existing edits, publish the site, and regenerate the homepage capture. Social artwork still contains old 235/28 sample labels; refresh it before reusing those assets.
 - The website crawl discovers links from static HTML. Rendered-DOM route discovery is not implemented; reconcile the nine discovered routes with the site map and an explicit route inventory.
 - Several docs-host pages had low initial-HTML/rendered-text overlap in the saved snapshot. Inspect those pages to determine whether meaningful content is inserted client-side; the capture alone does not prove what any external crawler sees.
 - Provider answer observations and citation-repeatability reports need dated prompt panels and sample counts. Do not present them as evidence of guaranteed citations.
 - The 1,500 ms settle-delay sensitivity capture is diagnostic, not a recommended universal setting.
-- The 1.0.0 npm versions were mistaken test releases. All six root/platform versions remain published and carry the deprecation message “Mistaken initial test release; use @ru1vly/aviary@0.1.1 instead.” Removing all six is not currently viable: the 72-hour window has passed, and the root 1.0.0 package depends on the five platform 1.0.0 packages, so those platform versions have a public dependent. The earlier unpublish attempt also returned `E403` because the configured credentials could not satisfy npm's 2FA requirement. Keep the warning in place unless npm support confirms an allowed removal path.
+- The 1.0.0 npm versions were mistaken test releases. A registry recheck on 2026-10-01 confirmed all six root/platform versions remain published and carry the deprecation message “Mistaken initial test release; use @ru1vly/aviary@0.1.1 instead.” The root package has one maintainer and the npm downloads API reported 16 downloads for the week ending 2026-09-29, so it is below the post-72-hour download limit. Its public dependents still need to be confirmed before it can qualify. An unpublish attempt on 2026-10-01 was rejected with `E403`: the configured granular token cannot perform this 2FA-protected change. The root's 1.0.0 optional dependencies reference all five platform 1.0.0 packages, so those platform versions have a dependent and do not qualify while that root version remains published. Keep the deprecation warnings; if removing the root version remains desirable, an owner must use npm's OTP-capable account flow after confirming the root has no public dependents. npm's [unpublish policy](https://docs.npmjs.com/policies/unpublish/) says versions removed after 72 hours must have no public dependents, fewer than 300 weekly downloads, and a single owner. An unpublished version cannot be restored or reused.
 
 ## Release blockers and maintainer actions
 
 1. **Recover the coverage gate.** The latest full run passed 491 tests but failed the configured 80% minimums: statements 53.38%, branches 35.78%, functions 51.08%, and lines 54.60%. Add meaningful coverage for the large GEO observation/reporting, prompt-similarity, and core reporting modules. Keep the thresholds honest; the tagged workflow will not publish while the required coverage job fails.
-2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. See [npm's trusted publisher setup guide](https://docs.npmjs.com/trusted-publishers/). Publishing should use OIDC provenance; do not add a broad npm token to the release workflow.
+2. **Configure npm trusted publishers.** Add a GitHub Actions trusted publisher for `Ru1vly/Aviary`, workflow `release.yml`, to the root and each of the five platform packages. Match the workflow environment if one is added; currently it expects no environment. On 2026-10-01, `npm trust list` was rejected with `E403` for the configured token, so the publisher settings could not be inspected or updated from this session. With an OTP-capable npm account, run `npm trust github <package> --repository Ru1vly/Aviary --file release.yml --allow-publish` for each package:
+
+   ```sh
+   for package in \
+     @ru1vly/aviary \
+     @ru1vly/aviary-linux-x64 \
+     @ru1vly/aviary-win32-x64 \
+     @ru1vly/aviary-darwin-x64 \
+     @ru1vly/aviary-linux-arm64 \
+     @ru1vly/aviary-darwin-arm64
+   do
+     npm trust github "$package" --repository Ru1vly/Aviary --file release.yml --allow-publish
+   done
+   ```
+
+   The release workflow currently defines no GitHub environment, so do not pass `--environment`. See [npm's trusted publisher setup guide](https://docs.npmjs.com/trusted-publishers/). Publishing should use OIDC provenance; do not add a broad npm token to the release workflow.
 3. **Recheck release controls.** Verify workflow permissions, tag protection, bootstrap secrets, and current CI/Security Scan/bootstrap results on the final release commit. The last observed passing runs are from before this candidate.
-4. **Keep the 1.0.0 versions deprecated.** npm's post-72-hour criteria require no dependents, fewer than 300 downloads in the last week, and a single owner. The five platform versions are dependencies of the root package, so retain the existing warnings unless npm support confirms a policy-compliant removal path. See [npm's unpublish policy](https://docs.npmjs.com/policies/unpublish/).
+4. **Keep the 1.0.0 versions deprecated.** The five platform versions are referenced by the root 1.0.0 package and cannot be removed while it remains published. The root version's downloads and owner count meet two policy criteria, but its dependents are unverified and the configured npm token cannot perform the OTP-protected unpublish operation. Retain the warnings unless an owner confirms root-package eligibility and uses an OTP-capable account flow. See [npm's unpublish policy](https://docs.npmjs.com/policies/unpublish/).
 5. **Inspect the actual release artifacts.** Repeat a clean-checkout build, package dry run, and install smoke; verify platform installers and tarballs on supported systems. Keep generated reports out of the package.
-6. **Update the separate website.** Correct the homepage check/category count to 242/29, deploy, and regenerate the live homepage report.
+6. **Finish the separate website update.** Review and commit the local 242/29 copy edits in `/home/r1/Projects/Aviary-Docs` without losing its existing in-progress changes, deploy the site, and regenerate the live homepage report. Refresh the old social artwork labels before reusing those assets.
 
 Coverage recovery should start with the largest uncovered statement counts from the latest full coverage artifact (2026-10-01; 491 tests passed):
 
