@@ -5,6 +5,7 @@ import type {
 } from '../../src/geo/answerCitationObservations';
 import {
   analyzeAiAnswerCitationPromptFamilyPartition,
+  renderAiAnswerCitationPromptFamiliesCsv,
   renderAiAnswerCitationPromptSimilarityCsv,
 } from '../../src/geo/answerCitationPromptSimilarity';
 
@@ -27,7 +28,12 @@ function profile(prompt: string, providers: string[] = ['Search']): AiAnswerCita
 }
 
 function report(prompts: AiAnswerCitationPromptProfile[]): AiAnswerCitationObservationReport {
-  return { prompts, promptsTruncated: false } as unknown as AiAnswerCitationObservationReport;
+  return {
+    prompts,
+    promptsTruncated: false,
+    ownedDomains: [],
+    providers: [],
+  } as unknown as AiAnswerCitationObservationReport;
 }
 
 describe('AI answer citation prompt similarity', () => {
@@ -64,6 +70,22 @@ describe('AI answer citation prompt similarity', () => {
     expect(csv).toContain("'=blue apples sweet fruit");
     expect(csv).toContain("'+Search");
     expect(csv).toContain('"pair"');
+  });
+
+  it('reports articulation prompts in a connected family graph', () => {
+    const input = report([
+      profile('alpha omega'),
+      profile('alpha bravo'),
+      profile('bravo charlie'),
+    ]);
+
+    const csv = renderAiAnswerCitationPromptFamiliesCsv(input, 0.3);
+
+    expect(csv).toContain('prompt_family_id');
+    expect(csv).toContain('lexically-connected');
+    expect(csv).toContain('articulation_prompts_json');
+    expect(csv).toContain('alpha bravo');
+    expect(csv).toContain('family-00001');
   });
 
   it('rejects invalid similarity thresholds', () => {
