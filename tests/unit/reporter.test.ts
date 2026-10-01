@@ -2,9 +2,31 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { generateHtmlReport, renderHtmlReport } from '../../src/reporter';
+import {
+  generateBatchCsvReport,
+  generateBatchHtmlReport,
+  generateBatchJunitReport,
+  generateBatchMarkdownReport,
+  generateBatchSarifReport,
+  generateCsvReport,
+  generateJunitReport,
+  generateMarkdownReport,
+  generateSarifReport,
+  generateHtmlReport,
+  renderBatchCsvReport,
+  renderBatchHtmlReport,
+  renderBatchJunitReport,
+  renderBatchMarkdownReport,
+  renderBatchSarifReport,
+  renderCsvReport,
+  renderHtmlReport,
+  renderJunitReport,
+  renderMarkdownReport,
+  renderSarifReport,
+  renderSEOCompetitorMarkdownReport,
+} from '../../src/reporter';
 import { CHECKER_REGISTRY } from '../../src/checkers/registry';
-import type { SEOReport, SEOCheckResult } from '../../src/types';
+import type { SEOAuditBatchReport, SEOReport, SEOCheckResult } from '../../src/types';
 
 /** A full SEOReport.checks object with every registry key present as []. */
 function emptyChecks(): SEOReport['checks'] {
@@ -151,5 +173,95 @@ describe('generateHtmlReport', () => {
     const outputPath = path.join(tmpDir, 'nested', 'dir', 'report.html');
     generateHtmlReport(baseReport(), outputPath);
     expect(fs.existsSync(outputPath)).toBe(true);
+  });
+});
+
+describe('offline report formats', () => {
+  it('renders single-page and batch reports as Markdown, CSV, JUnit, SARIF, and HTML', () => {
+    const report = baseReport({
+      checks: {
+        ...emptyChecks(),
+        metaTags: [check({ passed: false, name: 'title-present', severity: 'warning' })],
+      },
+      summary: { total: 1, passed: 0, failed: 1 },
+    });
+    const batch: SEOAuditBatchReport = {
+      timestamp: '2026-01-02T00:00:00.000Z',
+      summary: {
+        requestedUrls: 2,
+        completedUrls: 1,
+        failedUrls: 1,
+        passedChecks: 0,
+        failedChecks: 1,
+        averageScore: 82,
+      },
+      results: [
+        { status: 'complete', url: report.url, report },
+        { status: 'error', url: 'https://example.com/unavailable', error: 'Timeout < 1s' },
+      ],
+    };
+
+    expect(renderMarkdownReport(report)).toContain('# Aviary SEO report');
+    expect(renderCsvReport(report)).toContain('title-present');
+    expect(renderJunitReport(report)).toContain('<testsuite');
+    expect(JSON.parse(renderSarifReport(report))).toMatchObject({ version: '2.1.0' });
+    expect(
+      renderSEOCompetitorMarkdownReport(report, [baseReport({ url: 'https://other.test' })])
+    ).toContain('Aviary competitor audit comparison');
+
+    expect(renderBatchHtmlReport(batch)).toContain('https://example.com/unavailable');
+    expect(renderBatchMarkdownReport(batch)).toContain('Aviary multi-page SEO report');
+    expect(renderBatchJunitReport(batch)).toContain('Aviary multi-page audit');
+    expect(renderBatchCsvReport(batch)).toContain('https://example.com/unavailable');
+    expect(JSON.parse(renderBatchSarifReport(batch))).toMatchObject({ version: '2.1.0' });
+  });
+
+  it('writes single-page and batch artifacts into nested output paths', () => {
+    const report = baseReport();
+    const batch: SEOAuditBatchReport = {
+      timestamp: report.timestamp,
+      summary: {
+        requestedUrls: 1,
+        completedUrls: 1,
+        failedUrls: 0,
+        passedChecks: 0,
+        failedChecks: 0,
+        averageScore: report.score,
+      },
+      results: [{ status: 'complete', url: report.url, report }],
+    };
+    const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aviary-report-formats-'));
+    const targets = {
+      csv: path.join(outputDir, 'single', 'report.csv'),
+      junit: path.join(outputDir, 'single', 'report.xml'),
+      markdown: path.join(outputDir, 'single', 'report.md'),
+      sarif: path.join(outputDir, 'single', 'report.sarif'),
+      batchHtml: path.join(outputDir, 'batch', 'report.html'),
+      batchCsv: path.join(outputDir, 'batch', 'report.csv'),
+      batchJunit: path.join(outputDir, 'batch', 'report.xml'),
+      batchMarkdown: path.join(outputDir, 'batch', 'report.md'),
+      batchSarif: path.join(outputDir, 'batch', 'report.sarif'),
+    };
+    try {
+      generateCsvReport(report, targets.csv);
+      generateJunitReport(report, targets.junit);
+      generateMarkdownReport(report, targets.markdown);
+      generateSarifReport(report, targets.sarif);
+      generateBatchHtmlReport(batch, targets.batchHtml);
+      generateBatchCsvReport(batch, targets.batchCsv);
+      generateBatchJunitReport(batch, targets.batchJunit);
+      generateBatchMarkdownReport(batch, targets.batchMarkdown);
+      generateBatchSarifReport(batch, targets.batchSarif);
+
+      for (const target of Object.values(targets)) expect(fs.existsSync(target)).toBe(true);
+      expect(JSON.parse(fs.readFileSync(targets.sarif, 'utf8'))).toMatchObject({
+        version: '2.1.0',
+      });
+      expect(JSON.parse(fs.readFileSync(targets.batchSarif, 'utf8'))).toMatchObject({
+        version: '2.1.0',
+      });
+    } finally {
+      fs.rmSync(outputDir, { recursive: true, force: true });
+    }
   });
 });
