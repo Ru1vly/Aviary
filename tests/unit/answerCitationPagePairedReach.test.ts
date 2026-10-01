@@ -3,6 +3,7 @@ import type { AiAnswerCitationObservationInput } from '../../src/geo/answerCitat
 import {
   assessAiAnswerCitationPagePairedReachDropGate,
   compareAiAnswerCitationPagePairedReach,
+  renderAiAnswerCitationPageOpportunitiesCsv,
   renderAiAnswerCitationPagePairedReachComparisonCsv,
   renderAiAnswerCitationPagePairedReachComparisonJson,
   renderAiAnswerCitationPagePairedReachDropGateJson,
@@ -187,6 +188,25 @@ describe('AI answer page paired reach', () => {
       pageScope: 'all-cited-pages',
       rows: [{ provider: '=SUM(1,1)', page_url: targetUrl }],
     });
+  });
+
+  it('builds page opportunity rows from complete and incomplete citation samples', () => {
+    const csv = renderAiAnswerCitationPageOpportunitiesCsv(
+      [
+        observation('owned page', [targetUrl, 'https://outside.example/source']),
+        observation('external page', ['https://outside.example/source']),
+        observation('uncertain page', ['https://outside.example/source'], false),
+      ],
+      ['example.com']
+    );
+
+    expect(csv).toContain('page-opportunity');
+    expect(csv).toContain('https://outside.example/source');
+    expect(csv).toContain('complete_no_owned_prompt_groups');
+    expect(csv).toContain('unknown_no_owned_prompt_groups');
+    expect(() => renderAiAnswerCitationPageOpportunitiesCsv([], [])).toThrow(
+      'Page citation opportunities require at least one owned domain.'
+    );
   });
 
   it('rejects malformed observations, cited URLs, owned domains, and gate bounds', () => {
