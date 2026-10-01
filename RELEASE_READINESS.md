@@ -20,7 +20,7 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 ## Verification snapshot
 
-The build, audit, test, and install checks below passed on the release candidate. Follow-up native CLI and release-workflow edits were checked separately:
+The entries below record both passing checks and failed release gates on the local candidate. The latest full test run passed its test cases, but the coverage threshold failed; follow-up native CLI and release-workflow edits were checked separately. This is local evidence, not a release sign-off:
 
 - Rechecked the TypeScript source on 2026-10-01: `pnpm run build:ts`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run check:cli-docs` passed. The latest full suite passed 519 tests across 66 files; coverage remains below the documented 80% thresholds.
 - Focused provider-divergence verification after fixing its missing CSV header: 9 tests pass; isolated module coverage is 99.21% statements, 93.15% branches, 100% functions, and 100% lines. This targeted run does not replace the full-suite coverage gate.
