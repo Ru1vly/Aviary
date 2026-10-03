@@ -111,3 +111,42 @@ describe('crawler log dashboard optional evidence panels', () => {
     expect(output).toContain('&lt;img');
   });
 });
+
+describe('crawler dashboard empty evidence', () => {
+  it('explains when no log analyses were supplied', () => {
+    const output = renderAiCrawlerAccessLogHtml([]);
+    expect(output).toContain('No logs were analyzed.');
+    expect(output).not.toContain('NaN');
+    expect(output).not.toContain('Infinity');
+  });
+
+  it('keeps empty comparison and sitemap tables aligned without inventing requests', () => {
+    const empty = analyzeAiCrawlerAccessLog('');
+    const replay = analyzeAiCrawlerLogRobotsPolicy(
+      empty,
+      'User-agent: *\nDisallow:',
+      'https://example.com'
+    );
+    const comparison = compareAiCrawlerAccessLogs(empty, empty);
+    const sitemap = analyzeAiCrawlerSitemapRecrawlCoverage(
+      empty,
+      [],
+      'https://example.com',
+      'https://example.com/sitemap.xml'
+    );
+    const output = renderAiCrawlerAccessLogHtml([empty], [], [replay], [], [comparison], [sitemap]);
+    const window = new Window();
+    window.document.write(output);
+    expect(output).not.toContain('NaN');
+    expect(output).not.toContain('Infinity');
+    expect(output).toContain('No recognized crawler tokens in either sample.');
+    for (const table of window.document.querySelectorAll('table')) {
+      const columns = [...table.querySelectorAll('thead tr:last-child th')].reduce(
+        (n, cell) => n + cell.colSpan,
+        0
+      );
+      for (const row of table.querySelectorAll('tbody tr'))
+        expect([...row.cells].reduce((n, cell) => n + cell.colSpan, 0)).toBe(columns);
+    }
+  });
+});
