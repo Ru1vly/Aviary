@@ -14,6 +14,9 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Preserve empty CSV fields across audit, Google AI, Google surface matrix, and platform matrix reports while retaining spreadsheet formula protection.
+- Correct empty Google overview comparison table alignment.
+
 - Corrected missing CSV headers and row alignment in source-diversity, source-portfolio, and provider-network comparison reports so their offline dashboards render the intended data.
 - Added the missing header row to paired answer-citation page reach CSV exports, restoring the typed JSON renderer that reads those exports.
 - Added the missing header row to provider source-divergence CSV exports so consumers can map metrics by column name.

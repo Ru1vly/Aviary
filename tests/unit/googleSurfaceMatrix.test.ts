@@ -84,6 +84,8 @@ describe('Google AI Search and Discover surface matrix', () => {
       'Two surfaces,<br><em>page by page.</em>'
     );
     expect(renderGoogleSurfaceMatrixCsv(matrix).split('\n')[0]).toContain('search_ai_impressions');
+    expect(renderGoogleSurfaceMatrixCsv(matrix)).not.toContain('"\'"');
+    expect(renderGoogleSurfacePathFamilyCsv(matrix)).not.toContain('"\'"');
     expect(renderGoogleSurfacePathFamilyCsv(matrix).split('\n')[0]).toContain('path_family');
   });
 

@@ -69,7 +69,7 @@ function escapeMarkdownCell(str: string): string {
 
 function escapeCsvCell(value: unknown): string {
   let text = String(value ?? '');
-  if ('=+-@'.includes(text.trimStart().charAt(0))) text = `'${text}`;
+  if (/^[=+@-]/.test(text.trimStart())) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 

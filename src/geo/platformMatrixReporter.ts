@@ -47,7 +47,7 @@ function number(value: number | undefined, digits = 0): string {
 
 function csvCell(value: unknown): string {
   let text = String(value ?? '');
-  if (typeof value !== 'number' && '=+-@'.includes(text.trimStart().charAt(0))) text = `'${text}`;
+  if (typeof value !== 'number' && /^[=+@-]/.test(text.trimStart())) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 

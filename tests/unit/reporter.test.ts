@@ -49,6 +49,14 @@ function check(overrides: Partial<SEOCheckResult> = {}): SEOCheckResult {
 }
 
 describe('renderHtmlReport', () => {
+  it('keeps absent CSV check fields empty while still neutralizing formula labels', () => {
+    const report = baseReport({
+      checks: { ...emptyChecks(), metaTags: [check({ message: '=SUM(1,2)' })] },
+    });
+    const csv = renderCsvReport(report);
+    expect(csv).not.toContain('"\'"');
+    expect(csv).toContain('"\'=SUM(1,2)"');
+  });
   it('renders a valid HTML document with the report URL and score', () => {
     const html = renderHtmlReport(baseReport());
     expect(html).toContain('<!DOCTYPE html>');

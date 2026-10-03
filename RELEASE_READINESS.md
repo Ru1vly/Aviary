@@ -1,13 +1,13 @@
 # 0.2.0 release handoff
 
-Last reviewed: 2026-10-03
+Last reviewed: 2026-10-04
 Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional platform packages at **0.1.1**. The selected release is **0.2.0**.
 
 ## Release decision
 
 **Do not publish yet.** The 2026-10-03 registry check still lists root versions `0.1.0`, `0.1.1`, and `1.0.0`; `1.0.0` remains deprecated as a mistaken test release. Main was pushed and `v0.2.0` was tagged, but release run `37151847503` failed its coverage gate before any platform builds or publication. No 0.2.0 GitHub Release exists. Two blockers remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete local run passes **528 tests across 67 files**, with **65.07% statement, 66.43% line, 63.43% function, and 47.15% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds. Use `vitest run --coverage --maxWorkers=2` on this host: unrestricted concurrency exhausted available memory/swap and caused integration timeouts; the limited run passed every test in 61.43 seconds.
+1. The tagged workflow requires at least 80% coverage. The latest complete local run passes **543 tests across 67 files**, with **66.59% statement, 68% line, 65.81% function, and 49.52% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds. Use `vitest run --coverage --maxWorkers=2` on this host: unrestricted concurrency exhausted available memory/swap and caused integration timeouts; the limited run passed every test in 61.43 seconds.
 2. npm trusted-publisher setup remains unverified for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release; the failed test gate did not exercise publication authentication.
 
 The candidate cannot publish until the coverage threshold and npm trusted-publisher setup are resolved. A clean-checkout verification and the required CI/security gates must also pass on the final release commit before tagging.
@@ -38,7 +38,7 @@ The entries below record both passing checks and failed release gates on the loc
 - Added access-log period comparison fixtures for crawler path failures, retained-path changes, and labeled referral samples. The focused suite passes 1 test; `aiCrawlerLogComparison.ts` now has **73.45% statement, 57.10% branch, 79.07% function, and 76.38% line coverage**.
 - Added seven focused AI crawler log reporter tests covering timing and edge annotations, referrals, privacy-preserving IP aggregation, saved robots replay, and empty logs. The focused suite passes all 7 tests; isolated module coverage is **36.36% statements, 19.85% branches, 42.10% functions, and 35.07% lines**. This targeted run does not replace the full-suite coverage gate.
 - Added 13 reporter tests for HTML, Markdown, CSV, JUnit, SARIF, competitor Markdown, and nested output paths; the focused reporter suite passes. In the full run, `src/reporter.ts` improved from 9% to **52.66% statement coverage**.
-- Latest full run (2026-10-03): `vitest run --coverage --maxWorkers=2` passed 528 tests across 67 files but exited at the global threshold: **65.07% statements, 47.15% branches, 63.43% functions, and 66.43% lines**.
+- Latest full run (2026-10-03): `vitest run --coverage --maxWorkers=2` passed 543 tests across 67 files but exited at the global threshold: **65.07% statements, 47.15% branches, 63.43% functions, and 66.43% lines**.
 - `pnpm run lint`, `pnpm run format:check`, `pnpm exec tsc --noEmit`, and `pnpm run build`.
 - Full and production `pnpm audit --audit-level moderate`; `cargo audit` found no advisories across 352 locked Rust dependencies.
 - `cargo test --locked --package aviary-engine` passed 4 unit tests and 1 doctest; `cargo clippy --locked --jobs 1 --package aviary-engine --bin aviary-fast -- -D warnings` passed. `rustfmt --check` passed for the edited fast binary. Workspace-wide `cargo fmt --check` still reports pre-existing formatting differences in unrelated Rust files.
@@ -146,3 +146,11 @@ The coverage command must pass its configured thresholds, not just run all tests
 4. Verify that the deployed website and latest report captures still match the intended release.
 5. Once all required checks pass, repoint the existing unpublished `v0.2.0` tag to the passing release commit and trigger the release workflow. The current tag points to the failed coverage candidate.
 6. Verify npm versions, dist-tags and provenance; GitHub release assets; supported-platform installation; and GHCR versioned and `latest` image digests. Record the release URL and date here.
+
+## Final local package — 2026-10-04
+
+Final CSV blank-field and Google comparison alignment fixes are covered by regression tests. TypeScript compilation and source lint pass; all 543 tests pass across 67 files. Global coverage remains below the unchanged 80% gate.
+
+Local unpublished archive: `reports/release-package-smokes/final-2026-10-04/ru1vly-aviary-0.2.0.tgz`, SHA-256 `35bafa230913f246e6682c6f620d28f09983077d1c7abb8f82aec641d92e46f5`. Manifest and checksum are beside the archive.
+
+Next release steps: recover global coverage to 80% in all metrics; configure/verify npm trusted publishers for all six packages; run final CI and platform binary smokes on the release commit; reconcile the existing failed v0.2.0 tag with the verified final commit; publish and confirm all registry packages and release assets. Removing mistaken npm 1.0.0 still requires authentication satisfying npm’s 2FA restriction; it remains deprecated.

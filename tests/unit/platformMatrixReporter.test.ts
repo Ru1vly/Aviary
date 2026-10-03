@@ -74,6 +74,7 @@ describe('cross-platform GEO page matrix reports', () => {
     const csv = renderAiPlatformPageMatrixCsv(current, comparison);
 
     expect(csv.startsWith('"url","path_family","coverage",')).toBe(true);
+    expect(csv).not.toContain('"\'"');
     expect(csv).toContain('"period_state"');
     expect(csv).toContain("'=https://example.com/guides/cat-food");
     expect(csv).toContain('"present-both"');
