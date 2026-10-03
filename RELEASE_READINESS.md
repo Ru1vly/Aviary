@@ -5,9 +5,11 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 ## Release decision
 
-**Do not publish yet.** The 2026-10-03 registry check still lists root versions `0.1.0`, `0.1.1`, and `1.0.0`; `1.0.0` remains deprecated as a mistaken test release. Main was pushed and `v0.2.0` was tagged, but release run `37151847503` failed its coverage gate before any platform builds or publication. No 0.2.0 GitHub Release exists. Two blockers remain:
+**Do not publish yet.** The 2026-10-03 registry check still lists root versions `0.1.0`, `0.1.1`, and `1.0.0`; `1.0.0` remains deprecated as a mistaken test release. Main was pushed and `v0.2.0` was tagged, but release run `37151847503` failed its coverage gate before any platform builds or publication. No 0.2.0 GitHub Release exists. Release blockers and required checks remain:
 
-1. The tagged workflow requires at least 80% coverage. The latest complete local run passes **543 tests across 67 files**, with **66.59% statement, 68% line, 65.81% function, and 49.52% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds. Use `vitest run --coverage --maxWorkers=2` on this host: unrestricted concurrency exhausted available memory/swap and caused integration timeouts; the limited run passed every test in 61.43 seconds.
+1. The tagged workflow requires at least 80% coverage. The last complete local run with every test passing recorded **543 tests across 67 files**, with **66.59% statement, 68% line, 65.81% function, and 49.52% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds. Use `vitest run --coverage --maxWorkers=2` on this host: unrestricted concurrency exhausted available memory/swap and caused integration timeouts; the limited run passed every test in 61.43 seconds.
+3. The installed `aviary-api --help` currently starts the API server instead of displaying help. Add explicit help/version handling and reject unknown arguments before starting a listener; verify the installed executable exits without binding a port.
+
 2. npm trusted-publisher setup remains unverified for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release; the failed test gate did not exercise publication authentication.
 
 The candidate cannot publish until the coverage threshold and npm trusted-publisher setup are resolved. A clean-checkout verification and the required CI/security gates must also pass on the final release commit before tagging.
@@ -190,3 +192,17 @@ From a clean committed checkout, run `pnpm run pack:candidate -- 0.2.0`. The com
 The long single-worker run completed 628 passing/3 failing tests but mixed pre-fix source and subsequently added tests, so it is not final revision evidence. All three failures concern the category CSV defect already fixed and verified by the 88-case focused run. Build and isolated XLSX bundle checks pass on the fixed source.
 
 - Reproducible packaging command completed from ff6304a: reports/release-candidates/0.2.0-ff6304a4/ru1vly-aviary-0.2.0.tgz (SHA-256 198310179236cfa60c1aa2e4b58aa8c597176b8efb8df8fb325740fcd03c99cb), manifest and commit provenance included. Clean npm install succeeds with 83 packages. Installed CLI generates source-category coverage JSON/CSV from labelled synthetic observations; independent CSV parser verifies six rows/51 columns, a single truncation flag and intact final evidence note. All category fixes are now in the candidate. Fresh two-worker full coverage run started against fixed source/tests: /tmp/aviary-frozen-ff6304a-coverage.log. Do not edit source/tests during this run.
+
+## Current package verification summary
+
+| Surface | Verified evidence | Remaining work |
+| --- | --- | --- |
+| Root package | Clean npm install; consumer audit reports zero vulnerabilities; consistent package/OpenAPI versions | Final full coverage and publisher validation |
+| XLSX imports | Eight source tests, isolated compiled-bundle checks, real installed CLI workbook reports | Final CI build |
+| Citation CSV outputs | 88 contracts across 69 exports; installed category report has six rows/51 aligned columns | Full-revision coverage completion |
+| Browser audits | Nine E2E tests pass; live paired docs-host reports previously generated | Latest full run completion |
+| API executable | Installed command starts a local server, including when given `--help`; smoke server gracefully stopped | Fix argument handling before release |
+| Native packages | CI Rust build passes; release matrix defines platform smokes | Successful final release matrix and all five packages |
+| Publishing | Main source and evidence pushed; local candidate archives available | 80% coverage, OIDC publishers, final tag and registry checks |
+
+The API argument defect was found by the installed-package smoke, not an inferred issue. Log: reports/release-candidates/0.2.0-ff6304a4/api-help.txt. The frozen full coverage run remains active (session 40310). Source/tests were kept fixed after it began.
