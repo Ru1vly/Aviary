@@ -930,7 +930,7 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
     // ── Header
     let header = Paragraph::new(Line::from(vec![
         Span::styled(
-            "AVIARY AUDIT ENGINE v1.0",
+            "AVIARY AUDIT ENGINE",
             Style::default().fg(FG).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
