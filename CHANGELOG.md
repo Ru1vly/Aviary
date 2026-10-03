@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Bundle the XLSX workbook reader with its audited dependencies and third-party notices so consumer installations retain security fixes.
+
 - Preserve empty CSV fields across audit, Google AI, Google surface matrix, and platform matrix reports while retaining spreadsheet formula protection.
 - Correct empty Google overview comparison table alignment.
 
