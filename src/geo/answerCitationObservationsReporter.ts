@@ -9224,7 +9224,7 @@ export function renderAiAnswerCitationTopicIntentProviderMonthlyCsv(
     return [
       `owned_rank_${suffix}_events`,
       `owned_rank_${suffix}_share_of_owned_events_percent`,
-      `owned_share_within_rank_percent`,
+      `owned_rank_${suffix}_share_within_rank_percent`,
       `previous_owned_rank_${suffix}_events`,
       `previous_owned_rank_${suffix}_share_percent`,
       `owned_rank_${suffix}_share_change_percentage_points`,

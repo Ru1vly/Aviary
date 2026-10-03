@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Give each monthly provider rank bucket a distinct owned-share CSV header so named-column consumers retain all six metrics.
+
 - Remove three duplicated metric columns from monthly answer-length CSV exports, keeping unique named fields and aligned rows.
 
 - Bundle the XLSX workbook reader with its audited dependencies and third-party notices so consumer installations retain security fixes.

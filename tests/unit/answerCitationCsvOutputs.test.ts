@@ -15,7 +15,7 @@ function report(ownedPromptCount: number) {
             observedAt: `${day}T0${index}:00:00Z`,
             provider,
             prompt: `Which guide explains subject ${index}?`,
-            answerText: `Aviary explains subject ${index} with useful evidence.`,
+            answerText: `Aviary and Rival explain subject ${index} with useful evidence.`,
             citedUrls:
               index < ownedPromptCount - (provider === 'Assistant' ? 1 : 0)
                 ? ['https://owned.example/guide', 'https://rival.example/review']
@@ -32,7 +32,8 @@ function report(ownedPromptCount: number) {
     },
     ['owned.example'],
     '2026-10-04T00:00:00Z',
-    ['Aviary']
+    ['Aviary', 'Rival'],
+    { pathFamilyDepth: 2, includeCitationUrlPersistence: true }
   );
 }
 function rows(csv: string): string[][] {
@@ -48,6 +49,42 @@ const current = report(2);
 current.periodComparison = compareAiAnswerCitationObservationPeriods(baseline, current);
 
 const exports = [
+  renderer.renderAiAnswerCitationProviderPromptOverlapCsv,
+  renderer.renderAiAnswerCitationProviderPromptSourceOverlapCsv,
+  renderer.renderAiAnswerCitationCohortStandardizationCsv,
+  renderer.renderAiAnswerCitationCohortPeriodStandardizationCsv,
+  renderer.renderAiAnswerCitationPromptSamplingPlanCsv,
+  renderer.renderAiAnswerCitationPromptPlanProviderPairsCsv,
+  renderer.renderAiAnswerCitationTopicIntentProviderPairsCsv,
+  renderer.renderAiAnswerCitationProviderSampleMixCsv,
+  renderer.renderAiAnswerCitationTemporalStabilityCsv,
+  renderer.renderAiAnswerCitationSourcePersistenceCsv,
+  renderer.renderAiAnswerCitationUrlPersistenceCsv,
+  renderer.renderAiAnswerCitationTopicIntentProviderMonthlyCsv,
+  renderer.renderAiAnswerCitationListPositionsCsv,
+  renderer.renderAiAnswerCitationDomainPromptCoverageCsv,
+  renderer.renderAiAnswerCitationCoCitationCsv,
+  renderer.renderAiAnswerCitationCoCitationComparisonCsv,
+  renderer.renderAiAnswerCitationEntityMentionsCsv,
+  renderer.renderAiAnswerCitationEntityPromptDetailsCsv,
+  renderer.renderAiAnswerCitationEntityPromptProviderPairsCsv,
+  renderer.renderAiAnswerCitationEntityPromptComparisonCsv,
+  renderer.renderAiAnswerCitationEntityCitationPositionComparisonCsv,
+  renderer.renderAiAnswerCitationEntityCoMentionsCsv,
+  renderer.renderAiAnswerCitationEntityCoMentionComparisonCsv,
+  renderer.renderAiAnswerCitationEntityCitationDomainsCsv,
+  renderer.renderAiAnswerCitationEntityCitationDomainComparisonCsv,
+  renderer.renderAiAnswerCitationEntityOpportunitiesCsv,
+  renderer.renderAiAnswerCitationEntityPathFamiliesCsv,
+  renderer.renderAiAnswerCitationEntityPathFamilyMonthlyCsv,
+  renderer.renderAiAnswerCitationEntityPathFamilyComparisonCsv,
+  renderer.renderAiAnswerCitationPathFamiliesCsv,
+  renderer.renderAiAnswerCitationPathFamilyCohortsCsv,
+  renderer.renderAiAnswerCitationPathFamilyTrendsCsv,
+  renderer.renderAiAnswerCitationPathFamilyCohortComparisonCsv,
+  renderer.renderAiAnswerCitationPathFamilyComparisonCsv,
+  renderer.renderAiAnswerCitationProviderPagePositionComparisonCsv,
+
   renderer.renderAiAnswerCitationOwnedRankCsv,
   renderer.renderAiAnswerCitationOwnedPromptCoverageCsv,
   renderer.renderAiAnswerCitationOwnedPromptReachPeriodCsv,
@@ -94,6 +131,19 @@ describe('answer-citation spreadsheet output contracts', () => {
       expect(data.flat()).not.toContain("'");
     }
   );
+  it('names every monthly owned-share rank bucket and preserves its metric', () => {
+    const data = rows(renderer.renderAiAnswerCitationTopicIntentProviderMonthlyCsv(current));
+    for (const suffix of ['1', '2', '3', '4_5', '6_10', '11_plus']) {
+      expect(data[0]).toContain(`owned_rank_${suffix}_share_within_rank_percent`);
+    }
+    const records = data
+      .slice(1)
+      .map((row) => Object.fromEntries(data[0].map((key, i) => [key, row[i]])));
+    const month = records.find(
+      (row) => row.month_utc === '2026-10' && row.provider.includes('Engine')
+    )!;
+    expect(Number(month.owned_rank_1_share_within_rank_percent)).toBeCloseTo(66.67, 1);
+  });
   it('retains exact prompt coverage and rank counts independently of the CSV renderer', () => {
     const data = rows(renderer.renderAiAnswerCitationOwnedPromptCoverageCsv(current));
     const overall = Object.fromEntries(data[0].map((key, i) => [key, data[1][i]]));
