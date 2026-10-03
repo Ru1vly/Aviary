@@ -163,7 +163,7 @@
   },
   "scripts": {
     "build": "node scripts/build.js",
-    "build:ts": "tsc",
+    "build:ts": "tsc && node scripts/build-xlsx.js",
     "build:tui": "node scripts/build-tui.js",
     "dev": "tsc --watch",
     "test": "vitest run",
@@ -248,7 +248,9 @@
     "@typescript-eslint/parser": "^8.46.4",
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
+    "esbuild": "0.28.2",
     "eslint": "^9.39.1",
+    "exceljs": "4.4.0",
     "happy-dom": "^20.0.10",
     "prettier": "^3.6.2",
     "tsx": "^4.19.2",
@@ -258,7 +260,6 @@
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
     "@msgpack/msgpack": "^3.1.3",
-    "exceljs": "4.4.0",
     "express": "^5.1.0",
     "ipaddr.js": "^2.4.0",
     "js-yaml": "^4.3.2",
