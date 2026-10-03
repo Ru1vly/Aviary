@@ -5,7 +5,7 @@ import {
 } from '../../src/geo/answerCitationObservations';
 import * as renderer from '../../src/geo/answerCitationObservationsReporter';
 
-function report(ownedPromptCount: number) {
+function report(ownedPromptCount: number, complete = true) {
   return analyzeAiAnswerCitationObservations(
     {
       schemaVersion: 1,
@@ -20,7 +20,7 @@ function report(ownedPromptCount: number) {
               index < ownedPromptCount - (provider === 'Assistant' ? 1 : 0)
                 ? ['https://owned.example/guide', 'https://rival.example/review']
                 : ['https://rival.example/review'],
-            citationListComplete: true,
+            citationListComplete: complete,
             model: 'model-v1',
             surface: 'web',
             locale: 'en-US',
@@ -299,4 +299,102 @@ describe('category prompt-coverage truncation flag placement', () => {
       }
     }
   );
+});
+
+describe('source-category incomplete captured lists', () => {
+  it('withholds confirmed absence and paired changes when captured lists are incomplete', () => {
+    const incomplete = report(0, false);
+    const data = rows(
+      renderer.renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
+        incomplete,
+        categoryMappings,
+        baseline
+      )
+    );
+    const records = data
+      .slice(1)
+      .map((row) => Object.fromEntries(data[0].map((key, i) => [key, row[i]])));
+    const owned = records.find(
+      (row) => row.category === 'Owned' && row.provider === 'All providers'
+    )!;
+    expect(owned.complete_citation_domain_profiles).toBe('0');
+    expect(owned.comparable_shared_citation_prompt_groups).toBe('0');
+    expect(owned.comparison_coverage_complete).toBe('false');
+    const independent = records.find(
+      (row) => row.category.startsWith('Independent') && row.provider === 'All providers'
+    )!;
+    expect(independent.category_present_prompt_groups).toBe('3');
+    expect(independent.complete_category_without_owned_prompt_groups).toBe('0');
+  });
+});
+
+describe('category capture-completeness compatibility', () => {
+  it('reports unknown list completeness in legacy provider detail without confirming absence', () => {
+    const legacy = report(0);
+    for (const prompt of legacy.prompts)
+      for (const profile of prompt.providerProfiles ?? []) {
+        delete profile.incompleteCitationListObservations;
+      }
+    const data = rows(
+      renderer.renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
+        legacy,
+        categoryMappings,
+        baseline
+      )
+    );
+    const records = data
+      .slice(1)
+      .map((row) => Object.fromEntries(data[0].map((key, i) => [key, row[i]])));
+    const owned = records.find(
+      (row) => row.category === 'Owned' && row.provider === 'All providers'
+    )!;
+    expect(owned.unknown_captured_citation_list_completeness_prompt_groups).toBe('3');
+    expect(owned.complete_citation_domain_profiles).toBe('0');
+    expect(owned.coverage_state).toBe('captured-citation-list-completeness-unavailable');
+    expect(owned.comparison_coverage_complete).toBe('false');
+  });
+  it('discloses incomplete captured support even where category presence is confirmed', () => {
+    const incomplete = report(0, false);
+    const data = rows(
+      renderer.renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
+        incomplete,
+        categoryMappings,
+        baseline
+      )
+    );
+    const records = data
+      .slice(1)
+      .map((row) => Object.fromEntries(data[0].map((key, i) => [key, row[i]])));
+    const known = records.find(
+      (row) => row.category.startsWith('Independent') && row.provider === 'All providers'
+    )!;
+    expect(known.category_present_prompt_groups).toBe('3');
+    expect(known.incomplete_captured_citation_list_prompt_groups).toBe('3');
+    expect(known.unknown_due_to_top_domain_cap_prompt_groups).toBe('0');
+    expect(known.comparison_coverage_complete).toBe('false');
+    expect(known.category_owned_comparison_coverage_complete).toBe('false');
+    expect(known.coverage_state).toBe('incomplete-captured-citation-lists');
+  });
+});
+
+describe('category prompt detail unknown evidence', () => {
+  it('keeps observed categories positive without confirming an owned-source gap', () => {
+    const data = rows(
+      renderer.renderAiAnswerCitationSourceCategoryPromptDetailsCsv(
+        report(0, false),
+        categoryMappings
+      )
+    );
+    const records = data
+      .slice(1)
+      .map((row) => Object.fromEntries(data[0].map((key, i) => [key, row[i]])));
+    for (const row of records) {
+      expect(row.captured_citation_list_completeness).toBe('incomplete');
+      expect(row.owned_citation_state).toBe(
+        'owned-domain-absence-unknown-captured-list-incomplete'
+      );
+      expect(row.state).toContain(row.category === 'Owned' ? 'absence-unknown' : 'observed');
+      expect(row.category_owned_citation_state).toContain('unknown');
+    }
+  });
 });

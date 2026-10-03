@@ -12508,6 +12508,8 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
     unknownCategoryOwnedAbsencePrompts: number;
     unknownCappedCitationPrompts: number;
     legacyDetailPrompts: number;
+    incompleteCapturedListPrompts: number;
+    unknownCapturedListCompletenessPrompts: number;
     promptStates: Map<
       string,
       {
@@ -12534,6 +12536,8 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
       unknownCategoryOwnedAbsencePrompts: 0,
       unknownCappedCitationPrompts: 0,
       legacyDetailPrompts: 0,
+      incompleteCapturedListPrompts: 0,
+      unknownCapturedListCompletenessPrompts: 0,
       promptStates: new Map(),
     };
     for (const prompt of sourceReport.prompts) {
@@ -12566,18 +12570,24 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
       const domainListTruncated = providerKey
         ? selected.some((profile) => profile.citedDomainsTruncated)
         : prompt.citedDomainsTruncated;
+      const incompleteCapturedLists = selected.some(
+        (profile) => (profile.incompleteCitationListObservations ?? 0) > 0
+      );
+      const unknownCapturedCompleteness =
+        selected.length === 0 ||
+        selected.some((profile) => profile.incompleteCitationListObservations === undefined);
+      const evidenceIncomplete =
+        domainListTruncated || incompleteCapturedLists || unknownCapturedCompleteness;
+      if (incompleteCapturedLists) coverage.incompleteCapturedListPrompts += 1;
+      if (unknownCapturedCompleteness) coverage.unknownCapturedListCompletenessPrompts += 1;
       const categoryPresent = domains.some(
         (domain) => matchCategory(domain)?.labelKey === categoryKey
       );
       const ownedPresent = domains.some((domain) =>
         sourceReport.ownedDomains.some((owned) => domain === owned || domain.endsWith(`.${owned}`))
       );
-      const state = categoryPresent ? true : domainListTruncated ? undefined : false;
-      const ownedState = ownedPresent
-        ? true
-        : hasAnyCitation && domainListTruncated
-          ? undefined
-          : false;
+      const state = categoryPresent ? true : evidenceIncomplete ? undefined : false;
+      const ownedState = ownedPresent ? true : evidenceIncomplete ? undefined : false;
       coverage.promptStates.set(key, {
         categoryPresent: state,
         ownedCitation: ownedState,
@@ -12589,7 +12599,7 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
       if (hasAnyCitation && domainListTruncated) {
         if (!categoryPresent) coverage.unknownCappedCitationPrompts += 1;
         if (categoryPresent && !ownedPresent) coverage.unknownCategoryOwnedAbsencePrompts += 1;
-      } else if (hasAnyCitation && !domainListTruncated) {
+      } else if (hasAnyCitation && !evidenceIncomplete) {
         coverage.completeCitationPrompts += 1;
         if (categoryPresent) {
           coverage.completeCategoryPresentPrompts += 1;
@@ -12621,6 +12631,8 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
     'category_present_owned_absence_unknown_due_to_top_domain_cap_prompt_groups',
     'unknown_due_to_top_domain_cap_prompt_groups',
     'missing_provider_prompt_detail_groups',
+    'incomplete_captured_citation_list_prompt_groups',
+    'unknown_captured_citation_list_completeness_prompt_groups',
     'coverage_state',
     'comparison_available',
     'baseline_retained_provider_prompt_groups',
@@ -12636,7 +12648,7 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
     'category_prompt_coverage_change_percentage_points',
     'category_gained_shared_prompt_groups',
     'category_lost_shared_prompt_groups',
-    'unknown_shared_prompts_due_to_domain_caps',
+    'unknown_shared_prompts_due_to_incomplete_evidence',
     'comparable_shared_category_owned_prompt_groups',
     'baseline_category_without_owned_prompt_groups',
     'current_category_without_owned_prompt_groups',
@@ -12645,7 +12657,7 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
     'category_without_owned_gap_change_percentage_points',
     'category_without_owned_gap_gained_shared_prompts',
     'category_without_owned_gap_lost_shared_prompts',
-    'unknown_shared_category_owned_state_due_to_domain_caps',
+    'unknown_shared_category_owned_state_due_to_incomplete_evidence',
     'baseline_prompt_groups_truncated',
     'current_prompt_groups_truncated',
     'comparison_coverage_complete',
@@ -12733,13 +12745,17 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
               ? coverage.categoryPresentPrompts > 0
                 ? 'retained-prompts-truncated-with-observed-category'
                 : 'retained-prompt-list-truncated'
-              : coverage.unknownCappedCitationPrompts > 0
-                ? coverage.categoryPresentPrompts > 0
-                  ? 'observed-with-incomplete-absence-detail'
-                  : 'incomplete-domain-detail'
-                : coverage.citationBearingPrompts === 0
-                  ? 'no-citation-bearing-prompts'
-                  : 'complete-retained-prompt-detail';
+              : coverage.unknownCapturedListCompletenessPrompts > 0
+                ? 'captured-citation-list-completeness-unavailable'
+                : coverage.incompleteCapturedListPrompts > 0
+                  ? 'incomplete-captured-citation-lists'
+                  : coverage.unknownCappedCitationPrompts > 0
+                    ? coverage.categoryPresentPrompts > 0
+                      ? 'observed-with-incomplete-absence-detail'
+                      : 'incomplete-domain-detail'
+                    : coverage.citationBearingPrompts === 0
+                      ? 'no-citation-bearing-prompts'
+                      : 'complete-retained-prompt-detail';
         return [
           category.label,
           label,
@@ -12766,6 +12782,8 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
           report.ownedDomains.length > 0 ? coverage.unknownCategoryOwnedAbsencePrompts : undefined,
           coverage.unknownCappedCitationPrompts,
           coverage.legacyDetailPrompts,
+          coverage.incompleteCapturedListPrompts,
+          coverage.unknownCapturedListCompletenessPrompts,
           coverageState,
           Boolean(baseline),
           before?.sampledPrompts,
@@ -12810,6 +12828,10 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
           baseline
             ? !baseline.promptsTruncated &&
               !report.promptsTruncated &&
+              before!.incompleteCapturedListPrompts === 0 &&
+              before!.unknownCapturedListCompletenessPrompts === 0 &&
+              coverage.incompleteCapturedListPrompts === 0 &&
+              coverage.unknownCapturedListCompletenessPrompts === 0 &&
               unknownShared === 0 &&
               before!.legacyDetailPrompts === 0 &&
               coverage.legacyDetailPrompts === 0
@@ -12817,12 +12839,16 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
           ownedComparisonAvailable
             ? !baseline!.promptsTruncated &&
               !report.promptsTruncated &&
+              before!.incompleteCapturedListPrompts === 0 &&
+              before!.unknownCapturedListCompletenessPrompts === 0 &&
+              coverage.incompleteCapturedListPrompts === 0 &&
+              coverage.unknownCapturedListCompletenessPrompts === 0 &&
               unknownCategoryOwnedPrompts === 0 &&
               before!.legacyDetailPrompts === 0 &&
               coverage.legacyDetailPrompts === 0
             : undefined,
           false,
-          'Prompt coverage counts each exact prompt once per provider, regardless of repeated snapshots. Positive category matches are confirmed; absence is conclusive only when the retained domain list is complete. Period comparison matches exact normalized prompts within each provider, compares prompts citation-bearing in either period, and excludes capped/legacy domain states from the comparable denominator; it describes sampled prompt evidence, not visibility or causation.',
+          'Prompt coverage counts each exact prompt once per provider, regardless of repeated snapshots. Positive category matches are confirmed; absence is conclusive only when captured citation lists are explicitly complete and retained domain detail is uncapped. Period comparison matches exact normalized prompts within each provider, compares prompts citation-bearing in either period, and excludes capped, incomplete-capture, and legacy-completeness states from the comparable denominator; it describes sampled prompt evidence, not visibility or causation.',
         ];
       })
     );
@@ -12871,6 +12897,7 @@ export function renderAiAnswerCitationSourceCategoryPromptDetailsCsv(
     'owned_citation_state',
     'category_owned_citation_state',
     'source_domain_list_truncated',
+    'captured_citation_list_completeness',
     'prompt_catalog_truncated',
     'first_observed_at',
     'last_observed_at',
@@ -12929,17 +12956,40 @@ export function renderAiAnswerCitationSourceCategoryPromptDetailsCsv(
         }
         const matchedDomains = [...(matchingDomainsByCategory.get(categoryKey) ?? [])].sort();
         const hasProviderDetail = provider.key === undefined || provider.profile !== undefined;
+        const selectedProfiles = provider.key
+          ? provider.profile
+            ? [provider.profile]
+            : []
+          : profiles;
+        const captureCompleteness =
+          selectedProfiles.length === 0 ||
+          selectedProfiles.some(
+            (profile) => profile.incompleteCitationListObservations === undefined
+          )
+            ? 'unknown'
+            : selectedProfiles.some(
+                  (profile) => (profile.incompleteCitationListObservations ?? 0) > 0
+                )
+              ? 'incomplete'
+              : 'complete';
+        const incompleteReason = domainsTruncated
+          ? 'list-truncated'
+          : captureCompleteness === 'unknown'
+            ? 'capture-completeness-unavailable'
+            : captureCompleteness === 'incomplete'
+              ? 'captured-list-incomplete'
+              : undefined;
         const ownedCitationState =
           report.ownedDomains.length === 0
             ? 'owned-domain-not-configured'
             : !hasProviderDetail
               ? 'provider-detail-unavailable'
-              : citationEvents === 0
+              : citationEvents === 0 && !incompleteReason
                 ? 'no-citations'
                 : matchingOwnedDomains.length > 0
                   ? 'owned-domain-observed'
-                  : domainsTruncated
-                    ? 'owned-domain-absence-unknown-list-truncated'
+                  : incompleteReason
+                    ? `owned-domain-absence-unknown-${incompleteReason}`
                     : 'owned-domain-not-observed-in-retained-prompt';
         const categoryOwnedState =
           report.ownedDomains.length === 0
@@ -12949,22 +12999,24 @@ export function renderAiAnswerCitationSourceCategoryPromptDetailsCsv(
               : matchedDomains.length > 0
                 ? matchingOwnedDomains.length > 0
                   ? 'category-and-owned-citation-observed'
-                  : domainsTruncated
-                    ? 'category-observed-owned-absence-unknown-list-truncated'
+                  : incompleteReason
+                    ? `category-observed-owned-absence-unknown-${incompleteReason}`
                     : 'category-observed-without-owned-citation'
-                : domainsTruncated
-                  ? 'category-presence-unknown-list-truncated'
+                : incompleteReason
+                  ? `category-presence-unknown-${incompleteReason}`
                   : 'category-not-observed';
         const state = !hasProviderDetail
           ? 'provider-detail-unavailable'
-          : citationEvents === 0
+          : citationEvents === 0 && !incompleteReason
             ? 'no-citations'
             : matchedDomains.length > 0
               ? domainsTruncated
                 ? 'observed-with-domain-list-truncated'
-                : 'observed'
-              : domainsTruncated
-                ? 'category-absence-unknown-domain-list-truncated'
+                : captureCompleteness === 'complete'
+                  ? 'observed'
+                  : 'observed-with-incomplete-capture-evidence'
+              : incompleteReason
+                ? `category-absence-unknown-${incompleteReason}`
                 : 'not-observed-in-retained-prompt';
         rows.push([
           category.label,
@@ -12982,12 +13034,13 @@ export function renderAiAnswerCitationSourceCategoryPromptDetailsCsv(
           ownedCitationState,
           categoryOwnedState,
           domainsTruncated,
+          captureCompleteness,
           report.promptsTruncated,
           provider.profile?.firstObservedAt ?? prompt.firstObservedAt,
           provider.profile?.lastObservedAt ?? prompt.lastObservedAt,
           state,
           false,
-          'Each row describes one retained exact prompt, provider, and operator-defined category. A provider domain list retains up to ten domains; absence is conclusive only when the row says the list is not truncated. Repeated snapshots are summarized within that prompt group.',
+          'Each row describes one retained exact prompt, provider, and operator-defined category. A provider domain list retains up to ten domains; absence is conclusive only when retained domain detail is uncapped and captured citation lists are explicitly complete. Repeated snapshots are summarized within that prompt group.',
         ]);
       }
     }
