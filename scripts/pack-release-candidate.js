@@ -4,7 +4,9 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
-const version = process.argv[2];
+const args = process.argv.slice(2);
+if (args[0] === '--') args.shift();
+const version = args[0];
 if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version || ''))
   throw new Error('Supply a stable version, e.g. 0.2.0.');
 const root = process.cwd();
@@ -17,7 +19,7 @@ if (
 }
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const destination = path.resolve(
-  process.argv[3] || `reports/release-candidates/${version}-${commit.slice(0, 8)}`
+  args[1] || `reports/release-candidates/${version}-${commit.slice(0, 8)}`
 );
 fs.mkdirSync(destination, { recursive: true });
 if (fs.readdirSync(destination).some((name) => name.endsWith('.tgz'))) {
