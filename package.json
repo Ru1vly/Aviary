@@ -207,7 +207,8 @@
     "mcp-server": "node dist/mcp/server.js",
     "api-server": "node dist/api/cli.js",
     "clean": "rm -rf dist",
-    "check:xlsx-bundle": "node scripts/check-xlsx-bundle.js"
+    "check:xlsx-bundle": "node scripts/check-xlsx-bundle.js",
+    "pack:candidate": "node scripts/pack-release-candidate.js"
   },
   "keywords": [
     "seo",
