@@ -243,3 +243,91 @@ describe('AI answer page paired reach', () => {
     );
   });
 });
+
+describe('paired page reach endpoint isolation', () => {
+  const outside = [
+    'https://outside.example/one',
+    'https://outside.example/two',
+    'https://outside.example/three',
+  ];
+  it.each(['citation-reach', 'top-three-reach', 'first-position-reach'] as const)(
+    '%s gates its own matched endpoint rather than another reach metric',
+    (metric) => {
+      const prompts = Array.from({ length: 20 }, (_, i) => `rank shift ${i}`);
+      const baseline = prompts.map((prompt) => observation(prompt, [targetUrl, ...outside]));
+      const current = prompts.map((prompt) => observation(prompt, [...outside, targetUrl]));
+      const comparison = compareAiAnswerCitationPagePairedReach(current, baseline, ['example.com']);
+      const row = comparison.rows[0]!;
+      expect(row.reachChangePercentagePoints).toBe(0);
+      expect(row.topThreeReachChangePercentagePoints).toBe(-100);
+      expect(row.firstPositionReachChangePercentagePoints).toBe(-100);
+      const assessment = assessAiAnswerCitationPagePairedReachDropGate(
+        comparison,
+        25,
+        0.05,
+        10,
+        metric
+      );
+      expect(assessment.complete).toBe(true);
+      expect(assessment.exceeded).toBe(metric !== 'citation-reach');
+      const json = JSON.parse(renderAiAnswerCitationPagePairedReachDropGateJson(assessment));
+      expect(json.metric).toBe(metric);
+    }
+  );
+  it('does not turn pages seen only on unpaired prompts into a supported loss', () => {
+    const comparison = compareAiAnswerCitationPagePairedReach(
+      [observation('current only', ['https://example.com/new'])],
+      [observation('baseline only', [targetUrl])],
+      ['example.com']
+    );
+    for (const metric of ['citation-reach', 'top-three-reach', 'first-position-reach'] as const) {
+      const assessment = assessAiAnswerCitationPagePairedReachDropGate(
+        comparison,
+        10,
+        0.05,
+        2,
+        metric
+      );
+      expect(assessment.complete).toBe(false);
+      expect(assessment.exceeded).toBe(false);
+      expect(assessment.eligibleComparisons).toBe(0);
+    }
+  });
+});
+
+describe('page reach complete-family safeguards', () => {
+  it('does not reject a provider gain when another provider loses the same page', () => {
+    const prompts = Array.from({ length: 20 }, (_, i) => `provider contrast ${i}`);
+    const before = prompts.flatMap((prompt) => [
+      observation(prompt, [targetUrl], true, 'Declining'),
+      observation(prompt, [], true, 'Improving'),
+    ]);
+    const after = prompts.flatMap((prompt) => [
+      observation(prompt, [], true, 'Declining'),
+      observation(prompt, [targetUrl], true, 'Improving'),
+    ]);
+    const comparison = compareAiAnswerCitationPagePairedReach(after, before, ['example.com']);
+    expect(comparison.familySize).toBe(2);
+    const gate = assessAiAnswerCitationPagePairedReachDropGate(comparison, 25, 0.05, 10);
+    expect(gate.complete).toBe(true);
+    expect(gate.exceeded).toBe(true);
+    expect(gate.failures.map((row) => row.provider)).toEqual(['Declining']);
+  });
+  it('withholds adjusted significance for a family containing unknown absence', () => {
+    const prompts = Array.from({ length: 20 }, (_, i) => `incomplete family ${i}`);
+    const before = prompts.flatMap((prompt) => [
+      observation(prompt, [targetUrl], true, 'Complete'),
+      observation(prompt, [targetUrl], true, 'Incomplete'),
+    ]);
+    const after = prompts.flatMap((prompt) => [
+      observation(prompt, [], true, 'Complete'),
+      observation(prompt, [], false, 'Incomplete'),
+    ]);
+    const comparison = compareAiAnswerCitationPagePairedReach(after, before, ['example.com']);
+    expect(comparison.familyComplete).toBe(false);
+    expect(comparison.rows.every((row) => row.holmAdjustedPValue === null)).toBe(true);
+    const gate = assessAiAnswerCitationPagePairedReachDropGate(comparison, 25, 0.05, 10);
+    expect(gate.complete).toBe(false);
+    expect(gate.exceeded).toBe(false);
+  });
+});
