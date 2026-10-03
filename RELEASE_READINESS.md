@@ -199,7 +199,7 @@ The long single-worker run completed 628 passing/3 failing tests but mixed pre-f
 | XLSX imports | Eight source tests, isolated compiled-bundle checks, real installed CLI workbook reports | Final CI build |
 | Citation CSV outputs | 88 contracts across 69 exports; installed category report has six rows/51 aligned columns | Full-revision coverage completion |
 | Browser audits | Nine E2E tests pass; live paired docs-host reports previously generated | Latest full run completion |
-| API executable | Installed command starts a local server, including when given `--help`; smoke server gracefully stopped | Fix argument handling before release |
+| API executable | Installed help/version/unknown-argument smokes pass without listener startup; six API integration tests pass | Latest full run and release CI |
 | Native packages | CI Rust build passes; release matrix defines platform smokes | Successful final release matrix and all five packages |
 | Publishing | Main source and evidence pushed; local candidate archives available | 80% coverage, OIDC publishers, final tag and registry checks |
 
@@ -208,3 +208,5 @@ The API argument defect was found by the installed-package smoke, not an inferre
 - Frozen-source full verification completed: all 631 tests/68 files pass. Global coverage S76.75%, B58.51%, F79.24%, L78.18%; command still exits at unchanged 80% thresholds. Session40310 terminal, log /tmp/aviary-frozen-ff6304a-coverage.log. This supersedes pending/mixed-revision evidence. Source/tests were held fixed. Next concrete product fix is installed API help/version/unknown-option behavior; branch coverage and publishing/platform gates remain open.
 
 - API entrypoint argument defect fixed: help/version aliases return before configuration; no arguments serve; unsupported/combined arguments reject without reflecting user tokens. Eleven argument tests pass, compiled executable smokes exit correctly even with invalid TLS configuration, source lint/build pass, and all six API integration tests pass. API docs/changelog updated. The previous candidate predates this API fix; next reproducible pack will include it. Full 631-case coverage numbers predate these eleven tests.
+
+- API-fixed candidate packed reproducibly from beaab6ea: reports/release-candidates/0.2.0-beaab6ea/ru1vly-aviary-0.2.0.tgz, SHA-256 c0ae83b5f1cd4fec671be0b644ce79a44857c2ac0e47963feaf9dc46a3c2a239. Clean npm install (83 packages) verifies API help, package version 0.2.0 and unsupported argument exits even with invalid TLS config; no listener message. Latest full coverage run has started with source/tests fixed: /tmp/aviary-api-fixed-full-coverage.log. Coverage/publisher/native release gates remain open.
