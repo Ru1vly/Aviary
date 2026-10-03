@@ -151,6 +151,6 @@ The coverage command must pass its configured thresholds, not just run all tests
 
 Final CSV blank-field and Google comparison alignment fixes are covered by regression tests. TypeScript compilation and source lint pass; all 543 tests pass across 67 files. Global coverage remains below the unchanged 80% gate.
 
-Local unpublished archive: `reports/release-package-smokes/final-2026-10-04/ru1vly-aviary-0.2.0.tgz`, SHA-256 `35bafa230913f246e6682c6f620d28f09983077d1c7abb8f82aec641d92e46f5`. Manifest and checksum are beside the archive.
+Local unpublished archive: `reports/release-package-smokes/final-2026-10-04/ru1vly-aviary-0.2.0.tgz`, SHA-256 `04e6e0ca028c3d4d15c2c37fb87b9d8cdcfacb52bb7eba0d03588d366455b9ed`. Manifest and checksum are beside the archive.
 
 Next release steps: recover global coverage to 80% in all metrics; configure/verify npm trusted publishers for all six packages; run final CI and platform binary smokes on the release commit; reconcile the existing failed v0.2.0 tag with the verified final commit; publish and confirm all registry packages and release assets. Removing mistaken npm 1.0.0 still requires authentication satisfying npm’s 2FA restriction; it remains deprecated.
