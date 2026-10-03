@@ -12,6 +12,8 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { SEOChecker } from '../index';
 import { CHECKER_REGISTRY, CheckerKey } from '../checkers/registry';
@@ -41,7 +43,10 @@ function createServer(): McpServer {
   ) {
     throw new Error('AVIARY_SETTLE_AFTER_NAVIGATION_MS must be an integer from 0 to 30000.');
   }
-  const server = new McpServer({ name: 'aviary', version: '0.1.1' });
+  const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8')) as {
+    version: string;
+  };
+  const server = new McpServer({ name: 'aviary', version: pkg.version });
 
   server.registerTool(
     'seo_audit',

@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Report the installed package version in the MCP handshake instead of a fixed historical version.
+
 - Handle API help/version flags without starting a listener, and reject unsupported arguments before loading server configuration.
 
 - Align source-category prompt-coverage CSV rows with their headers by retaining exactly one truncation flag and the evidence note.

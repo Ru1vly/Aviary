@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import * as path from 'path';
+import { readFileSync } from 'node:fs';
 import { MockServer } from '../mocks/mockServer';
 
 /**
@@ -22,7 +23,10 @@ describe('MCP server (stdio protocol)', () => {
     proc.stdin.write(JSON.stringify(message) + '\n');
   }
 
-  function call(method: string, params?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  function call(
+    method: string,
+    params?: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     const id = nextId++;
     return new Promise((resolve) => {
       pending.set(id, resolve);
@@ -76,7 +80,10 @@ describe('MCP server (stdio protocol)', () => {
     });
     expect(res.result).toMatchObject({
       protocolVersion: '2024-11-05',
-      serverInfo: { name: 'aviary' },
+      serverInfo: {
+        name: 'aviary',
+        version: JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')).version,
+      },
     });
   });
 
@@ -92,7 +99,11 @@ describe('MCP server (stdio protocol)', () => {
   it('tools/list includes all 3 tools with every registry category in their enums', async () => {
     const res = await call('tools/list');
     const tools = (res.result as { tools: Array<{ name: string; inputSchema: unknown }> }).tools;
-    expect(tools.map((t) => t.name).sort()).toEqual(['seo_audit', 'seo_check_category', 'seo_score']);
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      'seo_audit',
+      'seo_check_category',
+      'seo_score',
+    ]);
 
     const checkCategoryTool = tools.find((t) => t.name === 'seo_check_category')!;
     const schema = checkCategoryTool.inputSchema as {
