@@ -24,3 +24,5 @@ The final handoff archive under reports/final contains the candidate, source sna
 No outstanding production changes were left uncommitted. RELEASE_READINESS.md records the chronological evidence and limitations.
 
 Final dashboard fixes: route-family table cell index and crawler-card mobile sizing. Fresh compiled review passed48 desktop/mobile browser checks,82-file checksum verification and9 focused tests. Recheck with `node scripts/check-report-dashboards.mjs <report-directory>`. Full-suite rerun on these fixes passes659 tests/70 files; coverage remains below80%.
+
+The handoff includes an unpublished Linux/x64 optional package in linux-x64-candidate/. Its clean-installed fast-engine help/invalid-option and TUI loader checks pass. For local Linux installation, install both supplied archives together with npm. Other platforms still require their native runner matrix.
