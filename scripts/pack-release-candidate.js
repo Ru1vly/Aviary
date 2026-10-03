@@ -4,6 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
+const { checkPackageDocumentation } = require('./check-package-doc-links');
 const args = process.argv.slice(2);
 if (args[0] === '--') args.shift();
 const version = args[0];
@@ -57,6 +58,18 @@ try {
   const pkg = Array.isArray(data) ? data[0] : data['@ru1vly/aviary'] || data;
   if (!pkg.filename || pkg.version !== version) throw new Error('Unexpected npm pack metadata.');
   const filename = path.join(destination, pkg.filename);
+  const documentationAudit = checkPackageDocumentation(stage, pkg.files);
+  if (documentationAudit.missing.length) {
+    fs.unlinkSync(filename);
+    throw new Error(
+      'Package documentation links to unshipped files: ' +
+        JSON.stringify(documentationAudit.missing)
+    );
+  }
+  fs.writeFileSync(
+    path.join(destination, 'documentation-link-audit.json'),
+    JSON.stringify(documentationAudit, null, 2) + '\n'
+  );
   const digest = crypto.createHash('sha256').update(fs.readFileSync(filename)).digest('hex');
   fs.writeFileSync(path.join(destination, 'pack-manifest.json'), output);
   fs.writeFileSync(path.join(destination, 'SHA256SUMS'), `${digest}  ${pkg.filename}\n`);
