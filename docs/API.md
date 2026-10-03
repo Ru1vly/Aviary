@@ -18,6 +18,8 @@ The machine-readable contract is available at [`openapi.yaml`](./openapi.yaml) a
 
 ## Start the server
 
+`aviary-api --help` (or `-h`) displays startup configuration, and `aviary-api --version` (or `-v`) prints the installed package version. Both exit without starting a listener. Start the server with no arguments; configure it through environment variables. Unsupported or combined arguments fail before configuration is loaded.
+
 Build Aviary, then start the API listener:
 
 ```sh

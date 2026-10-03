@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Handle API help/version flags without starting a listener, and reject unsupported arguments before loading server configuration.
+
 - Align source-category prompt-coverage CSV rows with their headers by retaining exactly one truncation flag and the evidence note.
 
 - Give each monthly provider rank bucket a distinct owned-share CSV header so named-column consumers retain all six metrics.

@@ -1,11 +1,26 @@
 #!/usr/bin/env node
 
 import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { API_CLI_HELP, parseApiCliAction } from './cliOptions';
 import { loadEnvConfig } from '../config/env';
 import { CHECKER_REGISTRY, type CheckerKey } from '../checkers/registry';
 import { startAviaryApiServer, stopAviaryApiServer } from './server';
 
 async function main(): Promise<void> {
+  const action = parseApiCliAction(process.argv.slice(2));
+  if (action === 'help') {
+    process.stdout.write(API_CLI_HELP);
+    return;
+  }
+  if (action === 'version') {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8')) as {
+      version: string;
+    };
+    process.stdout.write(`${pkg.version}\n`);
+    return;
+  }
+
   const certPath = process.env.AVIARY_API_TLS_CERT;
   const keyPath = process.env.AVIARY_API_TLS_KEY;
   if (Boolean(certPath) !== Boolean(keyPath)) {
