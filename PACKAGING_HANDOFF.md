@@ -4,7 +4,7 @@
 
 All current runtime fixes are packaged as an **unpublished 0.2.0 candidate**. Public release is pending the existing release gates; do not mark it published or move the old tag to force CI past them.
 
-Latest full suite: 652 tests across 69 files pass. Coverage: statements 76.81%, branches 58.68%, functions 79.27%, lines 78.22%. The required 80% thresholds remain unchanged. Five additional crawler dashboard tests pass independently; no full rerun including these five has been performed.
+Latest full frozen-source suite at 766fc79: 659 tests across 70 files pass. Coverage: statements 77.21%, branches 59.36%, functions 79.83%, lines 78.66%. All required 80% thresholds remain unchanged. CI at packaged commit 9b5f17c passed lint/type checks, Rust build, E2E and integration; its coverage step failed and the dependent TypeScript build was skipped. Local candidate TypeScript/XLSX build checks passed separately.
 
 Real installed CLI, MCP and REST reports against aviary-rs.com are retained under reports/, including desktop/mobile screenshots. Synthetic citation and crawler fixtures are identified separately. Scores describe implemented checks, not measured AI visibility.
 
