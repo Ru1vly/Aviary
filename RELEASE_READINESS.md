@@ -232,3 +232,5 @@ Candidate packing now verifies simple relative Markdown file links against the a
 - Post-package empty-output audit: crawler dashboard suite now7/7 passes, including absent analyses and empty robots/comparison/sitemap panels. No NaN/Infinity and empty table columns aligned; no runtime fix needed. CI at packaged9b5f17c has passed lint/format/TypeScript; integration still running at inspection. Candidate runtime remains unchanged.
 
 - Final frozen full run at766fc79 completed:659 tests/70 files pass; coverage S77.21%, B59.36%, F79.83%, L78.66%, command exits1 only for unchanged80% coverage gates. Session88103 terminal. CI37158466356: lint/types, Rust, E2E and integration pass; coverage fails; dependent TS build skipped. Handoff updated with actual final evidence.
+
+- Final compiled-CLI workflow audit:390/390 switches documented. Fresh synthetic GEO answer/crawler review generates82 manifest-recorded files; bundle verifier confirms every byte size and SHA-256. Independent Python CSV parser verifies38 CSVs with zero header/row width mismatches. Artifacts reports/final/synthetic-review-2026-10-04; synthetic evidence does not establish live AI outcomes.
