@@ -154,3 +154,9 @@ Final CSV blank-field and Google comparison alignment fixes are covered by regre
 Local unpublished archive: `reports/release-package-smokes/final-2026-10-04/ru1vly-aviary-0.2.0.tgz`, SHA-256 `04e6e0ca028c3d4d15c2c37fb87b9d8cdcfacb52bb7eba0d03588d366455b9ed`. Manifest and checksum are beside the archive.
 
 Next release steps: recover global coverage to 80% in all metrics; configure/verify npm trusted publishers for all six packages; run final CI and platform binary smokes on the release commit; reconcile the existing failed v0.2.0 tag with the verified final commit; publish and confirm all registry packages and release assets. Removing mistaken npm 1.0.0 still requires authentication satisfying npm’s 2FA restriction; it remains deprecated.
+
+## Clean consumer install — 2026-10-04
+
+Installing the packed tarball into `/tmp/aviary-clean-install-20261004` with npm succeeds (177 packages), without workspace dependency links. The installed executable reports 0.2.0, displays help, and generates Google comparison HTML/CSV/JSON. Its CSV matches the prior packed-CLI output byte for byte. Optional native 0.2.0 packages are not yet published and were not installed.
+
+**Additional release blocker:** consumer `npm audit` reports a moderate uuid advisory (`GHSA-w5hq-g745-h8pq`) through ExcelJS 4.4.0 (three affected dependency nodes, one advisory). The repository pnpm override to uuid 11.1.1 does not propagate to consumer installs. ExcelJS uses uuid v4 in its conditional-format writer; the advisory concerns v3/v5/v6 buffer handling, but publishing an audited consumer dependency graph still needs a durable dependency solution. Root npm overrides alone will not apply when Aviary is a dependency. Resolve upstream dependency packaging or replace the affected dependency, then regenerate and clean-install the candidate before release. Evidence: `reports/release-package-smokes/final-2026-10-04/clean-install-audit.json`.
