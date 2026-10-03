@@ -7,10 +7,10 @@ Current package checkout: `@ru1vly/aviary` **0.1.1**, with all five optional pla
 
 **Do not publish yet.** The 2026-10-03 registry check still lists root versions `0.1.0`, `0.1.1`, and `1.0.0`; `1.0.0` remains deprecated as a mistaken test release. Main was pushed and `v0.2.0` was tagged, but release run `37151847503` failed its coverage gate before any platform builds or publication. No 0.2.0 GitHub Release exists. Release blockers and required checks remain:
 
-1. The tagged workflow requires at least 80% coverage. The last complete local run with every test passing recorded **543 tests across 67 files**, with **66.59% statement, 68% line, 65.81% function, and 49.52% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds. Use `vitest run --coverage --maxWorkers=2` on this host: unrestricted concurrency exhausted available memory/swap and caused integration timeouts; the limited run passed every test in 61.43 seconds.
-3. The installed `aviary-api --help` currently starts the API server instead of displaying help. Add explicit help/version handling and reject unknown arguments before starting a listener; verify the installed executable exits without binding a port.
+1. The tagged workflow requires at least 80% coverage. The latest fixed-revision local run passes **631 tests across 68 files**, with **76.75% statement, 78.18% line, 79.24% function, and 58.51% branch coverage**. The coverage command exits unsuccessfully at the configured thresholds. Use `vitest run --coverage --maxWorkers=2` on this host: unrestricted concurrency exhausted available memory/swap and caused integration timeouts; the limited run passed every test in 61.43 seconds.
+2. The installed `aviary-api --help` currently starts the API server instead of displaying help. Add explicit help/version handling and reject unknown arguments before starting a listener; verify the installed executable exits without binding a port.
 
-2. npm trusted-publisher setup remains unverified for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release; the failed test gate did not exercise publication authentication.
+3. npm trusted-publisher setup remains unverified for the root package and five platform packages. The release workflow uses npm's OIDC trusted-publisher flow, so each package needs a matching GitHub Actions publisher entry before release; the failed test gate did not exercise publication authentication.
 
 The candidate cannot publish until the coverage threshold and npm trusted-publisher setup are resolved. A clean-checkout verification and the required CI/security gates must also pass on the final release commit before tagging.
 
@@ -206,3 +206,5 @@ The long single-worker run completed 628 passing/3 failing tests but mixed pre-f
 | Publishing | Main source and evidence pushed; local candidate archives available | 80% coverage, OIDC publishers, final tag and registry checks |
 
 The API argument defect was found by the installed-package smoke, not an inferred issue. Log: reports/release-candidates/0.2.0-ff6304a4/api-help.txt. The frozen full coverage run remains active (session 40310). Source/tests were kept fixed after it began.
+
+- Frozen-source full verification completed: all 631 tests/68 files pass. Global coverage S76.75%, B58.51%, F79.24%, L78.18%; command still exits at unchanged 80% thresholds. Session40310 terminal, log /tmp/aviary-frozen-ff6304a-coverage.log. This supersedes pending/mixed-revision evidence. Source/tests were held fixed. Next concrete product fix is installed API help/version/unknown-option behavior; branch coverage and publishing/platform gates remain open.
