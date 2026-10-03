@@ -20,6 +20,8 @@ Public-facing docs explain the measured scope and limits of Aviary's scores, cra
 
 ## Verification snapshot
 
+- Further 2026-10-03 output audit: the Bing HTML reporter has 10 passing tests covering citation gains/declines, unknown metrics, export-only rows, query/cohort turnover, current audit controls, language validation, empty/truncated views, aligned table columns, and safe URL links. Isolated coverage is 99.05% statements, 100% lines/functions, and 89.37% branches. The compiled CLI generated a synthetic standalone report with four tables and nine rows; column alignment and gain/decline values were independently inspected under `reports/bing-output-review-2026-10-03/`. The latest full-suite snapshot below predates these additional reporter tests.
+
 - 2026-10-03: eight real-workbook XLSX import tests cover text/date/percentage/formula conversion, unrelated sheets, provenance, malformed ZIP directories, unsafe paths, encrypted/unsupported entries, size limits, worksheet counts, and column bounds. The three import modules measure 94.96% statements, 96% lines, 100% functions, and 88.03% branches in isolation. Full-suite results are recorded above; the 80% global gate remains unchanged.
 - The separate Docs site is deployed with static documentation routes. Its export, lint, TypeScript, 57 tests, and Pages deployment passed. Fresh Aviary reports completed all 10 routes on each public host, measuring 98.1–99.8% source/rendered phrase overlap on documentation pages; see `reports/RELEASE_EVIDENCE.md` for artifacts and scope.
 
