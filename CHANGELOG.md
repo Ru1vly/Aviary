@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Align source-category prompt-coverage CSV rows with their headers by retaining exactly one truncation flag and the evidence note.
+
 - Give each monthly provider rank bucket a distinct owned-share CSV header so named-column consumers retain all six metrics.
 
 - Remove three duplicated metric columns from monthly answer-length CSV exports, keeping unique named fields and aligned rows.

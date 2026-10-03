@@ -12829,7 +12829,7 @@ export function renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
   const rowLimit = 50_000;
   const boundedRows = rows
     .slice(0, rowLimit)
-    .map((row) => [...row.slice(0, -1), rows.length > rowLimit, row[row.length - 1]]);
+    .map((row) => [...row.slice(0, -2), rows.length > rowLimit, row[row.length - 1]]);
   return `${[headers, ...boundedRows].map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`;
 }
 

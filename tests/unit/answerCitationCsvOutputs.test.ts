@@ -126,7 +126,7 @@ describe('answer-citation spreadsheet output contracts', () => {
         data
           .flat()
           .filter((cell) => cell.includes('Engine'))
-          .every((cell) => cell.startsWith("'="))
+          .every((cell) => !/^[\s]*[=+@-]/.test(cell))
       ).toBe(true);
       expect(data.flat()).not.toContain("'");
     }
@@ -155,4 +155,148 @@ describe('answer-citation spreadsheet output contracts', () => {
     expect(first.rank_bucket).toBe('1');
     expect(Number(first.owned_citation_events)).toBe(6);
   });
+});
+
+const categoryMappings = ['owned.example=Owned', 'rival.example=Independent,"quoted"'];
+const categoryExports = [
+  {
+    name: 'SourceCategories',
+    render: () => renderer.renderAiAnswerCitationSourceCategoriesCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryMappingAudit',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryMappingAuditCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryPromptCoverage',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryPromptCoverageCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryPromptDetails',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryPromptDetailsCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryTrends',
+    render: () => renderer.renderAiAnswerCitationSourceCategoryTrendsCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryConcentrationTrends',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryConcentrationTrendsCsv(
+        current,
+        categoryMappings
+      ),
+  },
+  {
+    name: 'SourceCategoryShareTrends',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryShareTrendsCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryProviderPairs',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryProviderPairsCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryCooccurrence',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryCooccurrenceCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryPathFamilies',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryPathFamiliesCsv(current, categoryMappings),
+  },
+  {
+    name: 'EntitySourceCategories',
+    render: () =>
+      renderer.renderAiAnswerCitationEntitySourceCategoriesCsv(current, categoryMappings),
+  },
+  {
+    name: 'SourceCategoryPathFamilyComparison',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryPathFamilyComparisonCsv(
+        current,
+        baseline,
+        categoryMappings
+      ),
+  },
+  {
+    name: 'SourceCategoryComparison',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryComparisonCsv(
+        current,
+        baseline,
+        categoryMappings
+      ),
+  },
+  {
+    name: 'SourceCategoryMixDecomposition',
+    render: () =>
+      renderer.renderAiAnswerCitationSourceCategoryMixDecompositionCsv(
+        current,
+        baseline,
+        categoryMappings
+      ),
+  },
+  {
+    name: 'EntitySourceCategoryComparison',
+    render: () =>
+      renderer.renderAiAnswerCitationEntitySourceCategoryComparisonCsv(
+        current,
+        baseline,
+        categoryMappings
+      ),
+  },
+];
+describe('mapped source-category spreadsheet contracts', () => {
+  it.each(categoryExports)(
+    '$name retains uniquely named, aligned category columns',
+    ({ render }) => {
+      const data = rows(render());
+      expect(data.length).toBeGreaterThan(1);
+      expect(new Set(data[0]).size).toBe(data[0].length);
+      expect(data[0].every(Boolean)).toBe(true);
+      for (const row of data.slice(1)) expect(row.length).toBe(data[0].length);
+      expect(data.flat()).not.toContain("'");
+      expect(
+        data
+          .flat()
+          .filter((cell) => cell.includes('Engine'))
+          .every((cell) => !/^[\s]*[=+@-]/.test(cell))
+      ).toBe(true);
+    }
+  );
+  it.each(categoryExports)('$name rejects malformed category mappings', ({ render }) => {
+    const original = categoryMappings[0];
+    try {
+      categoryMappings[0] = 'invalid mapping';
+      expect(render).toThrow(/mapping|hostname/);
+    } finally {
+      categoryMappings[0] = original;
+    }
+  });
+});
+
+describe('category prompt-coverage truncation flag placement', () => {
+  it.each([undefined, baseline])(
+    'retains one truncation flag and final evidence note',
+    (before) => {
+      const data = rows(
+        renderer.renderAiAnswerCitationSourceCategoryPromptCoverageCsv(
+          current,
+          categoryMappings,
+          before
+        )
+      );
+      for (const row of data.slice(1)) {
+        expect(row.length).toBe(data[0].length);
+        expect(row[row.length - 2]).toBe('false');
+        expect(row[row.length - 1]).toMatch(/^Prompt coverage counts each exact prompt/);
+      }
+    }
+  );
 });
