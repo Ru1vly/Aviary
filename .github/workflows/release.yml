@@ -42,6 +42,7 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm exec tsc --noEmit
       - run: pnpm run build:ts
+      - run: pnpm run check:xlsx-bundle
       - run: pnpm run check:cli-docs
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:coverage
@@ -261,6 +262,7 @@ jobs:
       # TS only — the native TUI binary now ships via the per-platform
       # optionalDependencies published above, not bundled into dist/.
       - run: pnpm run build:ts
+      - run: pnpm run check:xlsx-bundle
       - name: Install npm with trusted publishing support
         run: npm install --global npm@11.5.1
       - name: Set version from tag

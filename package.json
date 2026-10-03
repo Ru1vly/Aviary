@@ -206,7 +206,8 @@
     "geo:crawler-route-families:synthetic": "bash examples/geo-crawler-route-family-review.synthetic.sh",
     "mcp-server": "node dist/mcp/server.js",
     "api-server": "node dist/api/cli.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "check:xlsx-bundle": "node scripts/check-xlsx-bundle.js"
   },
   "keywords": [
     "seo",
@@ -225,7 +226,7 @@
     "google-ai-performance",
     "google-discover-ai"
   ],
-  "author": "Kerem Yiğit",
+  "author": "Kerem Yi\u011fit",
   "license": "MIT",
   "repository": {
     "type": "git",
