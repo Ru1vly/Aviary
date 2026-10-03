@@ -266,26 +266,9 @@ jobs:
       - name: Install npm with trusted publishing support
         run: npm install --global npm@11.5.1
       - name: Set version from tag
-        run: |
-          npm version "$GITHUB_REF_NAME" --no-git-tag-version --allow-same-version
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const version = process.env.GITHUB_REF_NAME.replace(/^v/, '');
-            for (const dep of Object.keys(pkg.optionalDependencies || {})) {
-              pkg.optionalDependencies[dep] = version;
-            }
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            const specPath = 'docs/openapi.yaml';
-            const spec = fs.readFileSync(specPath, 'utf8');
-            const versionedSpec = spec.replace(/^  version: .+$/m, `  version: ${version}`);
-            if (versionedSpec === spec && !spec.includes(`  version: ${version}`)) {
-              throw new Error('OpenAPI document is missing its info.version field.');
-            }
-            fs.writeFileSync(specPath, versionedSpec);
-          "
+        run: node scripts/set-release-version.js "$RELEASE_VERSION"
         env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ github.ref_name }}
       - name: Verify package contents (dry run)
         run: npm publish --dry-run --access public
       - name: Publish to npm
