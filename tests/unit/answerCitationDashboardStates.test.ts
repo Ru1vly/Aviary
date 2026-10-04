@@ -81,3 +81,90 @@ describe('citation dashboard evidence states', () => {
   it('renders paired category mix decomposition', () =>
     check(renderAiAnswerCitationSourceCategoryMixDecompositionHtml(current, baseline, categories)));
 });
+
+const optionalSavedReportFields = [
+  'coCitationSummary',
+  'coCitationDomains',
+  'auditCorrelation',
+  'auditSignalBreakdown',
+  'auditSignalBreakdownTruncated',
+  'topicIntentProviderMonthly',
+  'topicIntentProviderMonthlyTruncated',
+  'executionContextProfiles',
+  'executionContextProfilesTruncated',
+  'executionContextMonthlyProfiles',
+  'executionContextMonthlyProfilesTruncated',
+  'answerLengthProfiles',
+  'answerLengthProfilesTruncated',
+  'answerLengthPromptRankProfiles',
+  'answerLengthPromptRankProfilesTruncated',
+  'answerLengthMonthlyProfiles',
+  'answerLengthMonthlyProfilesTruncated',
+  'topicIntentProviderPairComparisons',
+  'topicIntentProviderPairComparisonsTruncated',
+  'providerSampleMixComparisons',
+  'providerSampleMixComparisonsTruncated',
+  'temporalStabilityProfiles',
+  'temporalStabilityProfilesTruncated',
+  'sourcePersistenceProfiles',
+  'sourcePersistenceProfilesTruncated',
+  'sourcePersistenceProfilesAvailable',
+  'sourcePersistenceWorkingProfileCap',
+  'sourcePersistenceTimestampCheckBudget',
+  'sourcePersistenceTimestampChecksPerformed',
+  'sourcePersistenceBootstrapUpdateBudget',
+  'sourcePersistenceBootstrapUpdatesPerformed',
+  'sourcePersistenceBootstrapWorkTruncated',
+  'sourcePersistenceOutputProfileCap',
+  'sourcePersistenceWorkTruncated',
+  'citationUrlPersistenceProfiles',
+  'citationUrlPersistenceProfilesTruncated',
+  'citationUrlPersistenceProfilesAvailable',
+  'citationUrlPersistenceWorkingProfileCap',
+  'citationUrlPersistenceTimestampCheckBudget',
+  'citationUrlPersistenceTimestampChecksPerformed',
+  'citationUrlPersistenceOutputProfileCap',
+  'citationUrlPersistenceWorkTruncated',
+  'entityMentionProfiles',
+  'entityPromptProfiles',
+  'entityPromptProfilesTruncated',
+  'entityPromptProviderPairComparisons',
+  'entityPromptProviderPairComparisonsTruncated',
+  'entityCoMentionProfiles',
+  'entityCoMentionProfilesTruncated',
+  'entityMentionMonthlyProfiles',
+  'entityMentionMonthlyProfilesTruncated',
+  'entityMentionOpportunities',
+  'entityMentionOpportunitiesTruncated',
+  'entityPathFamilyAssociations',
+  'entityPathFamilyAssociationsTruncated',
+  'entityPathFamilyMonthlyAssociations',
+  'entityPathFamilyMonthlyAssociationsTruncated',
+  'entityCitationPageAssociations',
+  'entityCitationPageAssociationsTruncated',
+  'entityCitationPageMonthlyAssociations',
+  'entityCitationPageMonthlyAssociationsTruncated',
+  'pathFamilyDepth',
+  'pathFamilyCount',
+  'pathFamilies',
+  'pathFamiliesTruncated',
+  'pathFamilyCohorts',
+  'pathFamilyCohortsTruncated',
+  'pathFamilyMonthlyCohorts',
+  'pathFamilyMonthlyCohortsTruncated',
+  'crawlerLogCorrelation',
+  'periodComparison',
+] as const;
+
+describe('older saved citation dashboard reports', () => {
+  it.each(optionalSavedReportFields)('renders when optional %s was not stored', (field) => {
+    const legacy = structuredClone(current);
+    delete legacy[field];
+    check(renderAiAnswerCitationObservationHtml(legacy, categories));
+  });
+  it('renders the core report when every later optional profile is absent', () => {
+    const legacy = structuredClone(current);
+    for (const field of optionalSavedReportFields) delete legacy[field];
+    check(renderAiAnswerCitationObservationHtml(legacy));
+  });
+});
