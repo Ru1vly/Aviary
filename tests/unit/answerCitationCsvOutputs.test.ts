@@ -398,3 +398,266 @@ describe('category prompt detail unknown evidence', () => {
     }
   });
 });
+
+const uncitedReport = analyzeAiAnswerCitationObservations(
+  {
+    schemaVersion: 1,
+    observations: [
+      {
+        observedAt: '2026-10-01T00:00:00Z',
+        provider: 'Search',
+        prompt: 'Uncited prompt',
+        citedUrls: [],
+        citationListComplete: true,
+      },
+    ],
+  },
+  [],
+  '2026-10-01T01:00:00Z'
+);
+const singleReport = analyzeAiAnswerCitationObservations(
+  {
+    schemaVersion: 1,
+    observations: [
+      {
+        observedAt: '2026-10-01T00:00:00Z',
+        provider: 'Search',
+        prompt: 'Single prompt',
+        citedUrls: ['https://owned.example/guide'],
+        citationListComplete: false,
+      },
+    ],
+  },
+  ['owned.example'],
+  '2026-10-01T01:00:00Z'
+);
+const cappedReport = structuredClone(current);
+cappedReport.promptsTruncated = true;
+cappedReport.domainsTruncated = true;
+cappedReport.citedPagesTruncated = true;
+const sparsePairedExports = [
+  renderer.renderAiAnswerCitationProviderOwnedGapComparisonCsv,
+  renderer.renderAiAnswerCitationCompetitiveGapComparisonCsv,
+  renderer.renderAiAnswerCitationAnswerLengthComparisonCsv,
+];
+const sparsePrerequisites: Record<string, { states: string[]; message: string }> = {
+  renderAiAnswerCitationCohortPeriodStandardizationCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'This report does not contain baseline/current topic-intent cohort comparison; supply --geo-answer-baseline-observations.',
+  },
+  renderAiAnswerCitationUrlPersistenceCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'This report does not contain citation-URL persistence detail; reanalyze with URL persistence enabled.',
+  },
+  renderAiAnswerCitationCoCitationComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Owned-source co-citation comparison requires baseline and current samples with retained co-citation detail.',
+  },
+  renderAiAnswerCitationEntityMentionsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Configured entity mention detail requires at least one --geo-answer-entity.',
+  },
+  renderAiAnswerCitationEntityPromptDetailsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Entity prompt detail requires at least one --geo-answer-entity.',
+  },
+  renderAiAnswerCitationEntityPromptProviderPairsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Entity prompt/provider comparisons require at least one --geo-answer-entity.',
+  },
+  renderAiAnswerCitationEntityPromptComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity prompt comparison requires baseline/current observations with configured entity detail.',
+  },
+  renderAiAnswerCitationEntityCitationPositionComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity citation-position comparison requires baseline/current answer observations with the same configured entity names and aliases.',
+  },
+  renderAiAnswerCitationEntityCoMentionsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity co-mention detail requires at least two --geo-answer-entity definitions and answer observations.',
+  },
+  renderAiAnswerCitationEntityCoMentionComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity co-mention comparison requires current and baseline observations with at least two matching configured entities.',
+  },
+  renderAiAnswerCitationEntityCitationDomainsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Entity citation-domain associations require at least one --geo-answer-entity.',
+  },
+  renderAiAnswerCitationEntityCitationDomainComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity citation-domain comparison requires baseline/current answer observations with the same configured entity names and aliases.',
+  },
+  renderAiAnswerCitationEntityOpportunitiesCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity mention opportunity detail requires configured answer entities and owned domains.',
+  },
+  renderAiAnswerCitationEntityPathFamiliesCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity/path-family associations require configured answer entities, answer observations, and a path-family depth.',
+  },
+  renderAiAnswerCitationEntityPathFamilyMonthlyCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Monthly entity/path-family associations require configured answer entities, answer observations, and a path-family depth.',
+  },
+  renderAiAnswerCitationEntityPathFamilyComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Entity/path-family comparison requires baseline/current answer observations with matching path depth and configured entities.',
+  },
+  renderAiAnswerCitationPathFamiliesCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Citation path-family detail requires a configured answer citation path-family depth.',
+  },
+  renderAiAnswerCitationPathFamilyCohortsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Citation path-family cohort detail requires a configured answer citation path-family depth.',
+  },
+  renderAiAnswerCitationPathFamilyTrendsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Monthly citation path-family cohorts require a configured answer citation path-family depth.',
+  },
+  renderAiAnswerCitationPathFamilyCohortComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Path-family cohort comparison requires baseline/current answer samples and the same configured path depth.',
+  },
+  renderAiAnswerCitationPathFamilyComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Path-family period comparison requires matching path depths and a baseline observation sample.',
+  },
+  renderAiAnswerCitationProviderPagePositionComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Provider-specific page-position comparison requires baseline and current answer observations with retained citation-position detail.',
+  },
+  renderAiAnswerCitationOwnedRankCsv: {
+    states: ['uncited capture without owned scope'],
+    message:
+      'Owned citation rank export requires an answer-citation report analyzed with at least one owned domain.',
+  },
+  renderAiAnswerCitationOwnedPromptCoverageCsv: {
+    states: ['uncited capture without owned scope'],
+    message:
+      'Owned prompt-coverage export requires an answer-citation report analyzed with at least one owned domain.',
+  },
+  renderAiAnswerCitationOwnedPromptReachPeriodCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Paired owned-prompt reach comparison requires baseline and current answer observations.',
+  },
+  renderAiAnswerCitationOwnedPromptOpportunitiesCsv: {
+    states: ['uncited capture without owned scope'],
+    message:
+      'Owned prompt-opportunity export requires an answer-citation report analyzed with at least one owned domain.',
+  },
+  renderAiAnswerCitationCompetitiveGapsCsv: {
+    states: ['uncited capture without owned scope'],
+    message:
+      'Competitive-gap export requires an answer-citation report analyzed with at least one owned domain.',
+  },
+  renderAiAnswerCitationProviderOwnedGapsCsv: {
+    states: ['uncited capture without owned scope'],
+    message:
+      'Provider owned-gap export requires an answer-citation report analyzed with at least one owned domain.',
+  },
+  renderAiAnswerCitationProviderOwnedGapComparisonCsv: {
+    states: ['uncited capture without owned scope'],
+    message:
+      'Provider owned-gap comparison requires baseline and current reports analyzed with the same non-empty owned-domain set.',
+  },
+  renderAiAnswerCitationCompetitiveGapComparisonCsv: {
+    states: ['uncited capture without owned scope'],
+    message:
+      'Competitive-gap comparison requires baseline and current reports analyzed with the same non-empty owned-domain set.',
+  },
+  renderAiAnswerCitationOwnedRankComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Owned rank comparison requires baseline and current answer observations analyzed with the same owned domains.',
+  },
+  renderAiAnswerCitationOwnedPromptRankComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Owned prompt-rank comparison requires baseline and current answer observations analyzed with the same nonempty owned domains.',
+  },
+  renderAiAnswerCitationObservationComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'An answer-citation period comparison is required to render comparison CSV.',
+  },
+  renderAiAnswerCitationTopicIntentComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'An answer-citation topic/intent period comparison is required to render cohort comparison CSV.',
+  },
+  renderAiAnswerCitationExecutionContextCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Execution-context export requires answer observations with at least one model, surface, or locale label.',
+  },
+  renderAiAnswerCitationExecutionContextTrendsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Execution-context trends require answer observations with at least one model, surface, or locale label.',
+  },
+  renderAiAnswerCitationExecutionContextCoverageCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message:
+      'Execution-context coverage requires answer observations with at least one model, surface, or locale label.',
+  },
+  renderAiAnswerCitationAnswerLengthProfilesCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Answer-length profiles require at least one observation with answerText.',
+  },
+  renderAiAnswerCitationAnswerLengthTrendsCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Answer-length trends require at least one observation with answerText.',
+  },
+  renderAiAnswerCitationAnswerLengthComparisonCsv: {
+    states: ['uncited capture without owned scope', 'single incomplete capture'],
+    message: 'Answer-length comparison requires answerText in both current and baseline samples.',
+  },
+};
+describe.each([
+  { name: 'uncited capture without owned scope', report: uncitedReport },
+  { name: 'single incomplete capture', report: singleReport },
+  { name: 'capped catalogs', report: cappedReport },
+])('$name spreadsheet contracts', ({ name, report }) => {
+  it.each(exports.map((render) => [render.name, render] as const))(
+    '%s keeps headers and field widths valid',
+    (_name, render) => {
+      const renderCsv = () =>
+        sparsePairedExports.includes(render as (typeof sparsePairedExports)[number])
+          ? (render as (typeof sparsePairedExports)[number])(report, report)
+          : (render as (report: typeof current) => string)(report);
+      const prerequisite = sparsePrerequisites[render.name];
+      if (prerequisite?.states.includes(name)) {
+        expect(renderCsv).toThrow(prerequisite.message);
+        return;
+      }
+      const csv = renderCsv();
+      const records = rows(csv);
+      expect(records[0].length).toBeGreaterThan(0);
+      expect(records[0].every(Boolean)).toBe(true);
+      expect(new Set(records[0]).size).toBe(records[0].length);
+      for (const record of records.slice(1)) expect(record.length).toBe(records[0].length);
+      expect(records.flat()).not.toContain("'");
+      expect(csv).not.toContain('NaN');
+    }
+  );
+});
