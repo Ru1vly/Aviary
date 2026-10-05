@@ -151,6 +151,10 @@ jobs:
         run: npm publish ./*.tgz --access public --tag latest --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Verify published native package is available
+        timeout-minutes: 12
+        working-directory: reports/native-publish/${{ matrix.dir }}
+        run: node "$GITHUB_WORKSPACE/scripts/wait-for-npm-release.js" pack-manifest.json
 
   # ── Build & Publish npm package ────────────────────────────
   publish-npm:
@@ -185,6 +189,10 @@ jobs:
         run: npm publish ./*.tgz --access public --tag latest --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Verify published root package is available
+        timeout-minutes: 12
+        working-directory: reports/root-publish
+        run: node "$GITHUB_WORKSPACE/scripts/wait-for-npm-release.js" pack-manifest.json
 
   # ── Build & Push Docker Image ───────────────────────────────
   docker:

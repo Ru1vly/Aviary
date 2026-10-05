@@ -33,8 +33,8 @@ node examples/geo-output-validation.mjs reports/geo-output-validation
 pnpm audit --audit-level moderate
 cargo audit
 cargo test --workspace --locked
-pnpm run pack:candidate -- 0.2.1 reports/release-candidates/0.2.1
-node scripts/check-release-candidate.js reports/release-candidates/0.2.1/ru1vly-aviary-0.2.1.tgz
+pnpm run pack:candidate -- 0.2.2 reports/release-candidates/0.2.2
+node scripts/check-release-candidate.js reports/release-candidates/0.2.2/ru1vly-aviary-0.2.2.tgz
 ```
 
 Packing requires a clean committed checkout and a fresh destination. It stamps
@@ -48,23 +48,27 @@ and starts the binaries on Linux x64/ARM64, macOS x64/ARM64 and Windows x64.
 
 ## Publish
 
-Choose an unused tag. The older failed `v0.2.0` tag is retained; the next release
-is `v0.2.1`. Root and native packages must use the same release version. The
+Choose an unused tag. Version `0.2.1` is published; the older failed `v0.2.0` tag
+is retained. The examples use `0.2.2`; check registry versions before choosing
+the next tag. Root and native packages must use the same release version. The
 checkout's optional dependency versions stay resolvable before publication;
 the release stamp selects the new versions in published metadata.
 
 After the PR's CI, security and native checks pass, merge it and tag that reviewed
 commit. `.github/workflows/release.yml` repeats the gates, promotes the exact validated tarballs, publishes native
 packages first, then the root package, container image and GitHub release assets.
+Publish jobs wait for registry processing and verify the version, `latest` tag
+and validated archive integrity before downstream jobs proceed. A successful
+publish command alone does not establish registry availability.
 Use npm trusted publishing for repository `Ru1vly/Aviary`, workflow `release.yml`
 on all six packages. The publish jobs require Node 24, npm >=11.5.1 and
 `id-token: write`. npm tries OIDC first; the existing `NPM_TOKEN` secret is a
 fallback for token-authorized publishing. Both paths request provenance. See [npm's publisher setup](https://docs.npmjs.com/trusted-publishers/).
 
 ```sh
-git tag -a v0.2.1 -m 'Aviary 0.2.1' <reviewed-commit>
-git push origin v0.2.1
-npm view @ru1vly/aviary@0.2.1 version dist.integrity
+git tag -a v0.2.2 -m 'Aviary 0.2.2' <reviewed-commit>
+git push origin v0.2.2
+npm view @ru1vly/aviary@0.2.2 version dist.integrity
 npm view @ru1vly/aviary dist-tags --json
 ```
 
