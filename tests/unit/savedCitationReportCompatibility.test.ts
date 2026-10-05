@@ -99,6 +99,12 @@ function scenario(kind: string) {
     }
     cap(current);
   }
+  if (kind === 'mixed optional monthly and review counts') {
+    delete current.monthly[0].observationsWithOwnedCitation;
+    delete current.monthly[0].ownedCitationEventSharePercent;
+    delete current.reviewQueue[0].observationsWithOwnedCitation;
+    current.monthly.push(structuredClone(before.monthly[0]));
+  }
   current.periodComparison = compareAiAnswerCitationObservationPeriods(before, current);
   if (kind === 'legacy prompt provider detail')
     for (const report of [current, before])
@@ -115,6 +121,7 @@ const kinds = [
   'missing owned metrics',
   'legacy prompt provider detail',
   'bounded supplementary detail',
+  'mixed optional monthly and review counts',
 ];
 const exporters = [
   renderer.renderAiAnswerCitationDomainPromptCoverageComparisonCsv,
@@ -155,7 +162,8 @@ describe('older saved citation reports retain export contracts', () => {
         const columns = table.querySelectorAll(':scope > thead > tr:last-child > th').length;
         for (const row of table.querySelectorAll(':scope > tbody > tr'))
           expect(
-            [...row.children].reduce((n, c) => n + (Number(c.getAttribute('colspan')) || 1), 0)
+            [...row.children].reduce((n, c) => n + (Number(c.getAttribute('colspan')) || 1), 0),
+            table.querySelector('thead')?.textContent
           ).toBe(columns);
       }
       expect(html).not.toMatch(/NaN%|Infinity%|PRIVATE_CAPTURE/);
@@ -171,6 +179,16 @@ describe('older saved citation reports retain export contracts', () => {
           render === renderer.renderAiAnswerCitationOwnedRankComparisonCsv
         ) {
           expect(() => render(current, before)).toThrow(/same owned domains/);
+          return;
+        }
+        if (
+          kind === 'legacy prompt provider detail' &&
+          [
+            renderer.renderAiAnswerCitationProviderOwnedGapComparisonCsv,
+            renderer.renderAiAnswerCitationCompetitiveGapComparisonCsv,
+          ].includes(render)
+        ) {
+          expect(() => render(current, before)).toThrow(/retained provider-level/);
           return;
         }
         aligned(render(current, before));

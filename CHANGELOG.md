@@ -14,6 +14,7 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Keep monthly and review-queue dashboard columns aligned when older saved reports omit summary or per-row owned-citation metrics.
 - Keep the prompt-similarity summary CSV aligned with its shared-provider, document-count, threshold, and truncation headers.
 - Validate native artifacts through packed npm candidates, isolated installs, binary integrity checks, and startup on all five supported targets before publication; the same matrix can run on pull requests.
 

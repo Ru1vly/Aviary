@@ -219,6 +219,27 @@ describe('prompt-family sparse and legacy evidence contracts', () => {
       expect(html).not.toMatch(/NaN%|Infinity%/);
     });
   }
+  it('keeps summary metadata under the same named columns as pair rows', () => {
+    const csv = renderer.renderAiAnswerCitationPromptSimilarityCsv(current, 0.25);
+    const rows = csv
+      .trimEnd()
+      .split('\r\n')
+      .map((line) =>
+        [...line.matchAll(/"((?:[^"]|"")*)"(?:,|$)/g)].map((match) => match[1].replace(/""/g, '"'))
+      );
+    const summary = Object.fromEntries(rows[0].map((key, index) => [key, rows[1][index]]));
+    expect(summary).toMatchObject({
+      row_type: 'summary',
+      shared_providers: '',
+      retained_prompt_groups: String(current.prompts.length),
+      prompt_catalog_truncated: 'false',
+      candidate_pairs_capped: 'false',
+      output_rows_truncated: 'false',
+    });
+    expect(Number(summary.candidate_pairs_considered)).toBeGreaterThan(0);
+    expect(Number(summary.high_frequency_posting_cutoff)).toBeGreaterThan(0);
+    expect(summary.interpretation_note).toContain('Lexical TF-IDF');
+  });
   it('exposes one family with two prompts and two isolated provider samples', () => {
     const result = renderer.analyzeAiAnswerCitationPromptFamilyPartition(current, 0.25);
     expect(result.families.map((f) => f.length).sort()).toEqual([1, 2]);

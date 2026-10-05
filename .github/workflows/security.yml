@@ -1,6 +1,7 @@
 name: Security Scan
 
 on:
+  pull_request:
   schedule:
     - cron: '0 2 * * 1'  # Weekly Monday 2am
   push:

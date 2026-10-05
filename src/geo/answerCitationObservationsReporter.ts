@@ -1151,10 +1151,13 @@ export function renderAiAnswerCitationObservationHtml(
     'inconsistent-owned-citation': 'Owned citation varies',
     'repeated-without-citations': 'Repeated · no citations observed',
   };
+  const reviewHasOwnedCitationCounts = report.reviewQueue.some(
+    (item) => item.observationsWithOwnedCitation !== undefined
+  );
   const reviewRows = report.reviewQueue
     .map(
       (item) =>
-        `<tr><td><span class="badge">${opportunityLabels[item.reason]}</span></td><td class="prompt">${escapeHtml(item.prompt)}</td><td>${number(item.observations)}</td><td>${number(item.uniqueProviders)}</td><td>${number(item.observationsWithCitations)}</td>${item.observationsWithOwnedCitation === undefined ? '' : `<td>${number(item.observationsWithOwnedCitation)}</td>`}<td>${escapeHtml(item.citedDomains.join(', ') || 'none observed')}</td></tr>`
+        `<tr><td><span class="badge">${opportunityLabels[item.reason]}</span></td><td class="prompt">${escapeHtml(item.prompt)}</td><td>${number(item.observations)}</td><td>${number(item.uniqueProviders)}</td><td>${number(item.observationsWithCitations)}</td>${reviewHasOwnedCitationCounts ? `<td>${item.observationsWithOwnedCitation === undefined ? '<span class="muted">not recorded</span>' : number(item.observationsWithOwnedCitation)}</td>` : ''}<td>${escapeHtml(item.citedDomains.join(', ') || 'none observed')}</td></tr>`
     )
     .join('');
 
@@ -1175,10 +1178,16 @@ export function renderAiAnswerCitationObservationHtml(
     })
     .join('');
 
+  const monthlyHasOwnedCitationCounts = report.monthly.some(
+    (item) => item.observationsWithOwnedCitation !== undefined
+  );
+  const monthlyHasOwnedEventShares = report.monthly.some(
+    (item) => item.ownedCitationEventSharePercent !== undefined
+  );
   const monthlyRows = report.monthly
     .map(
       (item) =>
-        `<tr><td>${escapeHtml(item.month)}</td><td>${number(item.observations)}</td><td>${number(item.observationsWithCitations)}</td><td>${number(item.observationsWithoutCitations)}</td>${item.observationsWithOwnedCitation === undefined ? '' : `<td>${number(item.observationsWithOwnedCitation)}</td>`}${item.ownedCitationEventSharePercent === undefined ? '' : `<td>${item.ownedCitationEventSharePercent === null ? '<span class="muted">no citation events</span>' : `${number(item.ownedCitationEvents ?? 0)} (${percent(item.ownedCitationEventSharePercent)})`}</td>`}<td>${number(item.citationEvents)}</td><td>${escapeHtml(formatCitationListPosition(item.citationListPosition))}</td></tr>`
+        `<tr><td>${escapeHtml(item.month)}</td><td>${number(item.observations)}</td><td>${number(item.observationsWithCitations)}</td><td>${number(item.observationsWithoutCitations)}</td>${monthlyHasOwnedCitationCounts ? `<td>${item.observationsWithOwnedCitation === undefined ? '<span class="muted">not recorded</span>' : number(item.observationsWithOwnedCitation)}</td>` : ''}${!monthlyHasOwnedEventShares ? '' : `<td>${item.ownedCitationEventSharePercent === undefined ? '<span class="muted">not recorded</span>' : item.ownedCitationEventSharePercent === null ? '<span class="muted">no citation events</span>' : `${number(item.ownedCitationEvents ?? 0)} (${percent(item.ownedCitationEventSharePercent)})`}</td>`}<td>${number(item.citationEvents)}</td><td>${escapeHtml(formatCitationListPosition(item.citationListPosition))}</td></tr>`
     )
     .join('');
   const topicIntentMonthlyProfiles = report.topicIntentProviderMonthly ?? [];
@@ -2061,14 +2070,11 @@ export function renderAiAnswerCitationObservationHtml(
   const citationUrlPersistencePanel = report.citationUrlPersistenceProfiles
     ? `<section class="panel"><h2>Cited-page URL persistence</h2><p>Exact normalized page URLs are tracked separately from their domains, within the same provider, exact-prompt, and recorded-context groups. This distinguishes stable source hosts from page-level URL turnover. Query strings and fragments are stripped during URL normalization. A missing URL in an incomplete next-timestamp citation list is counted as unknown and excluded from retention denominators; set citationListComplete=false for clipped lists, and an unmarked list of 50 URLs is treated as incomplete. These rows describe sampled transitions, not page quality or provider ranking.</p>${citationUrlPersistenceRows ? `<div class="table-wrap"><table><thead><tr><th>Cited page URL</th><th>Provider · recorded context</th><th>Prompt support</th><th>Next-timestamp retention</th><th>Observed span</th></tr></thead><tbody>${citationUrlPersistenceRows}</tbody></table></div>` : '<div class="empty">No cited-page URL persistence profiles are available.</div>'}${citationUrlPersistenceProfiles.length > 100 ? '<p class="muted">Dashboard shows the 100 URLs with the most source-present transitions. Use --geo-answer-citation-url-persistence-csv for all retained profiles.</p>' : ''}${report.citationUrlPersistenceProfilesTruncated ? '<p class="muted">URL profiles were capped; consult the CSV summary row for work and output truncation.</p>' : ''}</section>`
     : '';
-  const promptWithOwnedHeader =
-    summary.ownedCitationCoveragePercent === undefined ? '' : '<th>With owned citation</th>';
-  const ownedEventShareHeader =
-    summary.ownedCitationEventSharePercent === undefined
-      ? ''
-      : '<th>Owned citation-event share</th>';
-  const reviewOwnedHeader =
-    summary.ownedCitationCoveragePercent === undefined ? '' : '<th>Owned citation snapshots</th>';
+  const promptWithOwnedHeader = monthlyHasOwnedCitationCounts ? '<th>With owned citation</th>' : '';
+  const ownedEventShareHeader = monthlyHasOwnedEventShares
+    ? '<th>Owned citation-event share</th>'
+    : '';
+  const reviewOwnedHeader = reviewHasOwnedCitationCounts ? '<th>Owned citation snapshots</th>' : '';
   const entityMentionProfiles = report.entityMentionProfiles ?? [];
   const entityCoMentionProfiles = report.entityCoMentionProfiles ?? [];
   const entityMentionMonthlyProfiles = report.entityMentionMonthlyProfiles ?? [];
