@@ -2763,6 +2763,7 @@ export function renderAiAnswerCitationPromptSimilarityCsv(
     '',
     '',
     '',
+    '',
     documentCount,
     candidatePairCount,
     highFrequencyCutoff,

@@ -1,0 +1,129 @@
+name: Native candidate validation
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-rust-matrix:
+    name: Validate native (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            package_dir: linux-x64
+            artifact_name: tui-linux-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-linux-amd64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            package_dir: linux-arm64
+            artifact_name: tui-linux-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-linux-arm64
+            cross: true
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            package_dir: darwin-x64
+            artifact_name: tui-macos-amd64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-macos-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            package_dir: darwin-arm64
+            artifact_name: tui-macos-arm64
+            binary_name: tui
+            fast_binary_name: aviary-fast
+            fast_artifact_name: aviary-fast-macos-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            package_dir: win32-x64
+            artifact_name: tui-windows-amd64.exe
+            binary_name: tui.exe
+            fast_binary_name: aviary-fast.exe
+            fast_artifact_name: aviary-fast-windows-amd64.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: '${{ matrix.target }}' }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: '. -> target' }
+      - name: Install cross (for ARM builds)
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+      # `cross build` runs the aarch64 binary *inside* its own Docker
+      # container via QEMU, but that container exits once the build is
+      # done -- registering binfmt_misc on the host here too is what lets
+      # the smoke-test step below actually execute the resulting aarch64
+      # binary directly on this x86_64 runner afterward.
+      - name: Install QEMU user-mode emulation (for cross-arch smoke test)
+        if: matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+      # --bin aviary-fast selects the binary *target* (engine/src/bin/aviary_fast.rs)
+      # from the aviary-engine package — "aviary-fast" is a binary name, not
+      # a package name, so `--package aviary-fast` alone wouldn't resolve.
+      - name: Build (native)
+        if: '!matrix.cross'
+        run: cargo build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        working-directory: tui
+      - name: Build (cross)
+        if: matrix.cross
+        run: cross build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
+        working-directory: tui
+      # `tui` is a member of the root Cargo workspace (see /Cargo.toml), so
+      # even when built from within `tui/`, cargo/cross write output to
+      # `<repo>/target/<triple>/release/`, not `tui/target/...` — verified
+      # locally (cargo build --release --target x86_64-unknown-linux-gnu
+      # from tui/ produces ../target/x86_64-unknown-linux-gnu/release/tui).
+      - name: Rename binaries
+        run: |
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "${{ matrix.artifact_name }}"
+          cp "target/${{ matrix.target }}/release/${{ matrix.fast_binary_name }}" "${{ matrix.fast_artifact_name }}"
+        shell: bash
+      # Runs the just-built binary once on its own native (or, for the
+      # cross target, QEMU-emulated) runner. CI has no real TTY so the TUI
+      # is expected to fail once it tries to open one -- this only checks
+      # that failure is the TUI's own runtime error, not the OS refusing
+      # to load the binary at all (wrong target, missing shared libs).
+      - name: Smoke test binary runs on this platform
+        run: node scripts/smoke-test-binary.js "./${{ matrix.artifact_name }}"
+        shell: bash
+      - name: Smoke test fast engine help without network access
+        run: node scripts/smoke-test-fast-binary.js "./${{ matrix.fast_artifact_name }}"
+        shell: bash
+      - name: Pack, install and smoke native npm candidate
+        run: node scripts/check-native-package.js "${{ matrix.package_dir }}" "target/${{ matrix.target }}/release" "${{ inputs.version }}"
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.fast_artifact_name }}
+          path: ${{ matrix.fast_artifact_name }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-package-${{ matrix.package_dir }}
+          path: reports/native-candidates/${{ matrix.package_dir }}/

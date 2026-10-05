@@ -14,6 +14,9 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Keep the prompt-similarity summary CSV aligned with its shared-provider, document-count, threshold, and truncation headers.
+- Validate native artifacts through packed npm candidates, isolated installs, binary integrity checks, and startup on all five supported targets before publication; the same matrix can run on pull requests.
+
 - Preserve unknown category and owned-source absence when captured citation lists are incomplete or legacy completeness metadata is missing; disclose these states in prompt coverage/detail CSV exports and suppress complete-comparison claims.
 
 - Report the installed package version in the MCP handshake instead of a fixed historical version.
