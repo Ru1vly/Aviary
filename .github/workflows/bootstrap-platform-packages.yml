@@ -36,7 +36,7 @@ jobs:
             fast_binary_name: aviary-fast
             fast_artifact_name: aviary-fast-linux-arm64
             cross: true
-          - os: macos-latest
+          - os: macos-15-intel
             target: x86_64-apple-darwin
             artifact_name: tui-macos-amd64
             binary_name: tui

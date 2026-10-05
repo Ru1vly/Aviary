@@ -642,12 +642,15 @@ function parseCitationShare(value: string | undefined): number | undefined {
     .trim()
     .replace(/[\s\u00a0]/g, '')
     .replace(/%$/, '');
-  if (trimmed.includes(',') && !trimmed.includes('.')) {
-    const parsed = Number(trimmed.replace(',', '.'));
-    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : undefined;
-  }
-  const parsed = parseMetric(trimmed);
-  return parsed !== undefined && parsed <= 100 ? parsed : undefined;
+  // Shares use a decimal separator even with three fractional digits. Count
+  // parsing treats that shape as thousands grouping, which would drop 12.345%.
+  const parsed =
+    trimmed.includes(',') && trimmed.includes('.')
+      ? parseMetric(trimmed)
+      : Number(trimmed.replace(',', '.'));
+  return parsed !== undefined && Number.isFinite(parsed) && parsed >= 0 && parsed <= 100
+    ? parsed
+    : undefined;
 }
 
 /** Parse an English or localized CSV export from Bing Webmaster Tools AI Performance. */

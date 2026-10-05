@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Retain valid three-decimal Bing citation shares, including rows where share is the only metric; run macOS x64 native validation on an Intel runner and keep hard-link test coverage independent of Windows symlink privileges.
+
 - Consolidate release handoffs and GEO evidence into canonical guides; shorten the README, separate CLI/SDK references, remove duplicate API sections and unsupported accuracy estimates.
 - Publish the exact checksum-verified root and native tarballs from consumer validation, with provenance and OIDC/token authentication support.
 - Pin Linux CI runners to Ubuntu 24.04 and use Node 22 for validation. Preserve all existing quality and coverage gates.

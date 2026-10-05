@@ -10,6 +10,9 @@ describe('Bing AI performance exports', () => {
     ['0%', 0],
     ['100%', 100],
     ['12,5%', 12.5],
+    ['12.345%', 12.345],
+    ['0.001%', 0.001],
+    ['100.000%', 100],
     ['100.01%', undefined],
     ['120%', undefined],
     ['101,1%', undefined],
@@ -21,6 +24,13 @@ describe('Bing AI performance exports', () => {
     );
     expect(parsed.rows[0].citations).toBe(2);
     expect(parsed.rows[0].citationShare).toBe(expected);
+  });
+
+  it('retains a row whose only metric is a three-decimal citation share', () => {
+    const parsed = parseBingAiPerformanceCsvExport('Query;Citation Share\nfirst;12.345%');
+    expect(parsed.rowCount).toBe(1);
+    expect(parsed.skippedRows).toBe(0);
+    expect(parsed.rows[0]).toMatchObject({ query: 'first', citationShare: 12.345 });
   });
 
   it('explains why mean row share is not the combined citation share', () => {
