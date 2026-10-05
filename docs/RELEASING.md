@@ -54,11 +54,12 @@ checkout's optional dependency versions stay resolvable before publication;
 the release stamp selects the new versions in published metadata.
 
 After the PR's CI, security and native checks pass, merge it and tag that reviewed
-commit. `.github/workflows/release.yml` repeats the gates, publishes native
+commit. `.github/workflows/release.yml` repeats the gates, promotes the exact validated tarballs, publishes native
 packages first, then the root package, container image and GitHub release assets.
 Use npm trusted publishing for repository `Ru1vly/Aviary`, workflow `release.yml`
 on all six packages. The publish jobs require Node 24, npm >=11.5.1 and
-`id-token: write`; see [npm's publisher setup](https://docs.npmjs.com/trusted-publishers/).
+`id-token: write`. npm tries OIDC first; the existing `NPM_TOKEN` secret is a
+fallback for token-authorized publishing. Both paths request provenance. See [npm's publisher setup](https://docs.npmjs.com/trusted-publishers/).
 
 ```sh
 git tag -a v0.2.1 -m 'Aviary 0.2.1' <reviewed-commit>

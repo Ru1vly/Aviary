@@ -120,8 +120,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
+          registry-url: 'https://registry.npmjs.org'
       - name: Install npm with trusted publishing support
-        run: npm install --global npm@11.5.1
+        run: npm install --global npm@11.15.0
       - uses: actions/download-artifact@v4
         with:
           name: native-package-${{ matrix.dir }}
@@ -147,7 +148,9 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.skip == 'false'
         working-directory: reports/native-publish/${{ matrix.dir }}
-        run: npm publish ./*.tgz --access public --tag latest
+        run: npm publish ./*.tgz --access public --tag latest --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # ── Build & Publish npm package ────────────────────────────
   publish-npm:
@@ -164,8 +167,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
+          registry-url: 'https://registry.npmjs.org'
       - name: Install npm with trusted publishing support
-        run: npm install --global npm@11.5.1
+        run: npm install --global npm@11.15.0
       - uses: actions/download-artifact@v4
         with:
           name: verified-root-package
@@ -178,7 +182,9 @@ jobs:
         run: npm publish ./*.tgz --dry-run --access public --tag latest
       - name: Publish to npm
         working-directory: reports/root-publish
-        run: npm publish ./*.tgz --access public --tag latest
+        run: npm publish ./*.tgz --access public --tag latest --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # ── Build & Push Docker Image ───────────────────────────────
   docker:
