@@ -745,11 +745,21 @@ function compareGeoSignals(current: SEOReport, baseline: SEOReport): SEOAuditGeo
   }
   const oldSourceProfile = geoCheckDetails(baseline, 'source-rendered-content-profile');
   const newSourceProfile = geoCheckDetails(current, 'source-rendered-content-profile');
-  compareObservedNumbers(oldSourceProfile, newSourceProfile, [
-    ['renderedPhraseCoveragePercent', 'Rendered phrase coverage in initial HTML', '%'],
-    ['sourceWordCount', 'Initial HTML content words', 'word(s)'],
-    ['renderedWordCount', 'Rendered content words', 'word(s)'],
-  ]);
+  const oldExtraction = oldSourceProfile?.textExtraction ?? 'legacy mixed textContent/innerText';
+  const newExtraction = newSourceProfile?.textExtraction ?? 'legacy mixed textContent/innerText';
+  if (oldSourceProfile && newSourceProfile && oldExtraction !== newExtraction) {
+    addChange(
+      'Source/rendered extraction method (text deltas not comparable)',
+      String(oldExtraction),
+      String(newExtraction)
+    );
+  } else {
+    compareObservedNumbers(oldSourceProfile, newSourceProfile, [
+      ['renderedPhraseCoveragePercent', 'Rendered phrase coverage in initial HTML', '%'],
+      ['sourceWordCount', 'Initial HTML content words', 'word(s)'],
+      ['renderedWordCount', 'Rendered content words', 'word(s)'],
+    ]);
+  }
   const oldEvidenceProfile = geoCheckDetails(baseline, 'citation-evidence-profile');
   const newEvidenceProfile = geoCheckDetails(current, 'citation-evidence-profile');
   compareObservedNumbers(oldEvidenceProfile, newEvidenceProfile, [

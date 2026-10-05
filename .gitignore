@@ -12,9 +12,8 @@ playwright-report/
 playwright/.cache/
 coverage/
 
-# Generated local SEO/GEO reports; selectively commit concise review summaries.
-reports/*
-!reports/RELEASE_EVIDENCE.md
+# Generated SEO/GEO reports and release receipts.
+reports/
 
 # IDE
 .vscode/

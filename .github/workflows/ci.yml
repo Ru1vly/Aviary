@@ -7,17 +7,21 @@ on:
     branches: [main, master, develop]
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   RUST_VERSION: 'stable'
 
 # Platform binary packages are published and resolved in pnpm-lock.yaml, so
 # frozen installs are the expected CI behavior. Keep the lockfile synchronized
 # whenever package.json or pnpm-workspace.yaml changes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ── Lint & Type Check ──────────────────────────────────────
   lint:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -31,7 +35,7 @@ jobs:
   # ── Unit Tests ──────────────────────────────────────────────
   test-unit:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: lint
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +56,7 @@ jobs:
   # ── Integration Tests ───────────────────────────────────────
   test-integration:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: lint
     steps:
       - uses: actions/checkout@v4
@@ -63,11 +67,21 @@ jobs:
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:integration
         timeout-minutes: 10
+      - run: pnpm run build:ts
+      - name: Validate source-derived GEO output semantics
+        run: node examples/geo-output-validation.mjs reports/geo-output-validation
+        timeout-minutes: 5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geo-output-validation
+          path: reports/geo-output-validation/
+          retention-days: 7
 
   # ── E2E Tests ────────────────────────────────────────────────
   test-e2e:
     name: E2E Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: lint
     steps:
       - uses: actions/checkout@v4
@@ -82,7 +96,7 @@ jobs:
   # ── Rust TUI Build ─────────────────────────────────────────
   build-rust:
     name: Build Rust TUI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -101,7 +115,7 @@ jobs:
   # ── TypeScript Build ────────────────────────────────────────
   build-ts:
     name: Build TypeScript
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [test-unit, test-integration, test-e2e]
     steps:
       - uses: actions/checkout@v4
@@ -112,8 +126,49 @@ jobs:
       - run: pnpm run build:ts
       - run: pnpm run check:xlsx-bundle
       - run: pnpm run check:cli-docs
+      - name: Pack unpublished 0.2.1 candidate
+        run: pnpm run pack:candidate -- 0.2.1 reports/release-candidates/ci
+      - name: Verify clean candidate consumer
+        run: node scripts/check-release-candidate.js reports/release-candidates/ci/ru1vly-aviary-0.2.1.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: root-release-candidate
+          path: reports/release-candidates/ci/
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: dist-js
           path: dist/
           retention-days: 7
+
+  container:
+    name: Container Build & Smoke
+    runs-on: ubuntu-24.04
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: aviary:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify CLI and browser runtime
+        run: |
+          docker run --rm aviary:ci --version
+          docker run --rm aviary:ci --help
+          docker run --rm --entrypoint node aviary:ci -e '
+            const fs = require("node:fs");
+            const { chromium } = require("playwright");
+            (async () => {
+              if (!fs.existsSync("docs/openapi.yaml")) throw new Error("Missing OpenAPI document");
+              const browser = await chromium.launch();
+              try {
+                const page = await browser.newPage();
+                await page.setContent("<main><h1>Container smoke</h1></main>");
+                if (await page.locator("h1").innerText() !== "Container smoke") throw new Error("Browser smoke failed");
+              } finally { await browser.close(); }
+            })().catch(error => { console.error(error); process.exitCode = 1; });
+          '

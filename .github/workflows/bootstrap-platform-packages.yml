@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   build-rust-matrix:
@@ -23,20 +23,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             artifact_name: tui-linux-amd64
             binary_name: tui
             fast_binary_name: aviary-fast
             fast_artifact_name: aviary-fast-linux-amd64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-gnu
             artifact_name: tui-linux-arm64
             binary_name: tui
             fast_binary_name: aviary-fast
             fast_artifact_name: aviary-fast-linux-arm64
             cross: true
-          - os: macos-latest
+          - os: macos-15-intel
             target: x86_64-apple-darwin
             artifact_name: tui-macos-amd64
             binary_name: tui
@@ -100,7 +100,7 @@ jobs:
 
   publish-platform-packages:
     name: Publish platform package (${{ matrix.dir }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build-rust-matrix]
     strategy:
       matrix:

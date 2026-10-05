@@ -13,6 +13,7 @@ target
 k8s
 tests
 examples
-docs
+docs/*
+!docs/openapi.yaml
 *.log
 .env*

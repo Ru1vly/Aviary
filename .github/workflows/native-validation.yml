@@ -1,0 +1,27 @@
+name: Validate unpublished native candidates
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/native-*.yml'
+      - '.github/workflows/release.yml'
+      - 'scripts/check-native-package.js'
+      - 'scripts/smoke-test-*.js'
+      - 'engine/**'
+      - 'tui/**'
+      - 'npm/**'
+      - 'Cargo.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    uses: ./.github/workflows/native-build.yml
+    with:
+      version: '0.2.1'

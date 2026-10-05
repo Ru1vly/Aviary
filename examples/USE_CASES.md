@@ -54,7 +54,7 @@ node dist/cli.js --urls urls.txt \
   --fail-on-geo-change
 ```
 
-For general check regressions, use `--fail-on-regression`. Batch output can also fail on duplicate metadata, duplicate main content, and canonical chains; see the [CLI reference](../README.md#command-line-options) for the available gates. The example [GitHub Actions workflow](./github-actions-audit.yml) shows a repeatable audit job.
+For general check regressions, use `--fail-on-regression`. Batch output can also fail on duplicate metadata, duplicate main content, and canonical chains; see the [CLI reference](../docs/CLI.md) for the available gates. The example [GitHub Actions workflow](./github-actions-audit.yml) shows a repeatable audit job.
 
 ## Compare two hosts on matching routes
 

@@ -2,7 +2,7 @@
 
 Notable changes to Aviary are documented here.
 
-## 0.2.0
+## 0.2.1
 
 ### Added
 
@@ -13,6 +13,21 @@ Notable changes to Aviary are documented here.
 - Offline JSON, CSV, Markdown, HTML, and PDF reporting, with runnable and clearly labelled synthetic fixtures for the multi-stage GEO workflows.
 
 ### Improved
+
+- Include workspace dependency overrides, XLSX build tooling and the OpenAPI document in the container; align its native dependencies with the published release version.
+
+- Retain valid three-decimal Bing citation shares, including rows where share is the only metric; run macOS x64 native validation on an Intel runner and keep hard-link test coverage independent of Windows symlink privileges.
+
+- Consolidate release handoffs and GEO evidence into canonical guides; shorten the README, separate CLI/SDK references, remove duplicate API sections and unsupported accuracy estimates.
+- Publish the exact checksum-verified root and native tarballs from consumer validation, with provenance and OIDC/token authentication support.
+- Pin Linux CI runners to Ubuntu 24.04 and use Node 22 for validation. Preserve all existing quality and coverage gates.
+
+- Compare source and rendered GEO text with consistent DOM boundaries, preserving inline split words and excluding hidden rendered additions; avoid false client-content gaps from mixing textContent and innerText. Preserve the extraction method in sitewide JSON and withhold text deltas across different methods.
+
+- Keep monthly and review-queue dashboard columns aligned when older saved reports omit summary or per-row owned-citation metrics.
+- Keep the prompt-similarity summary CSV aligned with its shared-provider, document-count, threshold, and truncation headers.
+- Reject missing dynamic loaders and unexpected native TUI startup failures; validate Linux ARM binaries on an ARM runner.
+- Validate native artifacts through packed npm candidates, isolated installs, binary integrity checks, and startup on all five supported targets before publication; the same matrix can run on pull requests.
 
 - Preserve unknown category and owned-source absence when captured citation lists are incomplete or legacy completeness metadata is missing; disclose these states in prompt coverage/detail CSV exports and suppress complete-comparison claims.
 

@@ -83,6 +83,46 @@ describe('GeoChecker', () => {
     vi.clearAllMocks();
   });
 
+  // Google defines none as noindex/nofollow. A parameter value is not a rule:
+  // https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
+  it.each([
+    { directive: 'none', noindex: true, noSnippet: false, noArchive: false },
+    { directive: 'max-image-preview: none', noindex: false, noSnippet: false, noArchive: false },
+    { directive: 'max-image-preview:none', noindex: false, noSnippet: false, noArchive: false },
+    {
+      directive: 'max-image-preview: none, nosnippet',
+      noindex: false,
+      noSnippet: true,
+      noArchive: false,
+    },
+    {
+      directive: 'max-image-preview: none, noindex, noarchive',
+      noindex: true,
+      noSnippet: false,
+      noArchive: true,
+    },
+    { directive: 'max-snippet: 0', noindex: false, noSnippet: true, noArchive: false },
+  ])(
+    'interprets standalone rules separately from values: $directive',
+    async ({ directive, noindex, noSnippet, noArchive }) => {
+      const results = await makeChecker(
+        `<meta name="robots" content="${directive}"><main><p>Useful content.</p></main>`
+      ).checkAll();
+      const details = byName(results, 'ai-search-preview-controls').details;
+      expect(details).toMatchObject({ noindex, noSnippet });
+      expect(
+        (details?.crawlerControls as Array<Record<string, unknown>>).every(
+          (row) => row.noindex === noindex && row.noSnippet === noSnippet
+        )
+      ).toBe(true);
+      expect(
+        (details?.dataUseCrawlerControls as Array<Record<string, unknown>>).every(
+          (row) => row.noindex === noindex && row.noArchive === noArchive
+        )
+      ).toBe(true);
+    }
+  );
+
   it('returns all GEO signals and distinguishes indexing policy from training controls', async () => {
     const results = await makeChecker(
       '<main><h1>A useful article</h1><p>Clear and informative content.</p></main>'
@@ -169,6 +209,64 @@ describe('GeoChecker', () => {
       sharedRenderedPhraseCount: 1,
       renderedPhraseCoveragePercent: 14.3,
     });
+  });
+
+  it.each([
+    {
+      label: 'adjacent semantic blocks',
+      html: '<main><h1>alpha beta gamma</h1><p>delta epsilon zeta</p><div>eta theta iota</div></main>',
+      words: 9,
+    },
+    {
+      label: 'inline split words',
+      html: '<main><p>Search op<strong>ti</strong>mization supports useful answers</p><p>for real people</p></main>',
+      words: 8,
+    },
+    {
+      label: 'line breaks and explicitly hidden text',
+      html: '<main>alpha beta gamma<br>delta epsilon zeta<span hidden>secret hidden words</span></main>',
+      words: 6,
+    },
+    {
+      label: 'inert script and template content',
+      html: '<main><p>alpha beta gamma delta epsilon zeta</p><script type="application/ld+json">{"name":"other tokens"}</script><template>unused text tokens</template></main>',
+      words: 6,
+    },
+  ])('does not fabricate a content gap for $label', async ({ html, words }) => {
+    const result = byName(await makeChecker(html).checkAll(), 'source-rendered-content-profile');
+    expect(result.details).toMatchObject({
+      sourceWordCount: words,
+      renderedWordCount: words,
+      renderedOnlyPhraseCount: 0,
+      renderedPhraseCoveragePercent: 100,
+    });
+    expect(result.details?.textExtraction).toContain('inline words preserved');
+  });
+
+  it('excludes a hidden rendered addition while retaining actual added visible text', async () => {
+    const original = '<main><p>alpha beta gamma delta epsilon zeta</p></main>';
+    const hidden = original.replace(
+      '</main>',
+      '<p style="display:none">new unseen tokens</p></main>'
+    );
+    const hiddenProfile = byName(
+      await makeChecker(hidden, { sourceHtml: original }).checkAll(),
+      'source-rendered-content-profile'
+    );
+    expect(hiddenProfile.details).toMatchObject({
+      renderedWordCount: 6,
+      renderedPhraseCoveragePercent: 100,
+    });
+    const visible = original.replace(
+      '</main>',
+      '<p>new visible client words appear here</p></main>'
+    );
+    const visibleProfile = byName(
+      await makeChecker(visible, { sourceHtml: original }).checkAll(),
+      'source-rendered-content-profile'
+    );
+    expect(visibleProfile.details?.renderedOnlyPhraseCount).toBeGreaterThan(0);
+    expect(visibleProfile.details?.renderedPhraseCoveragePercent).toBeLessThan(100);
   });
 
   it('does not fetch optional llms.txt files when robots policy disallows AviaryBot', async () => {
