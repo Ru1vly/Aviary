@@ -112,6 +112,15 @@ jobs:
       - run: pnpm run build:ts
       - run: pnpm run check:xlsx-bundle
       - run: pnpm run check:cli-docs
+      - name: Pack unpublished 0.2.0 candidate
+        run: pnpm run pack:candidate -- 0.2.0 reports/release-candidates/ci
+      - name: Verify clean candidate consumer
+        run: node scripts/check-release-candidate.js reports/release-candidates/ci/ru1vly-aviary-0.2.0.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: root-release-candidate
+          path: reports/release-candidates/ci/
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: dist-js
