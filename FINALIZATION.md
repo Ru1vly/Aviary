@@ -27,6 +27,10 @@ to implement every proposed integration before shipping.
    release dependencies. Public publication is distinct from local finalization;
    npm publisher authentication and the existing release tag must be resolved
    before a public release can be declared complete.
+7. GEO output interpretations are checked against at least three independent
+   authoritative sources. The source-derived browser/export validation passes,
+   and factual quality and citation prediction are explicitly distinguished from
+   measured controls. See [the output validation](docs/GEO_OUTPUT_VALIDATION.md).
 
 ## Starting evidence
 

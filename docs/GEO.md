@@ -6,6 +6,8 @@ Aviary's `geo` checker reports observable controls and page signals that can mat
 
 The batch score summarizes configured checks; it is not a GEO readiness score. Some GEO profiles surface review signals without failing a check, so inspect the sitewide summary and opportunity review even when the average score is 100.
 
+The [output-quality validation](GEO_OUTPUT_VALIDATION.md) compares actual checker and export outputs with official Google, OpenAI, and Bing documentation. It records source-derived cases, corrected interpretation errors, and the limits of the evidence. Passing diagnostics do not establish content truth, support from linked sources, or future citations.
+
 ## Coverage and limits
 
 Aviary has a broad GEO workflow for live page diagnostics, robots and crawler-policy review, source/render comparisons, sitewide summaries, audit baselines, access-log analysis, and offline analysis of first-party exports or manually recorded answer citations. The provider-observation tools analyze the sample supplied by the operator; they do not automatically query every proprietary answer engine or predict future rankings and citations. Useful product work remains, including broader provider data integrations and more large-scale scan optimization.

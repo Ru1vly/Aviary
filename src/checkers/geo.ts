@@ -361,19 +361,25 @@ export class GeoChecker extends BaseChecker {
             if (activeHeaderSource) headerDirectives.push({ source: activeHeaderSource, value });
           }
           const allDirectives = [...metaDirectives, ...headerDirectives];
+          // Keep parameterized rules intact: the value in max-image-preview: none
+          // is not the standalone rule none (= noindex, nofollow).
+          const directiveTokens = (values: Array<{ value: string }>): string[] =>
+            values.flatMap(
+              ({ value }) => value.match(/[a-z][a-z0-9_-]*(?:\s*:\s*[^,\s]+)?/gi) ?? []
+            );
           const crawlerControls = crawlerTokens.map((token) => {
             const applicable = allDirectives.filter(
               ({ source }) =>
                 source === 'robots' || source === 'x-robots-tag' || source === token.toLowerCase()
             );
-            const tokens = applicable.flatMap(({ value }) => value.split(/[\s,]+/).filter(Boolean));
+            const tokens = directiveTokens(applicable);
             const maxSnippetZero = applicable.some(({ value }) =>
               /(?:^|[,\s])max-snippet\s*:\s*0(?:$|[,\s])/i.test(value)
             );
             return {
               token,
               noindex: tokens.includes('noindex') || tokens.includes('none'),
-              noSnippet: tokens.includes('nosnippet') || tokens.includes('none') || maxSnippetZero,
+              noSnippet: tokens.includes('nosnippet') || maxSnippetZero,
               maxSnippetZero,
             };
           });
@@ -386,9 +392,7 @@ export class GeoChecker extends BaseChecker {
                 ({ source }) =>
                   source === 'robots' || source === 'x-robots-tag' || source === token.toLowerCase()
               );
-              const tokens = applicable.flatMap(({ value }) =>
-                value.split(/[\s,]+/).filter(Boolean)
-              );
+              const tokens = directiveTokens(applicable);
               return {
                 token,
                 noindex: tokens.includes('noindex') || tokens.includes('none'),
@@ -483,7 +487,7 @@ export class GeoChecker extends BaseChecker {
       const crawlerControlSummary = `search crawler noindex: ${summarizeCrawlerTokens(noindexCrawlers)}; snippet restrictions: ${summarizeCrawlerTokens(noSnippetCrawlers)}; data-use noindex: ${summarizeCrawlerTokens(dataUseNoindexCrawlers)}; data-use noarchive: ${summarizeCrawlerTokens(noArchiveCrawlers)}`;
       const dataNoSnippetSummary =
         previewData.dataNoSnippetElements > 0
-          ? `${previewData.dataNoSnippetWords} visible words in ${previewData.dataNoSnippetElements} data-nosnippet element(s) (${previewData.dataNoSnippetWordSharePercent === null ? 'share unavailable' : `${previewData.dataNoSnippetWordSharePercent}% of visible text`})`
+          ? `${previewData.dataNoSnippetWords} visible words in ${previewData.dataNoSnippetElements} data-nosnippet element(s) (${previewData.dataNoSnippetWordSharePercent === null ? 'share unavailable' : `${previewData.dataNoSnippetWordSharePercent}% of visible text`}); supported element types vary by provider`
           : 'no visible data-nosnippet regions';
 
       return {
@@ -492,8 +496,8 @@ export class GeoChecker extends BaseChecker {
         message: restricted
           ? status !== undefined && status !== 200
             ? `The page returned HTTP ${status}; search indexing eligibility may be affected. ${crawlerControlSummary}. ${dataNoSnippetSummary}`
-            : `Page directives restrict indexing or search snippets; confirm that this is intentional. ${crawlerControlSummary}. ${dataNoSnippetSummary}`
-          : `${previewData.visibleTextCharacters} visible content characters are available without a page-wide noindex or nosnippet directive. ${crawlerControlSummary}. ${dataNoSnippetSummary}`,
+            : `Page directives declare indexing or search-snippet restrictions; confirm that this is intentional. ${crawlerControlSummary}. ${dataNoSnippetSummary}`
+          : `${previewData.visibleTextCharacters} visible content characters were observed without a page-wide noindex or nosnippet directive; provider handling and actual indexing were not verified. ${crawlerControlSummary}. ${dataNoSnippetSummary}`,
         details: {
           ...(status !== undefined ? { responseStatus: status } : {}),
           noindex: previewData.noindex,
@@ -507,6 +511,8 @@ export class GeoChecker extends BaseChecker {
           visibleTextWords: previewData.visibleTextWords,
           visibleTextCharacters: previewData.visibleTextCharacters,
           directives: previewData.directives,
+          interpretation:
+            'Crawler rows inventory applicable literal directives; support and handling vary by provider. Google and Bing document snippet limits; their semantics must not be assumed for every listed crawler. Visible data-nosnippet counts include any marked HTML element: Bing supports any element, while Google documents only span, div, and section. These counts do not measure excluded AI-answer content. Robots permission does not prove directives were fetched, indexing occurred, or Search Console generative-AI inclusion was enabled.',
         },
       };
     } catch (error) {
@@ -956,7 +962,7 @@ export class GeoChecker extends BaseChecker {
 
       return {
         ...this.pass(
-          `Content profile: ${profile.contentWords} words, ${profile.conciseAnswerBlocks}/${profile.questionHeadings} question headings followed by concise answers, ${profile.externalContentLinks} external content links`,
+          `Content profile: ${profile.contentWords} words, ${profile.conciseAnswerBlocks}/${profile.questionHeadings} question headings followed by concise answers, ${profile.externalContentLinks} external content links; structure counts do not establish content quality or citation eligibility`,
           {
             ...profile,
             interpretation:
@@ -1303,7 +1309,7 @@ export class GeoChecker extends BaseChecker {
 
       return {
         ...this.pass(
-          `Evidence profile: ${profile.externalSourceLinkCount} external source links across ${profile.uniqueSourceHosts} hosts; ${profile.referenceSectionLinkCount} links under reference headings; ${profile.unresolvedInlineCitationTargetCount} unresolved in-page citation target(s)`,
+          `Evidence profile: ${profile.externalSourceLinkCount} external source links across ${profile.uniqueSourceHosts} hosts; ${profile.referenceSectionLinkCount} links under reference headings; ${profile.unresolvedInlineCitationTargetCount} unresolved in-page citation target(s); source quality and claim support were not verified`,
           {
             ...profile,
             interpretation:

@@ -63,6 +63,16 @@ jobs:
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:integration
         timeout-minutes: 10
+      - run: pnpm run build:ts
+      - name: Validate source-derived GEO output semantics
+        run: node examples/geo-output-validation.mjs reports/geo-output-validation
+        timeout-minutes: 5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geo-output-validation
+          path: reports/geo-output-validation/
+          retention-days: 7
 
   # ── E2E Tests ────────────────────────────────────────────────
   test-e2e:

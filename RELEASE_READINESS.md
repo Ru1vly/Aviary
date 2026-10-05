@@ -10,6 +10,12 @@ Release packaging stamps the root, optional dependency versions, native package
 manifests, and OpenAPI contract to 0.2.0 without changing the development checkout.
 The installed CLI, API, and MCP read that package version.
 
+The subsequent [GEO output-quality review](docs/GEO_OUTPUT_VALIDATION.md) compares
+actual outputs with Google, OpenAI, and Bing documentation. It found and fixes
+three semantic errors and adds explicit interpretation limits. The engineering
+results and packed archives below describe the earlier candidate; they do not
+by themselves verify these subsequent source changes or GEO predictive accuracy.
+
 ## Verified engineering gates
 
 | Gate | Evidence |

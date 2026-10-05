@@ -83,6 +83,46 @@ describe('GeoChecker', () => {
     vi.clearAllMocks();
   });
 
+  // Google defines none as noindex/nofollow. A parameter value is not a rule:
+  // https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
+  it.each([
+    { directive: 'none', noindex: true, noSnippet: false, noArchive: false },
+    { directive: 'max-image-preview: none', noindex: false, noSnippet: false, noArchive: false },
+    { directive: 'max-image-preview:none', noindex: false, noSnippet: false, noArchive: false },
+    {
+      directive: 'max-image-preview: none, nosnippet',
+      noindex: false,
+      noSnippet: true,
+      noArchive: false,
+    },
+    {
+      directive: 'max-image-preview: none, noindex, noarchive',
+      noindex: true,
+      noSnippet: false,
+      noArchive: true,
+    },
+    { directive: 'max-snippet: 0', noindex: false, noSnippet: true, noArchive: false },
+  ])(
+    'interprets standalone rules separately from values: $directive',
+    async ({ directive, noindex, noSnippet, noArchive }) => {
+      const results = await makeChecker(
+        `<meta name="robots" content="${directive}"><main><p>Useful content.</p></main>`
+      ).checkAll();
+      const details = byName(results, 'ai-search-preview-controls').details;
+      expect(details).toMatchObject({ noindex, noSnippet });
+      expect(
+        (details?.crawlerControls as Array<Record<string, unknown>>).every(
+          (row) => row.noindex === noindex && row.noSnippet === noSnippet
+        )
+      ).toBe(true);
+      expect(
+        (details?.dataUseCrawlerControls as Array<Record<string, unknown>>).every(
+          (row) => row.noindex === noindex && row.noArchive === noArchive
+        )
+      ).toBe(true);
+    }
+  );
+
   it('returns all GEO signals and distinguishes indexing policy from training controls', async () => {
     const results = await makeChecker(
       '<main><h1>A useful article</h1><p>Clear and informative content.</p></main>'

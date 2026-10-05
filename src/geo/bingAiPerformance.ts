@@ -644,9 +644,10 @@ function parseCitationShare(value: string | undefined): number | undefined {
     .replace(/%$/, '');
   if (trimmed.includes(',') && !trimmed.includes('.')) {
     const parsed = Number(trimmed.replace(',', '.'));
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : undefined;
   }
-  return parseMetric(trimmed);
+  const parsed = parseMetric(trimmed);
+  return parsed !== undefined && parsed <= 100 ? parsed : undefined;
 }
 
 /** Parse an English or localized CSV export from Bing Webmaster Tools AI Performance. */
@@ -912,7 +913,7 @@ export function summarizeBingAiPerformanceExport(
           },
         }
       : {}),
-    note: 'Bing reports sampled, aggregated observations. Totals sum rows in this one export view; they are not complete counts of AI answers or citations, and separate export views may overlap.',
+    note: 'Bing reports sampled, aggregated observations. Totals sum rows in this one export view; they are not complete counts of AI answers or citations, and separate export views may overlap. Average citation share is the unweighted mean of supplied row percentages, not a combined property share; cross-query share requires the corresponding all-site citation denominators.',
   };
 }
 
