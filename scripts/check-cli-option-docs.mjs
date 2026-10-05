@@ -14,7 +14,7 @@ if (help.status !== 0) {
   process.exit(help.status ?? 1);
 }
 
-const documentation = ['README.md', 'docs/GEO.md']
+const documentation = ['README.md', 'docs/CLI.md', 'docs/GEO.md']
   .map((path) => readFileSync(path, 'utf8'))
   .join('\n');
 const optionsMatching = (text, pattern) =>

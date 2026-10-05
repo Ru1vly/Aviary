@@ -83,7 +83,7 @@ try {
   );
   fs.writeFileSync(
     path.join(destination, 'README.md'),
-    `# Aviary ${version} unpublished candidate\n\nSource commit: ${commit}\n\nSHA-256: ${digest}\n\nBuild and isolated XLSX bundle checks passed. This command does not establish release readiness; consult RELEASE_READINESS.md for coverage, publisher and platform verification requirements.\n`
+    `# Aviary ${version} unpublished candidate\n\nSource commit: ${commit}\n\nSHA-256: ${digest}\n\nBuild and isolated XLSX bundle checks passed. This command does not establish release readiness; consult docs/RELEASING.md for coverage, publisher and platform verification requirements.\n`
   );
   console.log(filename);
 } finally {

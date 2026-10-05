@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -17,7 +17,7 @@ jobs:
   # ── Gate: tests must pass before anything publishes ─────────
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -51,6 +51,10 @@ jobs:
         run: |
           pnpm run pack:candidate -- "${GITHUB_REF_NAME#v}" reports/release-candidates/tag
           node scripts/check-release-candidate.js "reports/release-candidates/tag/ru1vly-aviary-${GITHUB_REF_NAME#v}.tgz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-root-package
+          path: reports/release-candidates/tag/
 
   # ── Cross-compile Rust TUI + fast-path engine binary ────────
   # Each artifact bundles both `tui` and `aviary-fast` (from the
@@ -76,7 +80,7 @@ jobs:
   # anyone installing the main package right after release.
   publish-platform-packages:
     name: Publish platform package (${{ matrix.dir }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build-rust-matrix]
     env:
       NODE_VERSION: '24'
@@ -119,29 +123,21 @@ jobs:
       - name: Install npm with trusted publishing support
         run: npm install --global npm@11.5.1
       - uses: actions/download-artifact@v4
-        with: { name: '${{ matrix.artifact_name }}', path: 'npm/${{ matrix.dir }}' }
-      - uses: actions/download-artifact@v4
-        with: { name: '${{ matrix.fast_artifact_name }}', path: 'npm/${{ matrix.dir }}' }
-      - name: Rename binaries and set executable bit
-        working-directory: npm/${{ matrix.dir }}
-        run: |
-          mv "${{ matrix.artifact_name }}" "${{ matrix.binary_name }}"
-          mv "${{ matrix.fast_artifact_name }}" "${{ matrix.fast_binary_name }}"
-          chmod +x "${{ matrix.binary_name }}" "${{ matrix.fast_binary_name }}" || true
-      - name: Set version from tag
-        working-directory: npm/${{ matrix.dir }}
-        run: npm version "$RELEASE_TAG" --no-git-tag-version --allow-same-version
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
+        with:
+          name: native-package-${{ matrix.dir }}
+          path: reports/native-publish/${{ matrix.dir }}/
+      - name: Verify checked native archive
+        working-directory: reports/native-publish/${{ matrix.dir }}
+        run: sha256sum -c SHA256SUMS
       # Idempotency guard: the manual recovery workflow may already have
       # published this version. npm rejects republishing an existing version,
       # so skip it when the package is already available.
       - name: Check if this version is already published
         id: check
-        working-directory: npm/${{ matrix.dir }}
+        working-directory: reports/native-publish/${{ matrix.dir }}
         run: |
-          PKG=$(node -p "require('./package.json').name")
-          VERSION=$(node -p "require('./package.json').version")
+          PKG=$(node -p "require('./pack-manifest.json').name")
+          VERSION=$(node -p "require('./pack-manifest.json').version")
           if npm view "$PKG@$VERSION" version >/dev/null 2>&1; then
             echo "Already published, skipping."
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -150,13 +146,13 @@ jobs:
           fi
       - name: Publish to npm
         if: steps.check.outputs.skip == 'false'
-        working-directory: npm/${{ matrix.dir }}
-        run: npm publish --access public
+        working-directory: reports/native-publish/${{ matrix.dir }}
+        run: npm publish ./*.tgz --access public --tag latest
 
   # ── Build & Publish npm package ────────────────────────────
   publish-npm:
     name: Publish to npm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [test, publish-platform-packages]
     env:
       NODE_VERSION: '24'
@@ -165,31 +161,29 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      # TS only — the native TUI binary now ships via the per-platform
-      # optionalDependencies published above, not bundled into dist/.
-      - run: pnpm run build:ts
-      - run: pnpm run check:xlsx-bundle
       - name: Install npm with trusted publishing support
         run: npm install --global npm@11.5.1
-      - name: Set version from tag
-        run: node scripts/set-release-version.js "$RELEASE_VERSION"
-        env:
-          RELEASE_VERSION: ${{ github.ref_name }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-root-package
+          path: reports/root-publish/
+      - name: Verify checked root archive
+        working-directory: reports/root-publish
+        run: sha256sum -c SHA256SUMS
       - name: Verify package contents (dry run)
-        run: npm publish --dry-run --access public
+        working-directory: reports/root-publish
+        run: npm publish ./*.tgz --dry-run --access public --tag latest
       - name: Publish to npm
-        run: npm publish --access public
+        working-directory: reports/root-publish
+        run: npm publish ./*.tgz --access public --tag latest
 
   # ── Build & Push Docker Image ───────────────────────────────
   docker:
     name: Docker Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [test, publish-npm]
     permissions:
       contents: read
@@ -222,7 +216,7 @@ jobs:
   # ── Create GitHub Release ───────────────────────────────────
   github-release:
     name: GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build-rust-matrix, publish-npm, docker]
     permissions:
       contents: write

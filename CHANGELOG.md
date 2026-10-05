@@ -2,7 +2,7 @@
 
 Notable changes to Aviary are documented here.
 
-## 0.2.0
+## 0.2.1
 
 ### Added
 
@@ -13,6 +13,9 @@ Notable changes to Aviary are documented here.
 - Offline JSON, CSV, Markdown, HTML, and PDF reporting, with runnable and clearly labelled synthetic fixtures for the multi-stage GEO workflows.
 
 ### Improved
+
+- Consolidate release handoffs and GEO evidence into canonical guides; shorten the README, separate CLI/SDK references, remove duplicate API sections and unsupported accuracy estimates.
+- Pin Linux CI runners to Ubuntu 24.04 and use Node 22 for validation. Preserve all existing quality and coverage gates.
 
 - Compare source and rendered GEO text with consistent DOM boundaries, preserving inline split words and excluding hidden rendered additions; avoid false client-content gaps from mixing textContent and innerText. Preserve the extraction method in sitewide JSON and withhold text deltas across different methods.
 

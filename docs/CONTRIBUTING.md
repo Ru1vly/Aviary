@@ -4,7 +4,7 @@ Thanks for helping improve Aviary. This guide covers the local setup, the main p
 
 ## Set up the project
 
-Aviary requires Node.js 20 or newer. The repository pins pnpm 10.34.6 in `package.json`. Use that version to keep installs aligned with CI and the lockfile. Install dependencies and the Playwright browser:
+Aviary requires Node.js 22 for development (the package supports Node.js 20 or newer). The repository pins pnpm 10.34.6 in `package.json`. Use that version to keep installs aligned with CI and the lockfile. Install dependencies and the Playwright browser:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -26,10 +26,11 @@ pnpm run build:ts
 pnpm run check:cli-docs
 pnpm run lint
 pnpm run format:check
-pnpm test
+pnpm run check:xlsx-bundle
+pnpm run test:coverage --maxWorkers=2
 ```
 
-The Vitest suites are under `tests/unit`, `tests/integration`, `tests/e2e`, and `tests/benchmarks`. Browser-backed tests need Playwright Chromium. The README's [accuracy and scope notes](./ACCURACY_LIMITATIONS.md) describe which measurements are lab data or heuristics.
+The Vitest suites are under `tests/unit`, `tests/integration`, `tests/e2e`, and `tests/benchmarks`. Browser-backed tests need Playwright Chromium. The [accuracy and scope notes](./ACCURACY_LIMITATIONS.md) describe which measurements are lab data or heuristics.
 
 The Rust static engine and terminal UI live in `engine/` and `tui/`. Use the Rust toolchain and the workspace's Cargo commands when changing those packages. Keep changes scoped to the relevant implementation rather than modifying generated `dist/`, `target/`, or platform binary files.
 
@@ -61,3 +62,5 @@ Use local fixtures or deterministic mocks for tests where possible. Do not commi
 Keep pull requests focused and include enough context to review the behavior. For a report or dashboard change, include a representative screenshot or sample output when it clarifies the result. For a bug report, include the Aviary version, Node.js version, command or API request, observed result, expected result, and a sanitized error message or report excerpt.
 
 Be considerate in review discussions. Explain tradeoffs plainly, and keep user-facing wording consistent with the README and existing reports.
+
+For candidate packaging, native validation and npm publication, use the single [release guide](RELEASING.md).

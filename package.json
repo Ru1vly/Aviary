@@ -1,6 +1,6 @@
 {
   "name": "@ru1vly/aviary",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "description": "SEO and GEO auditing toolkit for websites",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,8 +21,6 @@
     "docs/TROUBLESHOOTING.md",
     "docs/GEO.md",
     "docs/GEO_OUTPUT_VALIDATION.md",
-    "docs/GEO_INDEPENDENT_BENCHMARK.md",
-    "docs/GEO_RELIABILITY_PROOF.md",
     "docs/geo-summary.schema.json",
     "docs/geo-report-comparison.schema.json",
     "docs/geo-change-gate.schema.json",
@@ -158,7 +156,10 @@
     "!dist/tui",
     "!dist/tui.exe",
     "!dist/aviary-fast",
-    "!dist/aviary-fast.exe"
+    "!dist/aviary-fast.exe",
+    "docs/CLI.md",
+    "docs/SDK.md",
+    "docs/RELEASING.md"
   ],
   "bin": {
     "aviary": "dist/cli.js",

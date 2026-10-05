@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Aviary Audit API
-  version: 0.1.1
+  version: 0.2.1
   description: >-
     Submit bounded, asynchronous SEO audit jobs and poll their resources. The
     bundled server binds to loopback by default. Non-loopback listeners require

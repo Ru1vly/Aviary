@@ -1,120 +1,195 @@
-# GEO output quality validation
+# GEO output validation
 
-Reviewed 2026-10-05 against official documentation from **Google, OpenAI, and
-Microsoft Bing**. Engineering tests alone did not establish output quality.
+Reviewed **2026-10-05**. The defensible use is **technical GEO diagnostics and
+analysis of supplied observations**. This review does not establish Aviary as
+a verifier of factual content quality or a predictor of AI citations.
 
-Aviary can be used as a diagnostic and observation-analysis aid within its
-reported scope. Its content and evidence profiles do **not** establish factual
-accuracy, originality, source credibility, or whether linked sources support a
-claim. Its scores do **not** predict indexing, ranking, AI-answer inclusion, or
-future citations. No population accuracy percentage has been established.
+## Proof from actual outputs
 
-## Comparison with three independent authorities
+### Independently labelled HTTP/browser cases
 
-| Authority and primary source                                                                                                       | What was compared                                                                 | Assessment                                                                                                                                                                                                                                                                                                          |
-| ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Google: generative AI optimization](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)                 | Optional llms files, schema, answer formatting, JavaScript and eligibility claims | Missing AI-specific files or formatting must not fail a page. Source/render differences cannot establish crawler inability. Aviary preserves those distinctions. Search Console inclusion and actual index state remain unverified.                                                                                 |
-| [OpenAI: crawler documentation](https://developers.openai.com/api/docs/bots)                                                       | Search, training and user-requested fetching                                      | OAI-SearchBot and GPTBot controls are independent. Both allow-search/block-training and block-search/allow-training fixtures produce the correct separate decisions. ChatGPT-User is not used as an automatic search-indexing control. Robots permission alone does not verify firewall access or actual inclusion. |
-| [Bing: AI Performance](https://blogs.bing.com/webmaster/2026/2/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview/) | Citation counts, grounding queries and interpretation of observed visibility      | Imported row sums describe the supplied export. They are not an authority score, answer rank, a complete universe of citations, or proof that content changes caused a citation. Missing export rows remain unknown rather than zero.                                                                               |
+`examples/geo-output-validation.mjs` serves known HTML, HTTP headers and robots
+policies over loopback, runs the production GEO checker in Chromium, and checks
+Google/Bing import results against hand-written expected interpretations.
+It saves the raw outputs alongside expectations and source references.
 
-These are independent operators, but their policies are not interchangeable.
-Three sources do not corroborate every provider-specific rule. The comparison
-uses the appropriate operator's documentation for each rule, including cases
-where operators differ.
+The extended review has **24 cases**. The old implementation passed **19/24**;
+the corrected implementation passes **24/24**. Five new cases reproduced an
+extraction error before the correction. One initial expected inline-word count
+was corrected from nine to eight after recounting the fixture; the old failure
+was already its zero overlap, not that count. The retained baseline expectations
+describe the same intended behavior.
 
-Additional rule-level sources were checked:
+The cases include:
 
-- [Google robots meta specification](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag): `none` means `noindex, nofollow`; `max-snippet:0` restricts text snippets. A parameter value must not be parsed as a separate rule.
-- [Bing preview controls](https://blogs.bing.com/webmaster/2020/4/Announcing-new-options-for-webmasters-to-control-their-snippets-at-Bing/): `max-image-preview:none` suppresses image previews, without declaring `noindex`.
-- [Bing data-nosnippet support](https://blogs.bing.com/webmaster/2025/10/Bing-Introduces-Support-for-the-data-nosnippet-HTML-Attribute/): Bing accepts any HTML element. Google's specification documents `span`, `div`, and `section`. Aviary's all-element counts inventory markup; they do not measure excluded AI-answer content.
-- [Bing citation-share definition](https://blogs.bing.com/search/2026/6/New-AI-Visibility-Insights-in-Bing-Webmaster-Tools-Intents-Topics-Citation-Share-Compare/): share is a percentage for a specific grounding query. Its range is 0–100. A cross-query mean of row percentages is not an overall citation share without all-site denominators.
-- [Google Search AI performance report](https://support.google.com/webmasters/answer/16984139?hl=en): impressions, aggregation scopes, export limits and absent-page interpretation. Aviary keeps views separate and does not invent clicks or missing-period impression deltas.
+- Search permission and training permission varied independently.
+- Page-wide/scoped indexing and snippet restrictions, including `none` and
+  `max-image-preview:none`, without leaking controls across crawler tokens.
+- Unknown robots availability and HTTP 404, without inventing confirmed access.
+- Missing optional llms files and markup, without inventing requirements.
+- Adjacent blocks, inline split words, CSS block layout, line breaks, hidden and
+  inert text, genuine client-added text, and removed text.
+- Citation-shaped links beside an intentionally false claim, without claiming
+  the links validate it.
+- Out-of-range citation share and missing Google/Bing page rows, preserving
+  unknown states and the meaning of the supplied exports.
 
-## Actual output checks
-
-The reproducible validator serves controlled pages and robots files over local
-HTTP and runs the production GEO checker in Chromium. It also feeds known CSV
-inputs through the production Google and Bing parsers. Expected interpretations
-were written from the sources above, rather than copied from implementation.
-It retains raw outputs beside individual expectations, source URLs and failures.
-
-The unmodified `4f8a047` implementation passed **13 of 18** checks. The revised
-implementation passes **18 of 18**. This is a bounded semantic regression
-result, **not** an estimated accuracy rate on real websites or AI engines.
-
-| Check                                                              | Original | Revised |
-| ------------------------------------------------------------------ | -------- | ------- |
-| Clean page without llms files, schema or question headings         | Pass     | Pass    |
-| `none` does not separately declare `nosnippet`                     | Fail     | Pass    |
-| `max-image-preview: none` does not declare `noindex`               | Fail     | Pass    |
-| Googlebot-scoped HTTP restrictions do not leak to OAI-SearchBot    | Pass     | Pass    |
-| `max-snippet: 0` declares a snippet restriction                    | Pass     | Pass    |
-| GPTBot opt-out preserves OAI-SearchBot access                      | Pass     | Pass    |
-| OAI-SearchBot opt-out preserves GPTBot access                      | Pass     | Pass    |
-| Boolean data-nosnippet values and nested word counting             | Pass     | Pass    |
-| Different Google/Bing supported element types are explained        | Fail     | Pass    |
-| JavaScript-only content is not declared citation-ineligible        | Pass     | Pass    |
-| Unavailable robots policy does not invent confirmed bot blocks     | Pass     | Pass    |
-| HTTP 404 is exposed instead of reported as clean eligibility       | Pass     | Pass    |
-| Three authority links do not establish support for a false claim   | Pass     | Pass    |
-| Invalid 120% citation share stays unmeasured; valid counts survive | Fail     | Pass    |
-| Mean row share is explicitly unweighted, not combined share        | Fail     | Pass    |
-| Bing missing-page metrics stay unknown                             | Pass     | Pass    |
-| Google page export rows retain their aggregation scope             | Pass     | Pass    |
-| Google missing-page metrics stay unknown                           | Pass     | Pass    |
-
-Three production errors were corrected: the two directive interpretation errors
-and acceptance of out-of-range citation shares. Output explanations now expose
-provider-specific element support and row-share averaging. Plain check messages
-also state that structure counts and citation-shaped links do not verify content
-quality or claim support.
-
-The false-claim fixture is deliberate: it says the moon is made of cheese and
-links to the three authorities. Aviary correctly counts three external source
-links and declares that claim support was not checked. Its check score is 100.
-A passing evidence
-profile therefore cannot be presented as a factual-quality endorsement. Even
-three reputable links can be irrelevant to the sentence they accompany.
-
-Run from a built source checkout:
+Run after building:
 
 ```sh
-pnpm build:ts
-node examples/geo-output-validation.mjs reports/geo-output-validation/after
+node examples/geo-output-validation.mjs reports/geo-proof-review/after
 ```
 
-CI runs this validation after building the integration-test checkout and saves
-the raw outputs and assessment as an artifact, including when the check fails.
-This protects the reviewed semantics against regression; source-policy changes
-still require a fresh documentation review.
+The source references include [Google's AI optimization guidance](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide),
+[OpenAI's crawler documentation](https://developers.openai.com/api/docs/bots),
+and [Microsoft Bing's AI Performance documentation](https://blogs.bing.com/webmaster/2026/2/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview/).
+Each policy is checked against its own operator. Text-extraction expectations
+also reference the [HTML standard's distinction between rendered text and DOM text](https://html.spec.whatwg.org/multipage/dom.html#the-innertext-idl-attribute).
 
-The local comparison retains `before/assessment.json`, `before/raw-outputs.json`,
-`after/assessment.json`, and `after/raw-outputs.json` under
-`reports/geo-output-validation/`. The baseline uses the unchanged production
-modules from revision `4f8a047`; its reconstruction provenance is saved in
-`baseline-source/provenance.json`. Generated reports stay ignored by Git.
+### Ten live pages, independently captured and parsed
 
-## Limits of the evidence
+All ten URLs from the [Silverback audit](https://geo.silverbackmarketing.com/audit/aviary-rs-com-20261005194319)
+were audited with the corrected Aviary GEO preset. All ten completed; the
+output contains **80 GEO check results**.
 
-This validation does not authenticate real provider crawls, inspect private
-Search Console settings, or benchmark future citation behavior. The existing
-synthetic review bundle demonstrates report behavior and layout; it is not
-independent evidence of real-world effectiveness. No private first-party exports
-or longitudinal live-provider capture panel were supplied for this review.
+A separate Python program captured each raw HTTP response and parsed it with
+the standard-library HTML parser, importing no Aviary code. **70/70 selected
+field comparisons agree**, across:
 
-To establish operational output quality, retain real first-party exports and
-repeated captures with fixed prompts, provider/model, locale, dates and complete
-citation lists. Review claims against the actual cited passages, with at least
-three relevant independent authorities when corroboration is appropriate.
-Measure factual-support errors and citation outcomes separately from check scores.
-Until that benchmark exists, cite this validation only for the specific controls
-and export interpretations above.
+1. HTTP status.
+2. Document language.
+3. Main-region presence.
+4. Nested JSON-LD type inventory.
+5. Main-content heading count.
+6. Main-content external link count.
+7. Literal page-wide meta noindex state on these clean pages.
 
-A subsequent independent live audit comparison actually ran GigAI, Silverback
-and Pyralis against aviary-rs.com. Their basic
-observations agree, but their grading rubrics differ. It also reproduces a
-source/rendered extraction artifact: Aviary reports 55.4% overlap where separated
-source text nodes yield 100%. The controlled checks above do not cover that
-normalization case. The subsequent [reliability review](GEO_RELIABILITY_PROOF.md)
-corrects it and extends the output validation to 24 cases, retaining the original
-results above as historical evidence.
+This is ten pages on **one domain**, not seventy independent websites or a
+population accuracy percentage. Raw heading/link counts do not independently
+verify CSS visibility. These pages have no restrictive directives; the
+controlled cases above cover restrictive and unavailable states.
+
+Evidence is retained under `reports/geo-proof-review/`: `live-batch.json`,
+`live-summary.json`, `live-http.json`, `page-00.html` through `page-09.html`,
+`verify-live.py`, and `live-independent-assessment.json`.
+
+### A reproduced defect and a verified correction
+
+Before the correction, aviary-rs.com produced **55.4%** source/rendered phrase
+overlap. Independent parsing showed all rendered text already present in the
+response; adjacent text nodes had been concatenated differently from browser
+`innerText`.
+
+The correction uses the same semantic DOM boundaries on both sides, preserves
+inline split words, and excludes hidden rendered text. A fresh live homepage
+audit produces **100% normalized overlap**, **280/280 shared phrases**, and
+**zero rendered-only phrases**. Both sides contain **284 normalized tokens**.
+This is a different normalization from the earlier independent experiment that
+inserted spaces at every text node (291 tokens); that experiment demonstrated
+the artifact, but would incorrectly split some words with inline markup.
+
+The output names the extraction method and its limits. Saved-report comparisons
+with different extraction methods withhold word/overlap deltas and disclose the
+method change. The method is also retained in sitewide JSON. Do not read this
+before/after correction as evidence that the website improved its GEO performance.
+
+CSS-only inline layout boundaries, visual reading order and generated content
+are not compared. Initial source CSS visibility is unresolved. DOM/visibility
+changes can still affect overlap; a low value is not proof of crawler incapacity.
+
+## The counterexample that limits the trust claim
+
+The controlled fixture saying **the moon is made of cheese**, with links to
+Google, OpenAI and Bing, receives an Aviary check score of **100**. The evidence
+profile counts three links and explicitly says source quality and claim support
+were not verified.
+
+Therefore 100 means the included checks passed; it cannot mean the page is
+factually correct, its sources support its claims, or an AI system will cite it.
+Users should rely on the concrete observations and their scope, and independently
+review factual claims and cited passages.
+
+## Decision for users
+
+| Use                                                                                 | Evidence supports it?                                                                                    |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Inspect documented robots policy and separate search/training controls              | Yes, within the named policies and tested cases; robots permission is not authenticated provider access. |
+| Inspect observed HTTP/indexing/snippet controls and content/schema/link inventories | Yes, within recorded snapshots and stated extraction limits.                                             |
+| Analyze supplied Google/Bing exports with missing metrics kept unknown              | Yes for reviewed parser semantics; export coverage and aggregation still apply.                          |
+| Treat an Aviary score as factual quality, source credibility or GEO success         | No. The false-claim counterexample disproves that interpretation.                                        |
+| Predict citations, rankings, indexing or the lift from suggested edits              | No predictive benchmark was established.                                                                 |
+| Claim a general accuracy rate from these results                                    | No. This is a bounded set of cases and one live domain.                                                  |
+
+## Independent audits of aviary-rs.com
+
+Three completed external audits were captured on 2026-10-05:
+
+| Service | Scope and result | What the comparison establishes |
+| --- | --- | --- |
+| [GigAI](https://gigai.tools/geo-audit?url=https%3A%2F%2Faviary-rs.com%2F) | Homepage; 79/100, grade B | Agrees on permissive robots, four top-level JSON-LD items, no question headings and three external links. |
+| [Silverback](https://geo.silverbackmarketing.com/audit/aviary-rs-com-20261005194319) | Ten pages; 65/100, homepage citability 33 | Same six nested schema types and three external homepage links. Its author flag refers to author metadata, while Aviary reports visible/schema authors separately. |
+| [Pyralis](https://pyralislabs.io/geo-audit?run=1&url=https%3A%2F%2Faviary-rs.com%2F) | Homepage; zero fixes/improvements, four GEO checks passed | Agrees on readable initial HTML, permissive crawler rules and optional missing llms files. |
+
+Aviary's homepage GEO checks all pass. These grades use different rules and
+cannot be averaged into an accuracy measure. GigAI and Pyralis links rerun an
+audit; Silverback retains a dated report. Saved captures retain the original
+results. The three external links are repository/support links on GitHub, not
+three independently verified sources supporting page claims.
+
+GigAI penalizes question headings/chunking; Silverback heavily penalizes missing
+llms files and offers a score bonus for its own readiness kit. Those scores do
+not measure actual AI citations. Silverback labels GPTBot as ChatGPT access and
+omits OAI-SearchBot; OpenAI documents search and training controls separately.
+Pyralis's user-agent probes returned equal 308 redirects at the non-www URL,
+which does not establish final-page access from authenticated vendor IPs.
+
+## Primary sources and interpretation
+
+1. [Google AI optimization](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide): no special llms file, chunking or schema requirement for Google Search. Unblocked JavaScript can be processed; eligibility does not guarantee serving.
+2. [OpenAI bots](https://developers.openai.com/api/docs/bots): OAI-SearchBot governs search and GPTBot training independently. ChatGPT-User is a separate user-triggered fetcher.
+3. [Bing AI Performance](https://blogs.bing.com/webmaster/2026/2/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview/): observed citation counts describe visibility in the supplied data, not authority, answer ranking or causal lift.
+
+Rule-level sources include [Google robots directives](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag),
+[Bing preview controls](https://blogs.bing.com/webmaster/2020/4/Announcing-new-options-for-webmasters-to-control-their-snippets-at-Bing/),
+[Bing data-nosnippet support](https://blogs.bing.com/webmaster/2025/10/Bing-Introduces-Support-for-the-data-nosnippet-HTML-Attribute/),
+[Bing citation-share definitions](https://blogs.bing.com/search/2026/6/New-AI-Visibility-Insights-in-Bing-Webmaster-Tools-Intents-Topics-Citation-Share-Compare/),
+and [Google's AI performance report](https://support.google.com/webmasters/answer/16984139?hl=en).
+`none` means noindex/nofollow rather than a separate nosnippet declaration;
+`max-image-preview:none` is an image-preview value. Bing accepts data-nosnippet
+on any element; Google's documented support is span/div/section. Citation
+share stays within 0–100; an unweighted mean of query-row shares is not combined
+share. Missing export rows remain unknown.
+
+Each operator is authoritative for its own policies. Three sources do not
+corroborate every provider-specific rule.
+
+## Reproduce and retain evidence
+
+```sh
+pnpm run build:ts
+node examples/geo-output-validation.mjs reports/geo-output-validation
+node dist/cli.js -u https://aviary-rs.com/ --preset geo --json --output reports/live-geo.json
+```
+
+The validator is also shipped with the npm package. CI builds before running it
+and retains raw output and assessment artifacts, including failures. Historical
+baseline results were 13/18 before directive/share corrections and 19/24 before
+the text extraction correction. The final corrected results are 24/24.
+
+Dated local evidence remains under `reports/independent-geo-aviary-rs/` (three
+external reports, screenshots, response captures and hashes) and
+`reports/geo-proof-review/` (before/after/consumer cases, ten-page outputs,
+independent parser, raw pages and SHA-256 manifest). These generated captures
+are ignored by Git; live report links cannot recreate every historical byte.
+Pyralis's JSON download timed out, so its completed visible report was retained.
+
+The corrected-source engineering run passed 1,510 tests in 91 files, with
+coverage S90.88%, B80.05%, F94.21%, L92.20%. Engineering coverage is separate
+from output validation. Publication and fresh package verification are recorded
+by the [release workflow](RELEASING.md).
+
+A broader outcome-quality claim needs independently reviewed pages across
+multiple domains plus repeated controlled AI-answer captures or first-party
+exports. That benchmark was not established here. Review factual claims against
+the actual cited passages; do not use check scores as proof of claim support,
+source credibility, indexing or future citations.

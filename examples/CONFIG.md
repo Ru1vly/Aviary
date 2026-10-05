@@ -223,7 +223,7 @@ You can override this by using the `--config` flag.
 
 For CLI audits, an explicit `--config` file takes precedence over `--preset`. If `--config` is omitted, `--preset` takes precedence over a discovered config file. Without either option, Aviary searches the current directory in the order above; if it finds no file, every checker runs with warning severity. This default runs the full checker registry, while the `advanced` preset also assigns stronger severities to selected rules.
 
-CLI flags override their corresponding environment variables. See the [README environment-variable reference](../README.md#environment-variables-12-factor-config) for supported `AVIARY_*` settings.
+CLI flags override their corresponding environment variables. See the [CLI environment-variable reference](../docs/CLI.md#environment-variables-12-factor-config) for supported `AVIARY_*` settings.
 
 ## Programmatic Usage
 
