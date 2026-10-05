@@ -30,7 +30,7 @@ Hosted verification of the engineering sources:
 
 - [CI, including clean root consumer](https://github.com/Ru1vly/Aviary/actions/runs/37256164214)
 - [Five-platform native packages](https://github.com/Ru1vly/Aviary/actions/runs/37256164375)
-- [Security Scan](https://github.com/Ru1vly/Aviary/actions/runs/37256164153)
+- [Current PR checks, including the CodeQL alert evaluation](https://github.com/Ru1vly/Aviary/pull/10/checks)
 
 ## Corrections made during finalization
 
@@ -49,6 +49,10 @@ Each native candidate is packed and installed before smoke testing its installed
 binaries. The TUI guard now rejects missing dynamic loaders and unexpected exits;
 its earlier emulator-loader false positive was found and corrected. The TUI's
 full-audit label no longer embeds a stale category count.
+
+CodeQL alert evaluation is checked separately from successful scanner execution.
+The verification code uses an exact hostname boundary and a literal OpenAPI
+version line, avoiding incomplete suffix checks and unnecessary regex construction.
 
 CI retains an unpublished root candidate and its consumer verification. Tagged
 releases repeat this consumer check before any publication job can start.

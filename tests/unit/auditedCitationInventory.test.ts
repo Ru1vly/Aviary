@@ -93,8 +93,10 @@ describe('audited citation inventory contracts', () => {
       renderer.renderAiAnswerCitationAuditedOwnedPageProviderInventoryCsv(current, audit)
     );
     expect(inventory.length).toBe(
-      audit.pageSummaries.filter((p) => new URL(p.url).hostname.endsWith('example.com')).length *
-        current.providers.length
+      audit.pageSummaries.filter((p) => {
+        const host = new URL(p.url).hostname;
+        return host === 'example.com' || host.endsWith('.example.com');
+      }).length * current.providers.length
     );
     dashboard(
       renderer.renderAiAnswerCitationAuditedOwnedPageProviderInventoryHtmlFromCsv(

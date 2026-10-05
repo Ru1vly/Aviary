@@ -167,7 +167,7 @@ async function main() {
       assert.equal(response.status, 200);
       assert.deepEqual(await response.json(), { status: 'ok', service: 'aviary-api', version });
       const spec = await (await fetch(base + '/openapi.yaml')).text();
-      assert.match(spec, new RegExp(`  version: ${version.replace(/\./g, '\\.')}\\n`));
+      assert(spec.split(/\r?\n/).includes(`  version: ${version}`));
     } finally {
       server.closeAllConnections();
       await new Promise((resolve) => server.close(resolve));
