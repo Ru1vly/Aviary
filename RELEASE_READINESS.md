@@ -16,6 +16,24 @@ three semantic errors and adds explicit interpretation limits. The engineering
 results and packed archives below describe the earlier candidate; they do not
 by themselves verify these subsequent source changes or GEO predictive accuracy.
 
+## Subsequent GEO output validation — 2026-10-05
+
+- Eight official source pages from Google, OpenAI, and Bing were compared with
+  actual browser/checker and export outputs. The unchanged implementation passed
+  13 of 18 bounded checks; the revised implementation passes all 18.
+- All 1,503 tests across 91 files pass after the corrections. Statements 90.88%,
+  branches 80.03%, functions 94.21%, lines 92.20%; thresholds and exclusions remain
+  unchanged. TypeScript, lint, source formatting, and 390 CLI switch checks pass.
+- `reports/geo-output-validation/` retains before/after raw outputs, individual
+  source-derived expectations, baseline provenance, coverage output and a hash
+  manifest. CI now reruns the output validation and retains its evidence.
+- The intentionally false-claim page has a check score of 100. This confirms why
+  diagnostic scores must not be presented as factual-quality endorsements.
+
+These results validate specific output semantics. They do not establish a
+population accuracy rate or predictive citation performance. The earlier packed
+candidate receipts below retain their own source revisions.
+
 ## Verified engineering gates
 
 | Gate | Evidence |

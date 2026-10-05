@@ -60,6 +60,12 @@ The generated review bundle verifies 82 manifest files and 48 offline browser
 layouts. The review changes are available in
 [PR #10](https://github.com/Ru1vly/Aviary/pull/10).
 
+The subsequent [GEO output-quality validation](docs/GEO_OUTPUT_VALIDATION.md)
+adds a separate, source-derived semantic gate: 18 of 18 output cases pass after
+three production interpretation errors were corrected. The resulting full suite
+passes 1,503 tests, with statements 90.88%, branches 80.03%, functions 94.21%, and
+lines 92.20%. These results do not establish content truth or citation prediction.
+
 “Finalized” here is the validated, installable 0.2.0 candidate defined above.
 Public release remains a distinct maintainer action with the authentication and
 tag dependencies recorded in the readiness handoff.
