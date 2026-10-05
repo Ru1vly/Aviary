@@ -211,6 +211,64 @@ describe('GeoChecker', () => {
     });
   });
 
+  it.each([
+    {
+      label: 'adjacent semantic blocks',
+      html: '<main><h1>alpha beta gamma</h1><p>delta epsilon zeta</p><div>eta theta iota</div></main>',
+      words: 9,
+    },
+    {
+      label: 'inline split words',
+      html: '<main><p>Search op<strong>ti</strong>mization supports useful answers</p><p>for real people</p></main>',
+      words: 8,
+    },
+    {
+      label: 'line breaks and explicitly hidden text',
+      html: '<main>alpha beta gamma<br>delta epsilon zeta<span hidden>secret hidden words</span></main>',
+      words: 6,
+    },
+    {
+      label: 'inert script and template content',
+      html: '<main><p>alpha beta gamma delta epsilon zeta</p><script type="application/ld+json">{"name":"other tokens"}</script><template>unused text tokens</template></main>',
+      words: 6,
+    },
+  ])('does not fabricate a content gap for $label', async ({ html, words }) => {
+    const result = byName(await makeChecker(html).checkAll(), 'source-rendered-content-profile');
+    expect(result.details).toMatchObject({
+      sourceWordCount: words,
+      renderedWordCount: words,
+      renderedOnlyPhraseCount: 0,
+      renderedPhraseCoveragePercent: 100,
+    });
+    expect(result.details?.textExtraction).toContain('inline words preserved');
+  });
+
+  it('excludes a hidden rendered addition while retaining actual added visible text', async () => {
+    const original = '<main><p>alpha beta gamma delta epsilon zeta</p></main>';
+    const hidden = original.replace(
+      '</main>',
+      '<p style="display:none">new unseen tokens</p></main>'
+    );
+    const hiddenProfile = byName(
+      await makeChecker(hidden, { sourceHtml: original }).checkAll(),
+      'source-rendered-content-profile'
+    );
+    expect(hiddenProfile.details).toMatchObject({
+      renderedWordCount: 6,
+      renderedPhraseCoveragePercent: 100,
+    });
+    const visible = original.replace(
+      '</main>',
+      '<p>new visible client words appear here</p></main>'
+    );
+    const visibleProfile = byName(
+      await makeChecker(visible, { sourceHtml: original }).checkAll(),
+      'source-rendered-content-profile'
+    );
+    expect(visibleProfile.details?.renderedOnlyPhraseCount).toBeGreaterThan(0);
+    expect(visibleProfile.details?.renderedPhraseCoveragePercent).toBeLessThan(100);
+  });
+
   it('does not fetch optional llms.txt files when robots policy disallows AviaryBot', async () => {
     vi.mocked(fetchRobotsPolicy).mockResolvedValue(policy({ allowed: false }));
     const fetchMock = vi.mocked(globalThis.fetch);

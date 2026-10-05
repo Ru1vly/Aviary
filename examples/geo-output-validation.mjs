@@ -21,6 +21,7 @@ import {
 const sources = {
   google: 'https://developers.google.com/search/docs/fundamentals/ai-optimization-guide',
   googleControls: 'https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag',
+  htmlText: 'https://html.spec.whatwg.org/multipage/dom.html#the-innertext-idl-attribute',
   googleMetrics: 'https://support.google.com/webmasters/answer/16984139?hl=en',
   openai: 'https://developers.openai.com/api/docs/bots',
   bing: 'https://blogs.bing.com/webmaster/2026/2/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview/',
@@ -196,6 +197,79 @@ const fixtures = [
       assert.equal(parity.passed, true);
       assert.equal(parity.details.renderedPhraseCoveragePercent, 0);
       assert.match(parity.details.interpretation, /does not identify/);
+    },
+  },
+  {
+    id: 'adjacent-blocks-are-not-client-content',
+    source: 'htmlText',
+    expected: 'Identical source and rendered adjacent blocks have full normalized phrase overlap.',
+    body: '<main><h1>alpha beta gamma</h1><p>delta epsilon zeta</p><div>eta theta iota</div></main>',
+    verify(results) {
+      const parity = check(results, 'source-rendered-content-profile').details;
+      assert.equal(parity.renderedPhraseCoveragePercent, 100);
+      assert.equal(parity.sourceWordCount, 9);
+      assert.equal(parity.renderedWordCount, 9);
+    },
+  },
+  {
+    id: 'inline-split-words-stay-intact',
+    source: 'htmlText',
+    expected: 'Inline markup inside a word does not create fake words or a source/render gap.',
+    body: '<main><p>Search op<strong>ti</strong>mization supports useful answers</p><p>for real people</p></main>',
+    verify(results) {
+      const parity = check(results, 'source-rendered-content-profile').details;
+      assert.equal(parity.renderedPhraseCoveragePercent, 100);
+      assert.equal(parity.sourceWordCount, 8);
+      assert.equal(parity.renderedWordCount, 8);
+    },
+  },
+  {
+    id: 'css-layout-is-not-added-text',
+    source: 'htmlText',
+    expected: 'CSS-only block layout on inline elements does not imply text added by JavaScript.',
+    head: '<style>.line { display: block; }</style>',
+    body: '<main><h1><span class="line">alpha beta gamma</span><span class="line">delta epsilon zeta</span></h1><p>eta theta iota</p></main>',
+    verify(results) {
+      assert.equal(
+        check(results, 'source-rendered-content-profile').details.renderedPhraseCoveragePercent,
+        100
+      );
+    },
+  },
+  {
+    id: 'hidden-client-text-is-not-visible-content',
+    source: 'htmlText',
+    expected: 'A client-added display:none paragraph is excluded from the rendered comparison.',
+    body: '<main><p>alpha beta gamma delta epsilon zeta</p></main><script>const p=document.createElement("p"); p.style.display="none"; p.textContent="unrelated secret words not shown to people"; document.querySelector("main").append(p);</script>',
+    verify(results) {
+      const parity = check(results, 'source-rendered-content-profile').details;
+      assert.equal(parity.renderedPhraseCoveragePercent, 100);
+      assert.equal(parity.renderedWordCount, 6);
+    },
+  },
+  {
+    id: 'line-breaks-and-hidden-markup',
+    source: 'htmlText',
+    expected: 'Line breaks separate words; explicitly hidden and inert text is not counted.',
+    body: '<main>alpha beta gamma<br>delta epsilon zeta<span hidden>not visible words</span><script type="application/ld+json">{"name":"irrelevant tokens"}</script><template>not rendered template words</template></main>',
+    verify(results) {
+      const parity = check(results, 'source-rendered-content-profile').details;
+      assert.equal(parity.renderedPhraseCoveragePercent, 100);
+      assert.equal(parity.sourceWordCount, 6);
+      assert.equal(parity.renderedWordCount, 6);
+    },
+  },
+  {
+    id: 'removed-text-is-directional-coverage',
+    source: 'htmlText',
+    expected:
+      'Removing source text does not imply rendered-only content; word counts expose removal.',
+    body: '<main><p>alpha beta gamma delta epsilon zeta</p><p id="removed">these extra words disappear after rendering</p></main><script>document.getElementById("removed").remove();</script>',
+    verify(results) {
+      const parity = check(results, 'source-rendered-content-profile').details;
+      assert.equal(parity.renderedPhraseCoveragePercent, 100);
+      assert.equal(parity.renderedWordCount, 6);
+      assert.equal(parity.sourceWordCount, 12);
     },
   },
   {

@@ -217,6 +217,7 @@ export interface SiteWideGeoPageSummary {
   };
   sourceRenderedContent?: {
     assessed: boolean;
+    textExtraction?: string;
     reason?: string;
     renderedPhraseCoveragePercent?: number | null;
     sourceWordCount?: number;
@@ -1293,6 +1294,9 @@ export function analyzeSiteWideGeo(batch: SEOAuditBatchReport): SiteWideGeoAnaly
         ? {
             sourceRenderedContent: {
               assessed: sourceRenderedAssessed,
+              ...(typeof sourceRendered.textExtraction === 'string'
+                ? { textExtraction: sourceRendered.textExtraction }
+                : {}),
               ...(typeof sourceRendered.reason === 'string'
                 ? { reason: sourceRendered.reason }
                 : {}),

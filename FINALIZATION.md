@@ -34,6 +34,12 @@ to implement every proposed integration before shipping.
 
 ## Starting evidence
 
+The [subsequent GEO reliability review](docs/GEO_RELIABILITY_PROOF.md) corrects
+a source/rendered normalization defect, verifies 24 labelled output cases and
+70 selected observations across ten live pages, and retains a false-claim
+counterexample showing why a check score is not a factual-quality endorsement.
+All 1,510 tests/91 files pass after the correction, with unchanged coverage gates.
+
 The latest hosted CI run on `1b89ab8` passes 976 tests. Statements 81.95%, lines
 83.44%, and functions 84.64% clear their gates; branches at 63.89% do not. Security
 Scan succeeds. The historical handoff's 659-test snapshot predates these results.
@@ -47,14 +53,14 @@ CI: https://github.com/Ru1vly/Aviary/actions/runs/37185354902
 
 The frozen 0.2.0 candidate meets the engineering finish line:
 
-| Requirement | Verification |
-| --- | --- |
-| Evidence and exports | 512 additional tests cover sparse, legacy, capped, incomplete, zero/unknown, privacy, join, gate, and export contracts. CSV summary and optional HTML-column defects are corrected. |
-| Full suite and coverage | 1,488 tests / 91 files pass. Statements 90.85%, branches 80.00%, functions 94.05%, lines 92.17%. The unchanged coverage gate succeeds. |
-| Static/security/Rust checks | Lint, source formatting, TypeScript build, XLSX isolation, 390 CLI switches, dependency audits, CodeQL, and locked workspace tests pass. |
-| Reproducible candidate | Clean committed builds generate the same root SHA-256. Local Node 22 and hosted Node 20 consumer checks exercise CLI, SDK, API/OpenAPI, and MCP at 0.2.0. |
-| Native targets | All five supported package builds, packed installs, integrity checks, and runtime smokes pass. Interactive Linux startup and Escape exit are verified. |
-| Accurate readiness | [RELEASE_READINESS.md](RELEASE_READINESS.md) records passing runs and artifact paths, the unpublished registry state, the unchanged older tag, and npm's E403 publisher-inspection limit. |
+| Requirement                 | Verification                                                                                                                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Evidence and exports        | 512 additional tests cover sparse, legacy, capped, incomplete, zero/unknown, privacy, join, gate, and export contracts. CSV summary and optional HTML-column defects are corrected.       |
+| Full suite and coverage     | 1,488 tests / 91 files pass. Statements 90.85%, branches 80.00%, functions 94.05%, lines 92.17%. The unchanged coverage gate succeeds.                                                    |
+| Static/security/Rust checks | Lint, source formatting, TypeScript build, XLSX isolation, 390 CLI switches, dependency audits, CodeQL, and locked workspace tests pass.                                                  |
+| Reproducible candidate      | Clean committed builds generate the same root SHA-256. Local Node 22 and hosted Node 20 consumer checks exercise CLI, SDK, API/OpenAPI, and MCP at 0.2.0.                                 |
+| Native targets              | All five supported package builds, packed installs, integrity checks, and runtime smokes pass. Interactive Linux startup and Escape exit are verified.                                    |
+| Accurate readiness          | [RELEASE_READINESS.md](RELEASE_READINESS.md) records passing runs and artifact paths, the unpublished registry state, the unchanged older tag, and npm's E403 publisher-inspection limit. |
 
 The generated review bundle verifies 82 manifest files and 48 offline browser
 layouts. The review changes are available in

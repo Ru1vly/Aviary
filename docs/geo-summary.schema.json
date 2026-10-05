@@ -210,6 +210,7 @@
           "required": ["assessed"],
           "properties": {
             "assessed": { "type": "boolean" },
+            "textExtraction": { "type": "string" },
             "reason": { "type": "string" },
             "renderedPhraseCoveragePercent": { "$ref": "#/$defs/nullablePercent" },
             "sourceWordCount": { "$ref": "#/$defs/count" },

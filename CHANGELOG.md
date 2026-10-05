@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Compare source and rendered GEO text with consistent DOM boundaries, preserving inline split words and excluding hidden rendered additions; avoid false client-content gaps from mixing textContent and innerText. Preserve the extraction method in sitewide JSON and withhold text deltas across different methods.
+
 - Keep monthly and review-queue dashboard columns aligned when older saved reports omit summary or per-row owned-citation metrics.
 - Keep the prompt-similarity summary CSV aligned with its shared-provider, document-count, threshold, and truncation headers.
 - Reject missing dynamic loaders and unexpected native TUI startup failures; validate Linux ARM binaries on an ARM runner.

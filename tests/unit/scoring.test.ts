@@ -186,6 +186,68 @@ describe('GEO baseline change gates', () => {
 });
 
 describe('saved report comparisons', () => {
+  it('withholds text deltas when source/rendered extraction methods change', () => {
+    const sourceReport = (coverage: number, textExtraction?: string) =>
+      report(
+        'https://example.com/page',
+        {
+          geo: [
+            {
+              passed: true,
+              name: 'source-rendered-content-profile',
+              message: 'Text observed',
+              details: {
+                renderedPhraseCoveragePercent: coverage,
+                sourceWordCount: coverage,
+                renderedWordCount: coverage,
+                ...(textExtraction ? { textExtraction } : {}),
+              },
+            },
+          ],
+        },
+        100
+      );
+    const comparison = compareSEOReports(
+      sourceReport(100, 'shared DOM boundaries'),
+      sourceReport(55)
+    );
+    expect(comparison.geoChanges).toEqual([
+      expect.objectContaining({
+        signal: 'Source/rendered extraction method (text deltas not comparable)',
+        before: 'legacy mixed textContent/innerText',
+        after: 'shared DOM boundaries',
+      }),
+    ]);
+  });
+
+  it('retains text deltas for matching extraction methods', () => {
+    const sourceReport = (coverage: number) =>
+      report(
+        'https://example.com/page',
+        {
+          geo: [
+            {
+              passed: true,
+              name: 'source-rendered-content-profile',
+              message: 'Text observed',
+              details: {
+                renderedPhraseCoveragePercent: coverage,
+                textExtraction: 'shared DOM boundaries',
+              },
+            },
+          ],
+        },
+        100
+      );
+    expect(compareSEOReports(sourceReport(80), sourceReport(60)).geoChanges).toEqual([
+      expect.objectContaining({
+        signal: 'Rendered phrase coverage in initial HTML',
+        before: '60%',
+        after: '80%',
+      }),
+    ]);
+  });
+
   it('compares repeated findings as a multiset and detects crawler/preview control changes', () => {
     const baseline = report(
       'https://example.com/page',

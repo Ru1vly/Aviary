@@ -11,11 +11,11 @@ future citations. No population accuracy percentage has been established.
 
 ## Comparison with three independent authorities
 
-| Authority and primary source | What was compared | Assessment |
-| --- | --- | --- |
-| [Google: generative AI optimization](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide) | Optional llms files, schema, answer formatting, JavaScript and eligibility claims | Missing AI-specific files or formatting must not fail a page. Source/render differences cannot establish crawler inability. Aviary preserves those distinctions. Search Console inclusion and actual index state remain unverified. |
-| [OpenAI: crawler documentation](https://developers.openai.com/api/docs/bots) | Search, training and user-requested fetching | OAI-SearchBot and GPTBot controls are independent. Both allow-search/block-training and block-search/allow-training fixtures produce the correct separate decisions. ChatGPT-User is not used as an automatic search-indexing control. Robots permission alone does not verify firewall access or actual inclusion. |
-| [Bing: AI Performance](https://blogs.bing.com/webmaster/2026/2/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview/) | Citation counts, grounding queries and interpretation of observed visibility | Imported row sums describe the supplied export. They are not an authority score, answer rank, a complete universe of citations, or proof that content changes caused a citation. Missing export rows remain unknown rather than zero. |
+| Authority and primary source                                                                                                       | What was compared                                                                 | Assessment                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Google: generative AI optimization](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)                 | Optional llms files, schema, answer formatting, JavaScript and eligibility claims | Missing AI-specific files or formatting must not fail a page. Source/render differences cannot establish crawler inability. Aviary preserves those distinctions. Search Console inclusion and actual index state remain unverified.                                                                                 |
+| [OpenAI: crawler documentation](https://developers.openai.com/api/docs/bots)                                                       | Search, training and user-requested fetching                                      | OAI-SearchBot and GPTBot controls are independent. Both allow-search/block-training and block-search/allow-training fixtures produce the correct separate decisions. ChatGPT-User is not used as an automatic search-indexing control. Robots permission alone does not verify firewall access or actual inclusion. |
+| [Bing: AI Performance](https://blogs.bing.com/webmaster/2026/2/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview/) | Citation counts, grounding queries and interpretation of observed visibility      | Imported row sums describe the supplied export. They are not an authority score, answer rank, a complete universe of citations, or proof that content changes caused a citation. Missing export rows remain unknown rather than zero.                                                                               |
 
 These are independent operators, but their policies are not interchangeable.
 Three sources do not corroborate every provider-specific rule. The comparison
@@ -42,26 +42,26 @@ The unmodified `4f8a047` implementation passed **13 of 18** checks. The revised
 implementation passes **18 of 18**. This is a bounded semantic regression
 result, **not** an estimated accuracy rate on real websites or AI engines.
 
-| Check | Original | Revised |
-| --- | --- | --- |
-| Clean page without llms files, schema or question headings | Pass | Pass |
-| `none` does not separately declare `nosnippet` | Fail | Pass |
-| `max-image-preview: none` does not declare `noindex` | Fail | Pass |
-| Googlebot-scoped HTTP restrictions do not leak to OAI-SearchBot | Pass | Pass |
-| `max-snippet: 0` declares a snippet restriction | Pass | Pass |
-| GPTBot opt-out preserves OAI-SearchBot access | Pass | Pass |
-| OAI-SearchBot opt-out preserves GPTBot access | Pass | Pass |
-| Boolean data-nosnippet values and nested word counting | Pass | Pass |
-| Different Google/Bing supported element types are explained | Fail | Pass |
-| JavaScript-only content is not declared citation-ineligible | Pass | Pass |
-| Unavailable robots policy does not invent confirmed bot blocks | Pass | Pass |
-| HTTP 404 is exposed instead of reported as clean eligibility | Pass | Pass |
-| Three authority links do not establish support for a false claim | Pass | Pass |
-| Invalid 120% citation share stays unmeasured; valid counts survive | Fail | Pass |
-| Mean row share is explicitly unweighted, not combined share | Fail | Pass |
-| Bing missing-page metrics stay unknown | Pass | Pass |
-| Google page export rows retain their aggregation scope | Pass | Pass |
-| Google missing-page metrics stay unknown | Pass | Pass |
+| Check                                                              | Original | Revised |
+| ------------------------------------------------------------------ | -------- | ------- |
+| Clean page without llms files, schema or question headings         | Pass     | Pass    |
+| `none` does not separately declare `nosnippet`                     | Fail     | Pass    |
+| `max-image-preview: none` does not declare `noindex`               | Fail     | Pass    |
+| Googlebot-scoped HTTP restrictions do not leak to OAI-SearchBot    | Pass     | Pass    |
+| `max-snippet: 0` declares a snippet restriction                    | Pass     | Pass    |
+| GPTBot opt-out preserves OAI-SearchBot access                      | Pass     | Pass    |
+| OAI-SearchBot opt-out preserves GPTBot access                      | Pass     | Pass    |
+| Boolean data-nosnippet values and nested word counting             | Pass     | Pass    |
+| Different Google/Bing supported element types are explained        | Fail     | Pass    |
+| JavaScript-only content is not declared citation-ineligible        | Pass     | Pass    |
+| Unavailable robots policy does not invent confirmed bot blocks     | Pass     | Pass    |
+| HTTP 404 is exposed instead of reported as clean eligibility       | Pass     | Pass    |
+| Three authority links do not establish support for a false claim   | Pass     | Pass    |
+| Invalid 120% citation share stays unmeasured; valid counts survive | Fail     | Pass    |
+| Mean row share is explicitly unweighted, not combined share        | Fail     | Pass    |
+| Bing missing-page metrics stay unknown                             | Pass     | Pass    |
+| Google page export rows retain their aggregation scope             | Pass     | Pass    |
+| Google missing-page metrics stay unknown                           | Pass     | Pass    |
 
 Three production errors were corrected: the two directive interpretation errors
 and acceptance of out-of-range citation shares. Output explanations now expose
@@ -109,3 +109,12 @@ three relevant independent authorities when corroboration is appropriate.
 Measure factual-support errors and citation outcomes separately from check scores.
 Until that benchmark exists, cite this validation only for the specific controls
 and export interpretations above.
+
+A subsequent independent live audit comparison actually ran GigAI, Silverback
+and Pyralis against aviary-rs.com. Their basic
+observations agree, but their grading rubrics differ. It also reproduces a
+source/rendered extraction artifact: Aviary reports 55.4% overlap where separated
+source text nodes yield 100%. The controlled checks above do not cover that
+normalization case. The subsequent [reliability review](GEO_RELIABILITY_PROOF.md)
+corrects it and extends the output validation to 24 cases, retaining the original
+results above as historical evidence.

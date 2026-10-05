@@ -152,6 +152,7 @@ describe('analyzeSiteWideGeo', () => {
         message: 'Rendered content measured.',
         details: {
           assessed: true,
+          textExtraction: 'shared DOM boundaries',
           renderedPhraseCoveragePercent: 65,
           sourceWordCount: 200,
           renderedWordCount: 180,
@@ -227,6 +228,7 @@ describe('analyzeSiteWideGeo', () => {
       },
       sourceRenderedContent: {
         assessed: true,
+        textExtraction: 'shared DOM boundaries',
         renderedPhraseCoveragePercent: 65,
         sourcePhraseCount: 10,
         sharedRenderedPhraseCount: 7,

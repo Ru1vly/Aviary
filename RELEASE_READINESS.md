@@ -36,16 +36,27 @@ candidate receipts below retain their own source revisions.
 
 ## Verified engineering gates
 
-| Gate | Evidence |
-| --- | --- |
-| Full suite | 1,488 tests across 91 files pass, including unit, integration, and browser tests. |
-| Existing coverage minimums | Statements 90.85%, branches 80.00%, functions 94.05%, lines 92.17%; the coverage command exits successfully. Thresholds and exclusions are unchanged. |
-| Static checks | ESLint, source Prettier checks, TypeScript, build, isolated XLSX conversion/dependencies/notices, and all 390 documented CLI switches pass. |
-| Dependency security | JavaScript audit reports no known vulnerabilities. Rust audit scans 352 locked dependencies successfully. Hosted Security Scan, including CodeQL, passes. |
-| Rust | Locked workspace tests pass: four engine tests, nine TUI tests, and one engine doctest. Both release binaries build; interactive Linux TUI startup and Escape exit were exercised. |
-| Native packages | Linux x64/ARM64, macOS x64/ARM64, and Windows x64 build, pack, install, verify binary integrity, and pass startup and offline fast-engine checks on supported runners. Linux ARM now uses an ARM runner; macOS x64 can use Rosetta on the macOS runner. |
-| Root package | A clean install loads 348 exports, renders privacy-preserving SDK evidence, runs CLI help/version/offline analysis, serves matching API health/OpenAPI versions, and initializes MCP at 0.2.0. Tested locally on Node 22 and in hosted CI on Node 20. |
-| Review bundle | 82 recorded files pass size and SHA-256 verification. All 24 HTML pages pass offline browser checks at widths 1440 and 390 (48 checks); no page errors or document overflow. Overview screenshots were inspected. |
+Latest [GEO reliability follow-up](docs/GEO_RELIABILITY_PROOF.md): 24/24 labelled
+browser/export cases pass, versus 19/24 on the original implementation; all
+70 selected fields across ten live pages agree with independent HTTP/HTML
+captures. The source/rendered extraction mismatch is corrected and comparisons
+across different extraction methods withhold text deltas. Final corrected-source
+verification passes 1,510 tests/91 files and unchanged coverage gates (S90.88%,
+B80.05%, F94.21%, L92.20%). The subsequent unpublished candidate and provenance
+are under `reports/release-candidates/geo-reliability-proof/`. Earlier receipts
+below retain their original revisions and counts. These checks do not establish
+factual-quality or predictive citation accuracy.
+
+| Gate                       | Evidence                                                                                                                                                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full suite                 | 1,488 tests across 91 files pass, including unit, integration, and browser tests.                                                                                                                                                                       |
+| Existing coverage minimums | Statements 90.85%, branches 80.00%, functions 94.05%, lines 92.17%; the coverage command exits successfully. Thresholds and exclusions are unchanged.                                                                                                   |
+| Static checks              | ESLint, source Prettier checks, TypeScript, build, isolated XLSX conversion/dependencies/notices, and all 390 documented CLI switches pass.                                                                                                             |
+| Dependency security        | JavaScript audit reports no known vulnerabilities. Rust audit scans 352 locked dependencies successfully. Hosted Security Scan, including CodeQL, passes.                                                                                               |
+| Rust                       | Locked workspace tests pass: four engine tests, nine TUI tests, and one engine doctest. Both release binaries build; interactive Linux TUI startup and Escape exit were exercised.                                                                      |
+| Native packages            | Linux x64/ARM64, macOS x64/ARM64, and Windows x64 build, pack, install, verify binary integrity, and pass startup and offline fast-engine checks on supported runners. Linux ARM now uses an ARM runner; macOS x64 can use Rosetta on the macOS runner. |
+| Root package               | A clean install loads 348 exports, renders privacy-preserving SDK evidence, runs CLI help/version/offline analysis, serves matching API health/OpenAPI versions, and initializes MCP at 0.2.0. Tested locally on Node 22 and in hosted CI on Node 20.   |
+| Review bundle              | 82 recorded files pass size and SHA-256 verification. All 24 HTML pages pass offline browser checks at widths 1440 and 390 (48 checks); no page errors or document overflow. Overview screenshots were inspected.                                       |
 
 The local branch coverage numerator is 26,246 of 32,804 outcomes. The 80% gate is
 now satisfied with little margin; feature additions must preserve it.

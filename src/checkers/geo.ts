@@ -1022,16 +1022,73 @@ export class GeoChecker extends BaseChecker {
           const sourceDocument = new DOMParser().parseFromString(html, 'text/html');
           const sourceRoot = sourceDocument.querySelector('main, article') ?? sourceDocument.body;
           const renderedRoot = document.querySelector('main, article') ?? document.body;
-          const sourceText = (() => {
-            const clone = sourceRoot?.cloneNode(true) as Element | undefined;
-            clone
-              ?.querySelectorAll('script,style,template,svg,canvas')
-              .forEach((element) => element.remove());
-            return clone?.textContent ?? '';
-          })();
-          const renderedText = renderedRoot
-            ? ((renderedRoot as HTMLElement).innerText ?? renderedRoot.textContent ?? '')
-            : '';
+          // Use the same DOM boundaries on both sides. textContent fuses adjacent
+          // blocks, while innerText introduces layout-dependent whitespace; mixing
+          // them incorrectly reports existing server text as client-added content.
+          // Preserve inline split words instead of joining every text node with spaces.
+          const blockTags = new Set([
+            'MAIN',
+            'ARTICLE',
+            'SECTION',
+            'DIV',
+            'P',
+            'H1',
+            'H2',
+            'H3',
+            'H4',
+            'H5',
+            'H6',
+            'UL',
+            'OL',
+            'LI',
+            'DL',
+            'DT',
+            'DD',
+            'TABLE',
+            'THEAD',
+            'TBODY',
+            'TFOOT',
+            'TR',
+            'TD',
+            'TH',
+            'PRE',
+            'BLOCKQUOTE',
+            'HEADER',
+            'FOOTER',
+            'ASIDE',
+            'NAV',
+            'FIGURE',
+            'FIGCAPTION',
+            'BR',
+            'HR',
+          ]);
+          const ignoredTags = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'SVG', 'CANVAS']);
+          const extractText = (root: Element | null, rendered: boolean): string => {
+            if (!root) return '';
+            const visit = (node: Node): string => {
+              if (node.nodeType === 3) {
+                if (rendered && node.parentElement) {
+                  const visibility = getComputedStyle(node.parentElement).visibility;
+                  if (visibility === 'hidden' || visibility === 'collapse') return '';
+                }
+                return node.textContent ?? '';
+              }
+              if (node.nodeType !== 1) return '';
+              const element = node as HTMLElement;
+              if (
+                ignoredTags.has(element.tagName) ||
+                element.hasAttribute('hidden') ||
+                element.style?.display === 'none' ||
+                (rendered && getComputedStyle(element).display === 'none')
+              )
+                return '';
+              const text = Array.from(element.childNodes, visit).join('');
+              return blockTags.has(element.tagName) ? ` ${text} ` : text;
+            };
+            return visit(root);
+          };
+          const sourceText = extractText(sourceRoot, false);
+          const renderedText = extractText(renderedRoot, true);
           const sourceTextSample = sourceText.slice(0, maxTextCharacters);
           const renderedTextSample = renderedText.slice(0, maxTextCharacters);
           const tokenize = (value: string): { tokens: string[]; wordCount: number } => {
@@ -1087,6 +1144,8 @@ export class GeoChecker extends BaseChecker {
             phraseWindowWords: Math.min(shingleWords, renderedTokens.length),
             maximumTextCharactersPerDocument: maxTextCharacters,
             maximumPhraseTokensPerDocument: maxWordTokens,
+            textExtraction:
+              'DOM text with shared semantic block boundaries; inline words preserved',
           };
         },
         {
@@ -1120,7 +1179,7 @@ export class GeoChecker extends BaseChecker {
           ...profile,
           sourceHtmlBytes: sourceBytes,
           interpretation:
-            'A low overlap indicates text present after browser rendering but not found in the initial HTML snapshot. The comparison uses the leading text sample when content exceeds its cap. Hidden markup, late updates, personalization, and text normalization can also affect overlap. Rendering and access behavior varies by crawler; this comparison does not identify what any specific crawler can execute or predict citations.',
+            'This compares normalized DOM text using the same semantic block boundaries on both sides, preserving inline split words. Rendered display:none and hidden-visibility text is excluded; source CSS visibility is not resolved. CSS-only layout boundaries, generated content, and visual reading order are not compared. A low overlap means normalized rendered phrases were not found in the source sample, not proof of JavaScript-only content. The comparison uses the leading text sample when content exceeds its cap. Hidden markup, late updates, personalization, and DOM changes can also affect overlap. Rendering and access behavior varies by crawler; this comparison does not identify what any specific crawler can execute or predict citations.',
         },
       };
     } catch (error) {

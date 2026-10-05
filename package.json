@@ -21,6 +21,8 @@
     "docs/TROUBLESHOOTING.md",
     "docs/GEO.md",
     "docs/GEO_OUTPUT_VALIDATION.md",
+    "docs/GEO_INDEPENDENT_BENCHMARK.md",
+    "docs/GEO_RELIABILITY_PROOF.md",
     "docs/geo-summary.schema.json",
     "docs/geo-report-comparison.schema.json",
     "docs/geo-change-gate.schema.json",
