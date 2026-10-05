@@ -1,4 +1,4 @@
-// Runs a freshly cross-compiled binary once, on its own native CI runner,
+// Runs a freshly built binary once, on its own native CI runner,
 // to catch "compiles but the OS refuses to execute it" bugs (wrong target
 // triple, glibc-too-new from `cross` builds, corrupted transfer) before
 // publishing. What matters is *that* the OS successfully loaded and ran it
@@ -23,6 +23,7 @@ const loaderFailurePatterns = [
   /cannot execute binary file/i,
   /error while loading shared libraries/i,
   /library not loaded/i,
+  /could not open ['"]?[^\n]*ld[^\n]*: no such file/i,
 ];
 
 const child = spawn(binaryPath, [], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -36,11 +37,15 @@ const timeout = setTimeout(() => {
   console.log(`Process still running after 5s. Captured output:\n${output}`);
 
   if (loaderFailurePatterns.some((p) => p.test(output))) {
-    console.error(`FAIL: ${binaryPath} hit an OS/loader-level failure -- wrong target or bad build.`);
+    console.error(
+      `FAIL: ${binaryPath} hit an OS/loader-level failure -- wrong target or bad build.`
+    );
     process.exit(1);
   }
 
-  console.log(`OK: ${binaryPath} launched and is still running (no loader failure) -- killed for cleanup.`);
+  console.log(
+    `OK: ${binaryPath} launched and is still running (no loader failure) -- killed for cleanup.`
+  );
   process.exit(0);
 }, 5000);
 
@@ -50,15 +55,23 @@ child.on('error', (err) => {
   process.exit(1);
 });
 
-child.on('exit', () => {
+child.on('exit', (code, signal) => {
   clearTimeout(timeout);
   console.log(`Process exited. Captured output:\n${output}`);
 
   if (loaderFailurePatterns.some((p) => p.test(output))) {
-    console.error(`FAIL: ${binaryPath} hit an OS/loader-level failure -- wrong target or bad build.`);
+    console.error(
+      `FAIL: ${binaryPath} hit an OS/loader-level failure -- wrong target or bad build.`
+    );
     process.exit(1);
   }
 
+  const expectedTerminalError =
+    /no such device or address|device not configured|not a terminal|invalid handle/i.test(output);
+  if (signal || (code !== 0 && !expectedTerminalError)) {
+    console.error(`FAIL: ${binaryPath} exited unexpectedly (code ${code}, signal ${signal}).`);
+    process.exit(1);
+  }
   console.log(`OK: ${binaryPath} is a valid, runnable binary for this platform.`);
   process.exit(0);
 });

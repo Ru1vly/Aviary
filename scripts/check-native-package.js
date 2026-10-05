@@ -1,5 +1,5 @@
 // Verify the actual packed native binaries through an isolated offline install.
-// Cross-architecture runners use their configured emulator to launch the package.
+// macOS x64 builds can use Rosetta on the macOS ARM runner.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -63,7 +63,7 @@ try {
   const consumer = path.join(stage, 'consumer');
   fs.mkdirSync(consumer);
   fs.writeFileSync(path.join(consumer, 'package.json'), '{"private":true}');
-  // --force permits ARM emulation and Rosetta checks on hosts with another CPU.
+  // --force permits Rosetta checks on macOS hosts with another CPU.
   npmRun(
     ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--force', archive],
     consumer

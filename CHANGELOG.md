@@ -16,6 +16,7 @@ Notable changes to Aviary are documented here.
 
 - Keep monthly and review-queue dashboard columns aligned when older saved reports omit summary or per-row owned-citation metrics.
 - Keep the prompt-similarity summary CSV aligned with its shared-provider, document-count, threshold, and truncation headers.
+- Reject missing dynamic loaders and unexpected native TUI startup failures; validate Linux ARM binaries on an ARM runner.
 - Validate native artifacts through packed npm candidates, isolated installs, binary integrity checks, and startup on all five supported targets before publication; the same matrix can run on pull requests.
 
 - Preserve unknown category and owned-source absence when captured citation lists are incomplete or legacy completeness metadata is missing; disclose these states in prompt coverage/detail CSV exports and suppress complete-comparison claims.

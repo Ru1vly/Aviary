@@ -29,14 +29,13 @@ jobs:
             binary_name: tui
             fast_binary_name: aviary-fast
             fast_artifact_name: aviary-fast-linux-amd64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             package_dir: linux-arm64
             artifact_name: tui-linux-arm64
             binary_name: tui
             fast_binary_name: aviary-fast
             fast_artifact_name: aviary-fast-linux-arm64
-            cross: true
           - os: macos-latest
             target: x86_64-apple-darwin
             package_dir: darwin-x64
@@ -66,29 +65,11 @@ jobs:
         with: { targets: '${{ matrix.target }}' }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: '. -> target' }
-      - name: Install cross (for ARM builds)
-        if: matrix.cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-      # `cross build` runs the aarch64 binary *inside* its own Docker
-      # container via QEMU, but that container exits once the build is
-      # done -- registering binfmt_misc on the host here too is what lets
-      # the smoke-test step below actually execute the resulting aarch64
-      # binary directly on this x86_64 runner afterward.
-      - name: Install QEMU user-mode emulation (for cross-arch smoke test)
-        if: matrix.cross
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support
       # --bin aviary-fast selects the binary *target* (engine/src/bin/aviary_fast.rs)
       # from the aviary-engine package — "aviary-fast" is a binary name, not
       # a package name, so `--package aviary-fast` alone wouldn't resolve.
       - name: Build (native)
-        if: '!matrix.cross'
         run: cargo build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
-        working-directory: tui
-      - name: Build (cross)
-        if: matrix.cross
-        run: cross build --locked --release --target ${{ matrix.target }} --package tui --package aviary-engine --bin tui --bin aviary-fast
         working-directory: tui
       # `tui` is a member of the root Cargo workspace (see /Cargo.toml), so
       # even when built from within `tui/`, cargo/cross write output to
@@ -100,8 +81,7 @@ jobs:
           cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "${{ matrix.artifact_name }}"
           cp "target/${{ matrix.target }}/release/${{ matrix.fast_binary_name }}" "${{ matrix.fast_artifact_name }}"
         shell: bash
-      # Runs the just-built binary once on its own native (or, for the
-      # cross target, QEMU-emulated) runner. CI has no real TTY so the TUI
+      # Runs the just-built binary once on its own native runner. CI has no real TTY so the TUI
       # is expected to fail once it tries to open one -- this only checks
       # that failure is the TUI's own runtime error, not the OS refusing
       # to load the binary at all (wrong target, missing shared libs).
