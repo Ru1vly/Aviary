@@ -46,6 +46,11 @@ jobs:
       - run: pnpm run check:cli-docs
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm run test:coverage
+      - name: Verify unpublished root candidate before publishing
+        shell: bash
+        run: |
+          pnpm run pack:candidate -- "${GITHUB_REF_NAME#v}" reports/release-candidates/tag
+          node scripts/check-release-candidate.js "reports/release-candidates/tag/ru1vly-aviary-${GITHUB_REF_NAME#v}.tgz"
 
   # ── Cross-compile Rust TUI + fast-path engine binary ────────
   # Each artifact bundles both `tui` and `aviary-fast` (from the
