@@ -1,6 +1,7 @@
 # Aviary 0.2.0 finalization
 
-Reviewed 2026-10-05. The product is in release-candidate hardening: its existing
+Reviewed 2026-10-05. The product has reached a validated, unpublished 0.2.0
+candidate after release-candidate hardening. Its existing
 browser SEO/GEO audits, saved-report workflows, citation and crawler analyses,
 CLI, API, MCP, and native terminal tools are implemented. New feature work is
 frozen for this release. `TODO.md` remains the future roadmap, not a requirement
@@ -37,3 +38,24 @@ citation exporter and crawler modules. Verification will focus on real sparse,
 legacy, incomplete, capped, and malformed input contracts and statistical gates.
 
 CI: https://github.com/Ru1vly/Aviary/actions/runs/37185354902
+
+## Completion evidence — 2026-10-05
+
+The frozen 0.2.0 candidate meets the engineering finish line:
+
+| Requirement | Verification |
+| --- | --- |
+| Evidence and exports | 512 additional tests cover sparse, legacy, capped, incomplete, zero/unknown, privacy, join, gate, and export contracts. CSV summary and optional HTML-column defects are corrected. |
+| Full suite and coverage | 1,488 tests / 91 files pass. Statements 90.85%, branches 80.00%, functions 94.05%, lines 92.17%. The unchanged coverage gate succeeds. |
+| Static/security/Rust checks | Lint, source formatting, TypeScript build, XLSX isolation, 390 CLI switches, dependency audits, CodeQL, and locked workspace tests pass. |
+| Reproducible candidate | Clean committed builds generate the same root SHA-256. Local Node 22 and hosted Node 20 consumer checks exercise CLI, SDK, API/OpenAPI, and MCP at 0.2.0. |
+| Native targets | All five supported package builds, packed installs, integrity checks, and runtime smokes pass. Interactive Linux startup and Escape exit are verified. |
+| Accurate readiness | [RELEASE_READINESS.md](RELEASE_READINESS.md) records passing runs and artifact paths, the unpublished registry state, the unchanged older tag, and npm's E403 publisher-inspection limit. |
+
+The generated review bundle verifies 82 manifest files and 48 offline browser
+layouts. The review changes are available in
+[PR #10](https://github.com/Ru1vly/Aviary/pull/10).
+
+“Finalized” here is the validated, installable 0.2.0 candidate defined above.
+Public release remains a distinct maintainer action with the authentication and
+tag dependencies recorded in the readiness handoff.
