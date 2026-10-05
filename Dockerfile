@@ -1,5 +1,5 @@
 # ── Build Stage: TypeScript ──────────────────────────────────
-FROM node:20-slim AS ts-builder
+FROM node:22-slim AS ts-builder
 
 WORKDIR /app
 
@@ -7,20 +7,23 @@ WORKDIR /app
 RUN npm install -g pnpm@10.34.6
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Copy source
 COPY src/ ./src/
 COPY tsconfig.json ./
+COPY scripts/build-xlsx.js scripts/check-xlsx-bundle.js ./scripts/
+COPY docs/openapi.yaml ./docs/
 
 # Build the CLI/library only — the TUI is a separate Rust binary built and
 # shipped independently (see .github/workflows/release.yml); this image
 # doesn't need a Rust toolchain.
 RUN pnpm run build:ts
+RUN pnpm run check:xlsx-bundle
 
 # ── Build Stage: Playwright Install ─────────────────────────
-FROM node:20-slim AS playwright-installer
+FROM node:22-slim AS playwright-installer
 WORKDIR /app
 
 # Install browsers to a fixed, non-home path so they're reachable regardless
@@ -28,7 +31,7 @@ WORKDIR /app
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN npm install -g pnpm@10.34.6
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Production dependencies only — this is exactly what ships into the runtime
 # image below, so devDependencies (typescript, vitest, eslint, ...) never
 # land there.
@@ -36,7 +39,7 @@ RUN pnpm install --frozen-lockfile --prod
 RUN npx playwright install chromium --with-deps
 
 # ── Runtime Stage ────────────────────────────────────────────
-FROM node:20-slim AS runtime
+FROM node:22-slim AS runtime
 
 # 12-Factor: Process runs as non-root
 RUN useradd --create-home --shell /bin/bash appuser
@@ -52,6 +55,7 @@ COPY --from=playwright-installer --chown=appuser:appuser /app/node_modules ./nod
 # Copy built TypeScript
 COPY --from=ts-builder --chown=appuser:appuser /app/dist ./dist
 COPY --from=ts-builder --chown=appuser:appuser /app/package.json ./
+COPY --from=ts-builder --chown=appuser:appuser /app/docs/openapi.yaml ./docs/
 
 # Install Playwright system deps (needs root; must run before USER appuser)
 RUN npx playwright install-deps chromium

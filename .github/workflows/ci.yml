@@ -140,3 +140,35 @@ jobs:
           name: dist-js
           path: dist/
           retention-days: 7
+
+  container:
+    name: Container Build & Smoke
+    runs-on: ubuntu-24.04
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: aviary:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify CLI and browser runtime
+        run: |
+          docker run --rm aviary:ci --version
+          docker run --rm aviary:ci --help
+          docker run --rm --entrypoint node aviary:ci -e '
+            const fs = require("node:fs");
+            const { chromium } = require("playwright");
+            (async () => {
+              if (!fs.existsSync("docs/openapi.yaml")) throw new Error("Missing OpenAPI document");
+              const browser = await chromium.launch();
+              try {
+                const page = await browser.newPage();
+                await page.setContent("<main><h1>Container smoke</h1></main>");
+                if (await page.locator("h1").innerText() !== "Container smoke") throw new Error("Browser smoke failed");
+              } finally { await browser.close(); }
+            })().catch(error => { console.error(error); process.exitCode = 1; });
+          '

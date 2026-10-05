@@ -14,6 +14,8 @@ Notable changes to Aviary are documented here.
 
 ### Improved
 
+- Include workspace dependency overrides, XLSX build tooling and the OpenAPI document in the container; align its native dependencies with the published release version.
+
 - Retain valid three-decimal Bing citation shares, including rows where share is the only metric; run macOS x64 native validation on an Intel runner and keep hard-link test coverage independent of Windows symlink privileges.
 
 - Consolidate release handoffs and GEO evidence into canonical guides; shorten the README, separate CLI/SDK references, remove duplicate API sections and unsupported accuracy estimates.
