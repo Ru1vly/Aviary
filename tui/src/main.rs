@@ -1028,7 +1028,7 @@ fn draw_setup(f: &mut Frame, area: Rect, app: &App) {
             )
         } else {
             Span::styled(
-                "[OFF] full 28-category Playwright audit",
+                "[OFF] full Playwright audit",
                 Style::default().fg(DIM),
             )
         },

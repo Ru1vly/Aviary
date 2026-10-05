@@ -196,3 +196,47 @@ describe('older saved citation reports retain export contracts', () => {
     );
   }
 });
+
+describe('domain reach retained evidence states', () => {
+  it.each([true, false])(
+    'marks an omitted domain as capped=%s without inventing observed reach',
+    (capped) => {
+      const current = structuredClone(fresh);
+      current.domains = current.domains.filter((domain) => domain.domain !== 'owned.example');
+      current.domainsTruncated = capped;
+      const csv = renderer.renderAiAnswerCitationDomainPromptCoverageComparisonCsv(
+        current,
+        baseline
+      );
+      aligned(csv);
+      const rows = csv
+        .trimEnd()
+        .split('\r\n')
+        .map((line) =>
+          [...line.matchAll(/"((?:[^"]|"")*)"(?:,|$)/g)].map((match) =>
+            match[1].replace(/""/g, '"')
+          )
+        );
+      const records = rows
+        .slice(1)
+        .map((row) => Object.fromEntries(rows[0].map((key, index) => [key, row[index]])));
+      const owned = records.filter((row) => row.domain === 'owned.example');
+      expect(owned).toHaveLength(3);
+      expect(
+        owned.every((row) => row.current_state === (capped ? 'domain-detail-capped' : 'not-cited'))
+      ).toBe(true);
+      expect(
+        owned.every((row) => row.current_prompt_coverage_percent === (capped ? '' : '0'))
+      ).toBe(true);
+      expect(
+        owned.every(
+          (row) => row.current_prompts_with_first_position_citation === (capped ? '' : '0')
+        )
+      ).toBe(true);
+      if (capped)
+        expect(owned.every((row) => row.prompt_coverage_change_percentage_points === '')).toBe(
+          true
+        );
+    }
+  );
+});
