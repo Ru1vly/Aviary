@@ -9,6 +9,18 @@ import {
   MAX_IMAGES_WITHOUT_DIMENSIONS,
 } from '../config/thresholds';
 
+/** Hostname fragments for dynamic image-generation CDNs. Defined once —
+ * `checkImageFormats` iterates images and would otherwise rebuild this list
+ * per image. */
+const DYNAMIC_IMAGE_CDN_PATTERNS = [
+  'placehold.co',
+  'placeholder.com',
+  'via.placeholder.com',
+  'dummyimage.com',
+  'picsum.photos',
+  'loremflickr.com',
+];
+
 export class AdvancedImagesChecker extends BaseChecker {
   private imagesPromise?: Promise<ImageData[]>;
 
@@ -58,16 +70,9 @@ export class AdvancedImagesChecker extends BaseChecker {
           const pathname = url.pathname;
 
           // Check for common CDN patterns (dynamic image generation services)
-          const cdnPatterns = [
-            'placehold.co',
-            'placeholder.com',
-            'via.placeholder.com',
-            'dummyimage.com',
-            'picsum.photos',
-            'loremflickr.com',
-          ];
-
-          const isCDN = cdnPatterns.some((pattern) => url.hostname.includes(pattern));
+          const isCDN = DYNAMIC_IMAGE_CDN_PATTERNS.some((pattern) =>
+            url.hostname.includes(pattern)
+          );
 
           if (isCDN) {
             ext = 'dynamic';
@@ -88,7 +93,7 @@ export class AdvancedImagesChecker extends BaseChecker {
               }
             }
           }
-        } catch (e) {
+        } catch {
           // If URL parsing fails, try simple extension extraction as fallback
           const match = src.match(/\.([a-z0-9]{2,4})(?:[?#]|$)/i);
           if (match) {
