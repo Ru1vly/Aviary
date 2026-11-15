@@ -20,9 +20,25 @@ import { CHECKER_REGISTRY, CheckerKey } from '../checkers/registry';
 import { loadSettleAfterNavigationMs } from '../config/env';
 
 // Single source of truth for valid category names, instead of a hand-typed
-// list that drifts from the real 28-checker registry (the old version only
+// list that drifts from the real 29-checker registry (the old version only
 // listed 11).
 const CATEGORY_KEYS = CHECKER_REGISTRY.map((c) => c.key) as [CheckerKey, ...CheckerKey[]];
+
+// Audit targets must be HTTP(S) without embedded credentials, matching the
+// REST API (src/api/server.ts) and the message the tools advertise.
+const httpUrlSchema = z
+  .string()
+  .url('Must be a valid URL starting with http:// or https://')
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return (
+        (url.protocol === 'http:' || url.protocol === 'https:') && !url.username && !url.password
+      );
+    } catch {
+      return false;
+    }
+  }, 'Must be a valid URL starting with http:// or https://');
 
 function gradeFor(score: number | null): 'A' | 'B' | 'C' | 'D' | 'F' | 'N/A' {
   if (score === null) return 'N/A';
@@ -53,7 +69,7 @@ function createServer(): McpServer {
     {
       description: `Run a real-browser SEO audit on a URL. Returns detailed results for enabled categories; use the geo preset to run only AI discoverability checks.`,
       inputSchema: z.object({
-        url: z.string().url('Must be a valid URL starting with http:// or https://'),
+        url: httpUrlSchema,
         preset: z
           .enum(['basic', 'advanced', 'strict', 'geo'])
           .optional()
@@ -91,7 +107,7 @@ function createServer(): McpServer {
       description:
         'Get a quick SEO score for a URL without full details. Returns score 0-100 and grade (A-F).',
       inputSchema: z.object({
-        url: z.string().url('Must be a valid URL'),
+        url: httpUrlSchema,
         settleAfterNavigationMs: z
           .number()
           .int()
@@ -128,7 +144,7 @@ function createServer(): McpServer {
       description:
         'Run SEO checks for a specific category only (e.g., metaTags, security, performance).',
       inputSchema: z.object({
-        url: z.string().url('Must be a valid URL'),
+        url: httpUrlSchema,
         category: z.enum(CATEGORY_KEYS).describe('Category to check'),
         settleAfterNavigationMs: z
           .number()

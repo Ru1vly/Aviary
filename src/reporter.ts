@@ -290,7 +290,7 @@ function renderChecks(checks: SEOCheckResult[]): string {
 
 // ─── Section map ─────────────────────────────────────────────────────────────
 // SECTIONS is CHECKER_REGISTRY (src/checkers/registry.ts) — the single
-// source of truth for the 28 checker categories, their labels, and icons.
+// source of truth for the 29 checker categories, their labels, and icons.
 
 // ─── Main template ────────────────────────────────────────────────────────────
 
@@ -1764,7 +1764,7 @@ export function renderBatchHtmlReport(
               )
               .join(
                 ''
-              )}</ul>${comparison.newFailures.length > 50 ? '<p class="muted">Showing the first 50 changes.</p>' : ''}`
+              )}</ul>${comparison.newFailures.length > 50 ? '<p class="muted">Showing the first 50 checks.</p>' : ''}`
           : '<p class="muted">No new failing checks.</p>'
       }</div>
       <div><h3>Resolved checks (${comparison.resolvedFailures.length})</h3>${
@@ -1777,7 +1777,7 @@ export function renderBatchHtmlReport(
               )
               .join(
                 ''
-              )}</ul>${comparison.resolvedFailures.length > 50 ? '<p class="muted">Showing the first 50 changes.</p>' : ''}`
+              )}</ul>${comparison.resolvedFailures.length > 50 ? '<p class="muted">Showing the first 50 checks.</p>' : ''}`
           : '<p class="muted">No resolved checks.</p>'
       }</div>
       <div><h3>Added URLs (${comparison.newUrls.length})</h3>${

@@ -60,6 +60,13 @@ export class ConfigLoader {
       rules: {},
     };
 
+    // Fail fast on an unknown preset instead of silently resolving to no rules
+    if (config.preset && !presets[config.preset]) {
+      throw new Error(
+        `Unknown preset "${config.preset}". Valid presets: ${Object.keys(presets).join(', ')}.`
+      );
+    }
+
     // Apply preset if specified
     if (config.preset && presets[config.preset]) {
       const preset = presets[config.preset];

@@ -100,6 +100,9 @@ async fn main() {
         }
     }
 
+    let mut fast_categories: Vec<&String> = checks.keys().collect();
+    fast_categories.sort();
+
     let report = json!({
         "url": result.url,
         "timestamp": result.timestamp,
@@ -111,7 +114,7 @@ async fn main() {
         },
         "checks": checks,
         "fast": true,
-        "fastCategories": checks.keys().collect::<Vec<_>>(),
+        "fastCategories": fast_categories,
     });
 
     match serde_json::to_string(&report) {

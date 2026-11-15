@@ -589,12 +589,12 @@ function decodeHtmlAttribute(value: string): string {
       const codePoint = Number.parseInt(decimal, 10);
       return codePoint >= 0 && codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : entity;
     })
-    .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
-    .replace(/&nbsp;/gi, '\u00a0');
+    .replace(/&nbsp;/gi, '\u00a0')
+    .replace(/&amp;/gi, '&');
 }
 
 function declaresNoFollow(content: string): boolean {
@@ -602,8 +602,8 @@ function declaresNoFollow(content: string): boolean {
 }
 
 function xRobotsTagDisallowsFollowing(value: string): boolean {
-  let appliesToAviary = true;
   for (const part of value.split(',')) {
+    let appliesToAviary = true;
     let directive = part.trim();
     const scopedDirective = /^([^\s:,]+)\s*:\s*(.*)$/.exec(directive);
     const scope = (scopedDirective?.[1] ?? '').toLowerCase();

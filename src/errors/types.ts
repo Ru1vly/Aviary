@@ -127,35 +127,35 @@ export function categorizeError(error: unknown): SEOCheckerError {
 
   const errorMessage = error instanceof Error ? error.message : String(error);
   const originalError = error instanceof Error ? error : undefined;
-  // Real Playwright errors are capitalized (e.g. "Timeout 30000ms exceeded"),
-  // which the plain-lowercase 'timeout' check below misses.
+  // Match case-insensitively: real Playwright errors are capitalized
+  // (e.g. "Timeout 30000ms exceeded", "Network request failed").
   const errorMessageLower = errorMessage.toLowerCase();
 
   // Categorize based on error message patterns
-  if (errorMessageLower.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+  if (errorMessageLower.includes('timeout') || errorMessageLower.includes('etimedout')) {
     return new TimeoutError(errorMessage, { originalError });
   }
 
   if (
-    errorMessage.includes('network') ||
-    errorMessage.includes('ECONNREFUSED') ||
-    errorMessage.includes('ENOTFOUND') ||
-    errorMessage.includes('fetch failed') ||
-    errorMessage.includes('ERR_CONNECTION') ||
-    errorMessage.includes('ERR_NAME_NOT_RESOLVED')
+    errorMessageLower.includes('network') ||
+    errorMessageLower.includes('econnrefused') ||
+    errorMessageLower.includes('enotfound') ||
+    errorMessageLower.includes('fetch failed') ||
+    errorMessageLower.includes('err_connection') ||
+    errorMessageLower.includes('err_name_not_resolved')
   ) {
     return new NetworkError(errorMessage, { originalError });
   }
 
   if (
-    errorMessage.includes('browser') ||
-    errorMessage.includes('page crash') ||
-    errorMessage.includes('navigation')
+    errorMessageLower.includes('browser') ||
+    errorMessageLower.includes('page crash') ||
+    errorMessageLower.includes('navigation')
   ) {
     return new BrowserError(errorMessage, { originalError });
   }
 
-  if (errorMessage.includes('config') || errorMessage.includes('configuration')) {
+  if (errorMessageLower.includes('config') || errorMessageLower.includes('configuration')) {
     return new ConfigurationError(errorMessage, { originalError });
   }
 

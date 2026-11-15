@@ -10,7 +10,7 @@ pub struct EngineConfig {
     /// Whether to automatically fall back to the Node renderer for SPAs.
     pub auto_render_fallback: bool,
     /// Timeout (ms) for a full Node-renderer round trip: launching Chromium
-    /// and running the complete 28-checker Playwright audit. Kept separate
+    /// and running the complete 29-checker Playwright audit. Kept separate
     /// from `timeout_ms` (the plain-HTTP fast path) since a full rendered
     /// audit routinely takes far longer than a bare HTTP fetch.
     pub render_timeout_ms: u64,

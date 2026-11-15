@@ -8,9 +8,8 @@ export interface SEOCheckResult {
   /**
    * Stable rule identifier (e.g. 'title-exists', 'https-enabled'), matching
    * the rule names used in preset/config files (see src/config/presets.ts).
-   * Optional for now — populated as each checker migrates onto BaseChecker
-   * (see src/checkers/base.ts); until then this is undefined and per-rule
-   * config falls back to checker-level resolution.
+   * Set by BaseChecker (src/checkers/base.ts) on every result it emits;
+   * optional only for hand-built results that bypass BaseChecker.
    */
   name?: string;
 }

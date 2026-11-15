@@ -85,7 +85,9 @@ function defaultShouldRetry(error: unknown, attempt: number): boolean {
   const retryableStatusCodes = [408, 429, 500, 502, 503, 504];
 
   for (const code of retryableStatusCodes) {
-    if (errorMessage.includes(`${code}`)) {
+    // Word-boundary match so durations and IDs like "1500ms" or "id 4290"
+    // don't falsely mark the error retryable.
+    if (new RegExp(`\\b${code}\\b`).test(errorMessage)) {
       return true;
     }
   }

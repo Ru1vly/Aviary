@@ -71,7 +71,7 @@ pub struct EngineResult {
     /// "security", "content".
     pub results_by_category: std::collections::HashMap<String, Vec<CheckResult>>,
     pub semantic_analysis: Option<SemanticAnalysis>,
-    /// The full Node CLI SEOReport (all 28 checkers, run against the
+    /// The full Node CLI SEOReport (all 29 checkers, run against the
     /// JS-rendered DOM), present only when `looks_like_spa` triggered the
     /// render fallback and it succeeded. `check_results`/`score` above
     /// still describe the fast-path Rust analysis, not this report —
@@ -122,7 +122,7 @@ pub async fn run_analysis(url: &str, config: &EngineConfig) -> Result<EngineResu
     // this code that looked for one to re-parse in Rust was a permanent
     // no-op. Re-parsing rendered HTML through the Rust parser would also
     // throw away the very thing the fallback exists for: the Node/Playwright
-    // side already ran the full 28-checker audit against the JS-rendered
+    // side already ran the full 29-checker audit against the JS-rendered
     // DOM, which the 4-category Rust rule engine can't reproduce from HTML
     // text alone. So the fallback's result is kept as-is (see
     // `EngineResult::node_report`) rather than fed back into `ctx` — the

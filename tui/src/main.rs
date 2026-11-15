@@ -496,7 +496,8 @@ async fn handle_input(app: &mut App, key: KeyEvent, audit_tx: &mpsc::Sender<Audi
         match &app.active_screen {
             ActiveScreen::Setup => return true,
             ActiveScreen::Loading => {
-                // Return to setup (background task will error out naturally)
+                // Return to setup; the background audit keeps running and
+                // switches to the dashboard when it finishes (ESC is not a cancel).
                 app.active_screen = ActiveScreen::Setup;
                 return false;
             }
@@ -1337,10 +1338,13 @@ fn draw_dashboard_header(f: &mut Frame, area: Rect, app: &App, report: &SEORepor
     let empty = bar_width.saturating_sub(filled);
     let score_bar = format!("{}{}", "▓".repeat(filled), "░".repeat(empty));
 
-    // Trim URL to fit
+    // Trim URL to fit (char-count based so multibyte URLs can't panic)
     let url_max = (area.width as usize).saturating_sub(60);
-    let url_display: String = if report.url.len() > url_max {
-        format!("{}…", &report.url[..url_max.saturating_sub(1)])
+    let url_display: String = if report.url.chars().count() > url_max {
+        format!(
+            "{}…",
+            report.url.chars().take(url_max.saturating_sub(1)).collect::<String>()
+        )
     } else {
         report.url.clone()
     };
@@ -1371,7 +1375,7 @@ fn draw_dashboard_header(f: &mut Frame, area: Rect, app: &App, report: &SEORepor
             ),
             if report.fast {
                 Span::styled(
-                    format!("  ⚡FAST ({}/28)", report.fast_categories.len()),
+                    format!("  ⚡FAST ({}/29)", report.fast_categories.len()),
                     Style::default().fg(YELLOW).add_modifier(Modifier::BOLD),
                 )
             } else {

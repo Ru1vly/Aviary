@@ -78,7 +78,7 @@ export function loadEnvConfig(): EnvConfig {
     logLevel: process.env.AVIARY_LOG_LEVEL || 'info',
     llmProvider: process.env.AVIARY_LLM_PROVIDER || 'stub',
     llmEndpoint: process.env.AVIARY_LLM_ENDPOINT || 'http://localhost:11434',
-    llmModel: process.env.AVIARY_LLM_MODEL || 'llama3.2',
+    llmModel: process.env.AVIARY_LLM_MODEL || 'llama3',
     llmApiKey: process.env.AVIARY_LLM_API_KEY,
   };
 }

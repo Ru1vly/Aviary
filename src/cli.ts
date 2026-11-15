@@ -7915,7 +7915,6 @@ async function main() {
       'geoAnswerSourceCategoryCooccurrenceCsv',
       'geoAnswerSourceCategoryPathFamiliesCsv',
       'geoAnswerSourceCategoryPathFamilyComparisonCsv',
-      'geoAnswerSourceCategoriesCsv',
       'geoAnswerCitationPositionsCsv',
       'geoAnswerDomainPromptCoverageCsv',
       'geoAnswerSourceRarefactionCsv',
@@ -17475,6 +17474,7 @@ async function main() {
     process.stderr.write('❌ AVIARY_FAIL_BELOW_SCORE must be a number from 0 to 100.\n');
     process.exit(2);
   }
+  // Resolve timeout: CLI --timeout > ENV AVIARY_TIMEOUT > default
   const effectiveTimeout = args.timeout ?? envConfig.timeout;
   if (
     effectiveTimeout !== undefined &&
@@ -18327,8 +18327,6 @@ async function main() {
 
   // Resolve preset: CLI --preset > ENV AVIARY_PRESET > undefined
   const effectivePreset = args.preset || envConfig.preset;
-
-  // Resolve timeout: CLI --timeout > ENV AVIARY_TIMEOUT > default
 
   // Resolve headless: CLI --headed (args.headless=false) > ENV AVIARY_HEADLESS > default (true)
   let effectiveHeadless = true;

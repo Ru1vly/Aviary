@@ -196,7 +196,7 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
       if (resources.total > maxRequests) {
         return this.fail(
-          `Too many HTTP requests (${resources.total}). Target: < ${warnRequests}`,
+          `Too many HTTP requests (${resources.total}). Target: < ${maxRequests}`,
           resources
         );
       } else if (resources.total > warnRequests) {
@@ -228,7 +228,7 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
       if (pageSize.bytes > failBytes) {
         return this.fail(
-          `Page size is large (${pageSize.mb}MB). Target: < ${Math.round(warnBytes / 1024 / 1024)}MB`,
+          `Page size is large (${pageSize.mb}MB). Target: < ${Math.round(failBytes / 1024 / 1024)}MB`,
           pageSize
         );
       } else if (pageSize.bytes > warnBytes) {
@@ -615,7 +615,7 @@ export class CoreWebVitalsChecker extends BaseChecker {
 
       if (responseTime.ttfb > failMs) {
         return this.fail(
-          `Server response time is slow (${responseTime.ttfbSeconds}s TTFB). Target: < ${warnMs}ms`,
+          `Server response time is slow (${responseTime.ttfbSeconds}s TTFB). Target: < ${failMs}ms`,
           responseTime
         );
       } else if (responseTime.ttfb > warnMs) {

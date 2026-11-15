@@ -22,7 +22,7 @@ impl Rule for MetaTagsRule {
                 details: None,
             }),
             Some(title) => {
-                let len = title.len();
+                let len = title.chars().count();
                 // Matches TS's checkTitle (src/checkers/metaTags.ts) —
                 // the two engines previously disagreed here (this used to
                 // accept 10–60), which docs/ACCURACY.md called out as a
@@ -55,7 +55,7 @@ impl Rule for MetaTagsRule {
                 details: None,
             }),
             Some(desc) => {
-                let len = desc.len();
+                let len = desc.chars().count();
                 // Matches TS's checkMetaDescription — was 50–160.
                 let in_range = (120..=160).contains(&len);
                 results.push(CheckResult {
