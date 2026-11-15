@@ -20,6 +20,7 @@ Notable changes to Aviary are documented here.
 
 ### Fixed
 
+- Resolve all outstanding Node and Rust dependency advisories: bump the MCP server SDK, `zod`, `express`, `happy-dom` and `vitest`, add targeted lockfile overrides (`vite`, `qs`, `body-parser`, `minimatch`, `uuid`), and update Rust crates (`quinn-proto`/`quinn-udp`, `rustls` chain, `webpki-roots`, `rustix`, `tokio`) so both dependency audits pass cleanly.
 - Remove unused Rust dependencies (`regex`, `tracing-opentelemetry`) from the engine crate.
 - Count meta-tag characters by Unicode scalar values so non-ASCII content is measured consistently.
 - Deduplicate CLI completions across shells (including nine redundant fish entries) and sort fast-checker categories deterministically.
