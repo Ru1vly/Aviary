@@ -91,6 +91,22 @@ importers:
       vitest:
         specifier: ^4.1.12
         version: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(@vitest/coverage-v8@4.1.12)(@vitest/ui@4.1.12)(happy-dom@21.0.4)(vite@8.1.6(@types/node@24.13.3)(esbuild@0.28.2)(tsx@4.23.12))
+    optionalDependencies:
+      '@ru1vly/aviary-darwin-arm64':
+        specifier: 0.2.1
+        version: 0.2.1
+      '@ru1vly/aviary-darwin-x64':
+        specifier: 0.2.1
+        version: 0.2.1
+      '@ru1vly/aviary-linux-arm64':
+        specifier: 0.2.1
+        version: 0.2.1
+      '@ru1vly/aviary-linux-x64':
+        specifier: 0.2.1
+        version: 0.2.1
+      '@ru1vly/aviary-win32-x64':
+        specifier: 0.2.1
+        version: 0.2.1
 
 packages:
 
@@ -511,6 +527,31 @@ packages:
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+
+  '@ru1vly/aviary-darwin-arm64@0.2.1':
+    resolution: {integrity: sha512-xfD1Ho7IdyS3AY1tKJdKdeKT866hn/lq5E0SjxwrYOnPAGUC1xedCFfH02HZVX3mSEyqVDoN3CkrbywLobZEIg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@ru1vly/aviary-darwin-x64@0.2.1':
+    resolution: {integrity: sha512-1oPsI+xnrdEwdcY8fiunGudAkVlQcPQjnxrBs7mcPz/JWqFpA96kYosgdbN0DMmlyMgNaehU2DWrLJLnmFCuCg==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@ru1vly/aviary-linux-arm64@0.2.1':
+    resolution: {integrity: sha512-9kr5Z9tTzS9gLXCISHSELWkiHVBsRBwyYN2CZKwgPctZvaBjaI44VeX1ei0oDSw+eELJ6u2CIzDh2tK1A5NQ0g==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@ru1vly/aviary-linux-x64@0.2.1':
+    resolution: {integrity: sha512-OzNSf/DsbOvrQglqRSyQcNt6jNhYCKuQ3j0z2JJFneGc7Ms5daZVpl48FD51owMYyeQbrkTt9eRuzNGaJm25Pg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@ru1vly/aviary-win32-x64@0.2.1':
+    resolution: {integrity: sha512-wfBO03XCU7tbsdm1CwDDvqU5j+n7heHhDw7gBtUslANRAGzbtDnOC9vwJH0oI4CMIyQ1XsCaPa1yj/oMnUI/8Q==}
+    cpu: [x64]
+    os: [win32]
 
   '@sinclair/typebox@0.34.52':
     resolution: {integrity: sha512-XiMQh7qqVlxZzcVD+kkGMNGMzcTrDMLWI7S4x7z1MkCkbDPrekpZXEUK0eZqZFMuHQg2a2DZOcDIh9o5v3Gonw==}
@@ -2273,6 +2314,21 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
+
+  '@ru1vly/aviary-darwin-arm64@0.2.1':
+    optional: true
+
+  '@ru1vly/aviary-darwin-x64@0.2.1':
+    optional: true
+
+  '@ru1vly/aviary-linux-arm64@0.2.1':
+    optional: true
+
+  '@ru1vly/aviary-linux-x64@0.2.1':
+    optional: true
+
+  '@ru1vly/aviary-win32-x64@0.2.1':
+    optional: true
 
   '@sinclair/typebox@0.34.52': {}
 
