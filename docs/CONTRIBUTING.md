@@ -2,6 +2,17 @@
 
 Thanks for helping improve Aviary. This guide covers the local setup, the main parts of the repository, and what to include with a change.
 
+## Start with a useful contribution
+
+You can help without changing code:
+
+- Follow [Getting started](GETTING_STARTED.md) and report unclear steps or installation problems.
+- Share a sanitized reproduction of an incorrect or confusing finding.
+- Improve a check explanation or add a practical example showing a finding and its fix.
+- Correct documentation links, commands, or missing prerequisites.
+
+Use the [bug report](https://github.com/Ru1vly/Aviary/issues/new?template=bug_report.md) or [workflow feedback](https://github.com/Ru1vly/Aviary/issues/new?template=workflow_feedback.md) template. For a larger feature, open an issue describing the workflow and desired outcome before implementing it so maintainers can discuss scope. Small documentation fixes can go directly to a pull request.
+
 ## Set up the project
 
 Aviary requires Node.js 22 for development (the package supports Node.js 20 or newer). The repository pins pnpm 10.34.6 in `package.json`. Use that version to keep installs aligned with CI and the lockfile. Install dependencies and the Playwright browser:

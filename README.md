@@ -1,11 +1,32 @@
 # Aviary
 
-SEO and GEO audits for websites, using TypeScript and Playwright Chromium, with optional native Rust tools.
+Open-source SEO and AI crawler audits for your development workflow. Inspect rendered pages, review actionable findings, and catch issues before deployment.
 
 [![npm](https://img.shields.io/npm/v/@ru1vly/aviary.svg)](https://www.npmjs.com/package/@ru1vly/aviary)
 [![CI](https://github.com/Ru1vly/Aviary/actions/workflows/ci.yml/badge.svg)](https://github.com/Ru1vly/Aviary/actions/workflows/ci.yml)
 
-Aviary inspects rendered pages, crawler policies, metadata, content structure, accessibility markers and lab performance. It also analyzes supplied AI-answer citations, crawler logs and Google/Bing exports. Scores describe the included checks; they do not verify factual accuracy or predict rankings and AI citations.
+Aviary helps developers and web agencies review metadata, crawler access, content structure, accessibility markers, and lab performance. Run it locally, save an HTML report, or add checks to CI. It uses TypeScript and Playwright Chromium, with optional native Rust tools.
+
+- **Review what browsers see:** audit rendered pages, including sites that use JavaScript.
+- **Check AI crawler controls:** inspect crawler policies and GEO page signals; analyze supplied AI-answer citations, crawler logs, and Google/Bing exports.
+- **Keep checks in your workflow:** use the CLI, Node.js SDK, REST API, or MCP server.
+- **Inspect and adapt the checks:** Aviary is MIT licensed. Default local audits have no built-in telemetry and do not upload reports. See [data handling](docs/PRIVACY.md) for network requests and optional services.
+
+Scores summarize the included checks. They do not verify factual accuracy or predict rankings and AI citations.
+
+## Run your first audit
+
+With Node.js 20 or newer, replace the example URL with your website:
+
+```sh
+npx @ru1vly/aviary -u https://example.com/ --output report.json --html report.html
+```
+
+Open `report.html` in your browser. Review a failed check, inspect the affected page, make a fix, and run the command again. Keep `report.json` if you want to compare later runs or render another report without auditing again.
+
+Chromium is downloaded on the first browser audit when missing, with a system Chrome fallback. Some Linux systems need additional browser libraries; see [troubleshooting](docs/TROUBLESHOOTING.md).
+
+Follow the [first-audit guide](docs/GETTING_STARTED.md) for a fix-and-review workflow, or [add a scheduled audit to GitHub Actions](docs/GETTING_STARTED.md#run-in-github-actions).
 
 ## Install
 
@@ -62,6 +83,7 @@ The [SDK and MCP guide](docs/SDK.md) covers bounded batches, discovery, cancella
 
 | Need | Guide |
 | --- | --- |
+| First audit, reviewing a fix and GitHub Actions setup | [Getting started](docs/GETTING_STARTED.md) |
 | Options, environment variables and shell completion | [CLI](docs/CLI.md) |
 | GEO auditing, supplied observations and comparison gates | [GEO](docs/GEO.md) |
 | What the output verifies, external comparisons and reproduction | [GEO validation](docs/GEO_OUTPUT_VALIDATION.md) |
@@ -76,6 +98,12 @@ The [SDK and MCP guide](docs/SDK.md) covers bounded batches, discovery, cancella
 | Development, checks and releases | [Contributing](docs/CONTRIBUTING.md), [releasing](docs/RELEASING.md) |
 
 Report JSON Schemas and [OpenAPI](docs/openapi.yaml) remain under `docs/`. Runnable fixtures remain under `examples/`; synthetic examples demonstrate report behavior and do not prove real-world GEO effectiveness.
+
+## Help improve Aviary
+
+Try Aviary on a real project and tell us which findings helped or where setup was confusing. [Report a bug](https://github.com/Ru1vly/Aviary/issues/new?template=bug_report.md) or [share workflow feedback](https://github.com/Ru1vly/Aviary/issues/new?template=workflow_feedback.md). Include sanitized examples so others can reproduce the problem.
+
+Documentation fixes, reproducible bug reports, and improvements to check explanations are useful first contributions. Read [Contributing](docs/CONTRIBUTING.md) for setup and review guidance.
 
 ## Native tools
 

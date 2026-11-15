@@ -21,7 +21,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9.15.9
+          version: 10.34.6
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -64,7 +64,7 @@ jobs:
             exit 1
           fi
 
-          args=(--output reports/current.json --junit reports/aviary.xml --sarif reports/aviary.sarif --markdown reports/aviary.md --pdf reports/aviary.pdf --history reports/history.jsonl)
+          args=(--output reports/current.json --html reports/aviary.html --junit reports/aviary.xml --sarif reports/aviary.sarif --markdown reports/aviary.md --pdf reports/aviary.pdf --history reports/history.jsonl)
           if [ -f reports/baseline.json ]; then
             args+=(--baseline reports/baseline.json --fail-on-regression)
           fi

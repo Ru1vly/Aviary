@@ -1,5 +1,7 @@
 # Practical use cases
 
+For a first audit using the published package, start with [Getting started](../docs/GETTING_STARTED.md).
+
 These examples assume a checkout of Aviary at the repository root. Install dependencies and Chromium with `pnpm install --frozen-lockfile` and `pnpm exec playwright install chromium`, then build with `pnpm run build`. Commands write reports under `reports/` unless a different path is supplied.
 
 For the published package, the `aviary` command provides page audits and crawl workflows. The `pnpm run geo:*` commands below invoke bundled analysis scripts, not CLI flags. Run those scripts from the repository checkout, or invoke them from an npm install with `npm explore @ru1vly/aviary -- npm run <script> -- ...`; use absolute paths for inputs and outputs in that case. See the [GEO guide](../docs/GEO.md) for assumptions and interpretation limits.
