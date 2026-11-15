@@ -1,6 +1,6 @@
 {
   "name": "@ru1vly/aviary",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "SEO and GEO auditing toolkit for websites",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -233,7 +233,7 @@
     "google-ai-performance",
     "google-discover-ai"
   ],
-  "author": "Kerem Yi\u011fit",
+  "author": "Kerem Yiğit",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -277,10 +277,10 @@
     "zod": "^4.4.3"
   },
   "optionalDependencies": {
-    "@ru1vly/aviary-darwin-arm64": "0.1.1",
-    "@ru1vly/aviary-darwin-x64": "0.1.1",
-    "@ru1vly/aviary-linux-arm64": "0.1.1",
-    "@ru1vly/aviary-linux-x64": "0.1.1",
-    "@ru1vly/aviary-win32-x64": "0.1.1"
+    "@ru1vly/aviary-darwin-arm64": "0.2.2",
+    "@ru1vly/aviary-darwin-x64": "0.2.2",
+    "@ru1vly/aviary-linux-arm64": "0.2.2",
+    "@ru1vly/aviary-linux-x64": "0.2.2",
+    "@ru1vly/aviary-win32-x64": "0.2.2"
   }
 }

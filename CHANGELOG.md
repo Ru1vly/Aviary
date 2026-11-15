@@ -2,6 +2,28 @@
 
 Notable changes to Aviary are documented here.
 
+## 0.2.2
+
+### Added
+
+- Wait for verified npm registry visibility before downstream release jobs, so native packages, the root release and container publishing only proceed once the registry confirms the published version.
+- Getting-started guide expansion, bug-report and workflow-feedback issue templates, and README guidance for the new checks.
+
+### Improved
+
+- Rewrite `SECURITY.md` with a supported-versions policy and clearer disclosure and hardening guidance; add GitHub Actions workflow-feedback reporting.
+- Align core-web-vitals failure messages with the actual fail thresholds, make error classification case-insensitive, and match retry status codes on word boundaries.
+- Validate MCP server URL inputs to require `http(s)` URLs without embedded credentials, and make the dynamic loader throw on unknown presets.
+- Decode HTML entities last in the crawler, reset crawler robots-scope state per run, and fix a false-positive pattern in image CDN detection.
+- Correct the checker count from 28 to 29 across docs, CLI output and the TUI; truncate TUI URLs by character rather than byte and fix the `/29` denominator.
+- Default `llmModel` to `llama3` to match the documented configuration, and make TUI rendering robust for non-ASCII URLs.
+
+### Fixed
+
+- Remove unused Rust dependencies (`regex`, `tracing-opentelemetry`) from the engine crate.
+- Count meta-tag characters by Unicode scalar values so non-ASCII content is measured consistently.
+- Deduplicate CLI completions across shells (including nine redundant fish entries) and sort fast-checker categories deterministically.
+
 ## 0.2.1
 
 ### Added
